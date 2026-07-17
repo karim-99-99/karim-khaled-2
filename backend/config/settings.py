@@ -33,6 +33,17 @@ def env_list(key, default=""):
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
+def env_origins(key, default=""):
+    """CORS origins: strip query/fragment (e.g. Vercel share links)."""
+    from urllib.parse import urlsplit, urlunsplit
+
+    origins = []
+    for item in env_list(key, default):
+        parts = urlsplit(item)
+        origins.append(urlunsplit((parts.scheme, parts.netloc, "", "", "")))
+    return origins
+
+
 SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-insecure-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
@@ -140,8 +151,8 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# CORS: allow the Vite dev server.
-CORS_ALLOWED_ORIGINS = env_list(
+# CORS: Vite locally + Vercel in production.
+CORS_ALLOWED_ORIGINS = env_origins(
     "CORS_ALLOWED_ORIGINS",
     "http://localhost:5173,http://127.0.0.1:5173",
 )
