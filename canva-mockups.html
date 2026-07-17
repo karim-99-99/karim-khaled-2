@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>منصة التعليم الإلكتروني — Canva Mockups</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #2563EB;
+      --primary-dark: #1D4ED8;
+      --primary-light: #DBEAFE;
+      --bg: #F8FAFC;
+      --surface: #FFFFFF;
+      --border: #E2E8F0;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --success: #16A34A;
+      --error: #DC2626;
+      --warning: #F59E0B;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
+      --font: 'Cairo', 'Tajawal', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: var(--font);
+      background: #1e293b;
+      color: var(--text);
+      padding: 40px 20px;
+      line-height: 1.5;
+    }
+
+    .page-index {
+      max-width: 900px;
+      margin: 0 auto 48px;
+      background: var(--surface);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .page-index h1 { font-size: 28px; margin-bottom: 8px; color: var(--primary); }
+    .page-index p { color: var(--text-muted); margin-bottom: 20px; }
+    .page-index ol { padding-right: 24px; }
+    .page-index li { margin-bottom: 8px; }
+    .page-index a { color: var(--primary); text-decoration: none; font-weight: 600; }
+    .page-index a:hover { text-decoration: underline; }
+
+    .screen-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 64px;
+      scroll-margin-top: 24px;
+    }
+
+    .screen-label {
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .screen-meta {
+      color: #94a3b8;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    /* Desktop frame */
+    .frame-desktop {
+      width: 1440px;
+      height: 1024px;
+      background: var(--bg);
+      overflow: hidden;
+      border-radius: 8px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      flex-shrink: 0;
+      transform-origin: top center;
+    }
+
+    /* Mobile frame */
+    .frame-mobile {
+      width: 375px;
+      height: 812px;
+      background: var(--bg);
+      overflow: hidden;
+      border-radius: 24px;
+      box-shadow: var(--shadow-lg);
+      border: 8px solid #0f172a;
+      flex-shrink: 0;
+    }
+
+    /* Shared components */
+    .header {
+      height: 64px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--primary);
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+    }
+
+    .nav { display: flex; gap: 8px; }
+    .nav a {
+      padding: 8px 16px;
+      text-decoration: none;
+      color: var(--text-muted);
+      font-size: 15px;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+    }
+    .nav a.active { color: var(--primary); background: var(--primary-light); }
+
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .header-auth-btn {
+      padding: 8px 16px;
+      border: 1px solid var(--primary);
+      background: white;
+      color: var(--primary);
+      border-radius: var(--radius-sm);
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .content { padding: 32px; height: calc(100% - 64px); overflow: hidden; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
+      font-family: var(--font);
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      cursor: default;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-secondary { background: white; color: var(--primary); border: 1px solid var(--border); }
+    .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+    .btn-sm { padding: 8px 16px; font-size: 13px; }
+
+    .chip {
+      display: inline-flex;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      border: 1px solid var(--border);
+      background: white;
+      color: var(--text);
+    }
+    .chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .breadcrumb {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+    .breadcrumb span { color: var(--primary); }
+
+    /* Screen-specific */
+    .hero-next-class {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white;
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .hero-next-class .eyebrow { font-size: 13px; opacity: 0.85; margin-bottom: 8px; }
+    .hero-next-class h2 { font-size: 28px; margin-bottom: 8px; }
+    .hero-next-class .meta { font-size: 16px; opacity: 0.9; }
+    .hero-next-class .btn { background: white; color: var(--primary); }
+
+    .quick-action {
+      width: 200px;
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .quick-action .icon { font-size: 32px; margin-bottom: 8px; }
+    .quick-action h3 { font-size: 18px; }
+
+    .filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+    .level-tabs { display: flex; gap: 0; margin-bottom: 24px; background: white; border-radius: var(--radius-sm); border: 1px solid var(--border); width: fit-content; overflow: hidden; }
+    .level-tabs span { padding: 10px 28px; font-weight: 600; font-size: 15px; color: var(--text-muted); }
+    .level-tabs span.active { background: var(--primary); color: white; }
+
+    .lesson-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .lesson-card { overflow: hidden; }
+    .lesson-thumb {
+      height: 140px;
+      background: linear-gradient(135deg, #1e3a5f, #2563EB);
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 40px;
+    }
+    .lesson-thumb .badge {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(255,255,255,0.9);
+      color: var(--success);
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-weight: 700;
+    }
+    .lesson-card-body { padding: 16px; }
+    .lesson-card-body h4 { font-size: 15px; margin-bottom: 6px; }
+    .lesson-card-body p { font-size: 13px; color: var(--text-muted); }
+
+    .course-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .course-card .cover {
+      height: 160px;
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+    .course-card .cover.math { background: linear-gradient(135deg, #1e40af, #3b82f6); }
+    .course-card .cover.physics { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
+    .course-card .cover.chem { background: linear-gradient(135deg, #059669, #34d399); }
+    .course-card-body { padding: 20px; }
+    .course-card-body h3 { font-size: 20px; margin-bottom: 8px; }
+    .course-card-body p { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; }
+
+    .toolbar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+      align-items: center;
+    }
+    .search-box {
+      flex: 1;
+      max-width: 320px;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: white;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .course-hero {
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+    .course-hero h1 { font-size: 32px; margin-bottom: 8px; }
+    .course-hero p { color: var(--text-muted); margin-bottom: 16px; }
+
+    .accordion { border-radius: var(--radius-md); overflow: hidden; }
+    .accordion-header {
+      padding: 16px 20px;
+      background: white;
+      border: 1px solid var(--border);
+      font-weight: 700;
+      font-size: 16px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .lesson-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border: 1px solid var(--border);
+      border-top: none;
+      background: white;
+    }
+    .lesson-row-title { font-weight: 600; }
+    .lesson-row-actions { display: flex; gap: 8px; }
+    .icon-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0;
+    }
+    .tab {
+      padding: 12px 24px;
+      font-weight: 600;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+    }
+    .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+    .video-player {
+      width: 100%;
+      max-width: 900px;
+      aspect-ratio: 16/9;
+      background: #0f172a;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 64px;
+      margin-bottom: 20px;
+    }
+
+    .test-mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px; }
+    .test-mode-card { padding: 32px; min-height: 220px; }
+    .test-mode-card .icon { font-size: 40px; margin-bottom: 16px; }
+    .test-mode-card h3 { font-size: 22px; margin-bottom: 8px; }
+    .test-mode-card p { color: var(--text-muted); margin-bottom: 20px; font-size: 15px; }
+
+    .form-card { max-width: 640px; margin: 0 auto; padding: 32px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 8px; font-size: 14px; }
+    .form-control {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: white;
+      font-family: var(--font);
+      font-size: 15px;
+    }
+    .checkbox-group label { display: flex; align-items: center; gap: 8px; font-weight: 400; margin-bottom: 8px; }
+    .radio-group { display: flex; gap: 16px; }
+    .radio-group label { display: flex; align-items: center; gap: 6px; font-weight: 400; }
+    .form-actions { display: flex; justify-content: space-between; margin-top: 28px; }
+
+    .preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 24px; }
+    .preset-card {
+      padding: 20px;
+      text-align: center;
+      cursor: default;
+    }
+    .preset-card.selected { border: 2px solid var(--primary); background: var(--primary-light); }
+    .preset-card h4 { font-size: 18px; margin-bottom: 8px; }
+    .preset-card .ratio { font-size: 14px; color: var(--text-muted); margin-bottom: 8px; }
+    .preset-card .counts { font-size: 13px; font-weight: 600; color: var(--primary); }
+
+    .test-runner-header {
+      height: 56px;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      font-weight: 600;
+    }
+    .timer { font-size: 20px; color: var(--warning); }
+    .progress-bar {
+      height: 6px;
+      background: var(--border);
+      margin: 0 24px;
+    }
+    .progress-fill { height: 100%; width: 37%; background: var(--primary); }
+
+    .runner-body { display: flex; height: calc(100% - 56px - 6px - 72px); }
+    .question-panel { flex: 1; padding: 32px; }
+    .question-panel h3 { font-size: 18px; margin-bottom: 24px; line-height: 1.7; }
+    .answer-option {
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      margin-bottom: 12px;
+      background: white;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .answer-option.selected { border: 2px solid var(--primary); background: var(--primary-light); }
+    .runner-sidebar {
+      width: 280px;
+      background: white;
+      border-right: 1px solid var(--border);
+      padding: 20px;
+    }
+    .q-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .q-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .q-btn.current { background: var(--primary); color: white; border-color: var(--primary); }
+    .q-btn.answered { border-color: var(--success); color: var(--success); }
+    .runner-footer {
+      height: 72px;
+      background: white;
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+    }
+
+    .score-card {
+      padding: 32px;
+      text-align: center;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+    }
+    .score-ring {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      border: 8px solid var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .review-item {
+      padding: 20px;
+      margin-bottom: 12px;
+    }
+    .review-item .status { font-weight: 700; margin-bottom: 12px; }
+    .review-item .status.correct { color: var(--success); }
+    .review-item .status.wrong { color: var(--error); }
+    .correction-tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .correction-tabs span { padding: 6px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; border: 1px solid var(--border); }
+    .correction-tabs span.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    .schedule-toggle { display: flex; gap: 8px; margin-bottom: 24px; }
+    .session-card {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+      margin-bottom: 12px;
+    }
+    .session-time { font-size: 20px; font-weight: 700; color: var(--primary); min-width: 80px; }
+    .session-info { flex: 1; }
+    .session-info h4 { font-size: 16px; margin-bottom: 4px; }
+    .session-info p { font-size: 13px; color: var(--text-muted); }
+    .live-badge { background: var(--success); color: white; font-size: 11px; padding: 4px 10px; border-radius: 999px; font-weight: 700; }
+
+    .mobile-header { padding: 16px; background: white; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+    .mobile-content { padding: 16px; height: calc(100% - 56px - 64px); overflow: hidden; }
+    .mobile-bottom-nav {
+      height: 64px;
+      background: white;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .mobile-bottom-nav span.active { color: var(--primary); font-weight: 700; }
+    .mobile-lesson-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .page-index { display: none; }
+      .screen-wrapper { page-break-after: always; margin-bottom: 0; }
+      .frame-desktop, .frame-mobile { box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-index">
+    <h1>منصة التعليم الإلكتروني — نماذج Canva</h1>
+    <p>افتح هذا الملف في المتصفح، ثم التقط لقطة شاشة لكل إطار (1440×1024) وارفعها إلى Canva.</p>
+    <p><strong>نسخ أخرى:</strong> <a href="canva-mockups-mobile.html">جوال 375×812</a> · <a href="canva-mockups-tablet.html">تابلت 768×1024</a></p>
+    <ol>
+      <li><a href="#home-desktop">01 — الرئيسية (سطح المكتب)</a></li>
+      <li><a href="#home-mobile">01b — الرئيسية (جوال)</a></li>
+      <li><a href="#courses">02 — الدورات (4 مواد)</a></li>
+      <li><a href="#subject-hub">03 — مسارات المادة</a></li>
+      <li><a href="#taasees">04 — تأسيس (الدروس)</a></li>
+      <li><a href="#lesson">05 — درس التأسيس</a></li>
+      <li><a href="#tagmeeat">06 — تجميعات</a></li>
+      <li><a href="#tests-hub">07 — اختبارات (محاكي / مدرس)</a></li>
+      <li><a href="#simulator">08 — المحاكي الشخصي</a></li>
+      <li><a href="#teacher-test">09 — اختبار المدرس</a></li>
+      <li><a href="#test-runner">10 — شاشة الاختبار</a></li>
+      <li><a href="#results">11 — النتائج (قائمة الاختبارات)</a></li>
+      <li><a href="#results-detail">11b — مراجعة اختبار</a></li>
+      <li><a href="#schedule">12 — جدول الحصص</a></li>
+      <li><a href="#subscription">13 — اشتراكي</a></li>
+      <li><a href="#login">14 — تسجيل الدخول</a></li>
+      <li><a href="#register">15 — إنشاء حساب</a></li>
+    </ol>
+  </div>
+
+  <!-- 01 HOME DESKTOP -->
+  <div class="screen-wrapper" id="home-desktop">
+    <div class="screen-label">01 — الرئيسية / Dashboard (Desktop 1440×1024)</div>
+    <div class="screen-meta">Screenshot this frame at 100% zoom for Canva import</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav">
+          <a href="#" class="active">الرئيسية</a>
+          <a href="#">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#">جدول الحصص</a>
+          <a href="#">اشتراكي</a>
+        </nav>
+        <div class="header-actions">
+          <button class="header-auth-btn">تسجيل الدخول / إنشاء حساب</button>
+          <div class="avatar">م</div>
+        </div>
+      </header>
+      <div class="content">
+        <div class="hero-next-class">
+          <div>
+            <div class="eyebrow">الحصة القادمة</div>
+            <h2>الرياضيات</h2>
+            <div class="meta">السبت، 5 مايو · 6:00 مساءً</div>
+          </div>
+          <button class="btn">رابط الحصة Zoom ↗</button>
+        </div>
+        <div class="card quick-action">
+          <div class="icon">📝</div>
+          <h3>اختبارات</h3>
+        </div>
+        <div class="section-title">تصفح حسب المادة</div>
+        <div class="filter-row">
+          <span class="chip active">رياضيات</span>
+          <span class="chip active">فيزياء</span>
+          <span class="chip">أحياء</span>
+          <span class="chip">كيمياء</span>
+        </div>
+        <div class="level-tabs">
+          <span class="active">1</span>
+          <span>2</span>
+          <span>3</span>
+        </div>
+        <div class="section-title">الدروس المقترحة</div>
+        <div class="lesson-grid">
+          <div class="card lesson-card">
+            <div class="lesson-thumb">▶<span class="badge">سهل</span></div>
+            <div class="lesson-card-body"><h4>مقدمة في التكامل</h4><p>المستوى 1 · 12 دقيقة</p></div>
+          </div>
+          <div class="card lesson-card">
+            <div class="lesson-thumb">▶<span class="badge">متوسط</span></div>
+            <div class="lesson-card-body"><h4>قواعد التفاضل</h4><p>المستوى 2 · 18 دقيقة</p></div>
+          </div>
+          <div class="card lesson-card">
+            <div class="lesson-thumb" style="background:linear-gradient(135deg,#64748b,#94a3b8)">📄</div>
+            <div class="lesson-card-body"><h4>واجب الوحدة 3</h4><p>PDF · واجب منزلي</p></div>
+          </div>
+          <div class="card lesson-card">
+            <div class="lesson-thumb">▶<span class="badge">صعب</span></div>
+            <div class="lesson-card-body"><h4>تطبيقات التكامل</h4><p>المستوى 3 · 22 دقيقة</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 01b HOME MOBILE -->
+  <div class="screen-wrapper" id="home-mobile">
+    <div class="screen-label">01b — الرئيسية (Mobile 375×812)</div>
+    <div class="frame-mobile">
+      <div class="mobile-header">
+        <div class="logo"><div class="logo-icon">ت</div></div>
+        <strong>الرئيسية</strong>
+        <div class="avatar" style="width:32px;height:32px;font-size:12px">م</div>
+      </div>
+      <div class="mobile-content">
+        <div class="hero-next-class" style="padding:20px;margin-bottom:16px;flex-direction:column;align-items:flex-start;gap:16px">
+          <div>
+            <div class="eyebrow">الحصة القادمة</div>
+            <h2 style="font-size:22px">الرياضيات</h2>
+            <div class="meta">السبت 5 مايو · 6:00 م</div>
+          </div>
+          <button class="btn btn-sm" style="width:100%">رابط Zoom</button>
+        </div>
+        <div class="filter-row" style="margin-bottom:12px">
+          <span class="chip active" style="font-size:12px;padding:6px 12px">رياضيات</span>
+          <span class="chip" style="font-size:12px;padding:6px 12px">فيزياء</span>
+        </div>
+        <div class="mobile-lesson-grid">
+          <div class="card lesson-card">
+            <div class="lesson-thumb" style="height:100px">▶</div>
+            <div class="lesson-card-body"><h4>مقدمة في التكامل</h4><p>12 دقيقة</p></div>
+          </div>
+        </div>
+      </div>
+      <div class="mobile-bottom-nav">
+        <span class="active">الرئيسية</span>
+        <span>دورات</span>
+        <span>اختبارات</span>
+        <span>نتائج</span>
+        <span>جدول</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 COURSES -->
+  <div class="screen-wrapper" id="courses">
+    <div class="screen-label">02 — الدورات: اختيار المادة (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#" class="active">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#">جدول الحصص</a>
+        </nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <h1 style="font-size:32px;margin-bottom:8px">دورات</h1>
+        <p style="color:var(--text-muted);margin-bottom:32px">اختر المادة — ثم تأسيس أو تجميع أو اختبارات</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:720px">
+          <button class="btn btn-primary" style="min-height:88px;font-size:20px">رياضيات</button>
+          <button class="btn btn-secondary" style="min-height:88px;font-size:20px">فيزياء</button>
+          <button class="btn btn-secondary" style="min-height:88px;font-size:20px">كيمياء</button>
+          <button class="btn btn-secondary" style="min-height:88px;font-size:20px">أحياء</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 SUBJECT HUB -->
+  <div class="screen-wrapper" id="subject-hub">
+    <div class="screen-label">03 — مسارات المادة: رياضيات (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#" class="active">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#">جدول الحصص</a>
+        </nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <div class="breadcrumb">دورات &gt; <span>رياضيات</span></div>
+        <h1 style="font-size:32px;margin-bottom:24px">رياضيات</h1>
+        <div class="filter-row" style="margin-bottom:24px">
+          <span class="chip active">تأسيس</span>
+          <span class="chip">تجميع</span>
+          <span class="chip">اختبارات</span>
+        </div>
+        <div class="card" style="padding:24px">
+          <p style="color:var(--text-muted)">تأسيس: دروس مرقمة — فيديو، PDF، واجب (أسئلة اختيار). التجميع: نفس الدروس بمستويات سهل/متوسط/صعب. الاختبارات: محاكي شخصي أو مدرس.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 TAASEES -->
+  <div class="screen-wrapper" id="taasees">
+    <div class="screen-label">04 — تأسيس: قائمة الدروس (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#" class="active">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#">جدول الحصص</a>
+        </nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <div class="breadcrumb">دورات &gt; رياضيات &gt; <span>تأسيس</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <h1 style="font-size:28px">تأسيس — رياضيات</h1>
+          <button class="btn btn-secondary">إضافة درس</button>
+        </div>
+        <div class="lesson-row"><span style="width:32px;font-weight:700">1</span><span class="lesson-row-title">المعادلات الخطية</span><span style="color:var(--text-muted);font-size:13px">فيديو · PDF · واجب</span><button class="btn btn-ghost">تعديل</button></div>
+        <div class="lesson-row"><span style="width:32px;font-weight:700">2</span><span class="lesson-row-title">حل المعادلات</span><span style="color:var(--text-muted);font-size:13px">فيديو · واجب</span><button class="btn btn-ghost">تعديل</button></div>
+        <div class="lesson-row"><span style="width:32px;font-weight:700">3</span><span class="lesson-row-title">تطبيقات عملية</span><span style="color:var(--text-muted);font-size:13px">PDF</span><button class="btn btn-ghost">تعديل</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 LESSON -->
+  <div class="screen-wrapper" id="lesson">
+    <div class="screen-label">05 — درس التأسيس (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#" class="active">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#">جدول الحصص</a>
+        </nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <div class="breadcrumb">دورات &gt; رياضيات &gt; تأسيس &gt; <span>الدرس 1</span></div>
+        <h1 style="font-size:28px;margin-bottom:8px">الدرس 1: المعادلات الخطية</h1>
+        <p style="color:var(--text-muted);margin-bottom:20px">المعلم يعدّل الاسم ويضيف المحتوى</p>
+        <div class="tabs">
+          <span class="tab active">فيديو</span>
+          <span class="tab">PDF</span>
+          <span class="tab">واجب</span>
+        </div>
+        <div class="video-player">▶</div>
+        <p style="max-width:900px;margin-bottom:24px;color:var(--text-muted)">واجب: أسئلة اختيار من متعدد — المعلم يضيف عدد الأسئلة المطلوب.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <button class="btn btn-secondary">إضافة فيديو</button>
+          <button class="btn btn-secondary">إضافة PDF</button>
+          <button class="btn btn-secondary">إضافة واجب (أسئلة)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 TAGMEEAT -->
+  <div class="screen-wrapper" id="tagmeeat">
+    <div class="screen-label">06 — تجميعات (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول الحصص</a></nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <div class="breadcrumb">دورات &gt; رياضيات &gt; <span>تجميع</span></div>
+        <h1 style="font-size:28px;margin-bottom:8px">تجميعات — رياضيات</h1>
+        <p style="color:var(--text-muted);margin-bottom:20px">نفس أسماء دروس التأسيس — اختر درساً ثم المستوى</p>
+        <div class="filter-row" style="margin-bottom:16px">
+          <span class="chip active">المعادلات الخطية</span>
+          <span class="chip">حل المعادلات</span>
+          <span class="chip">تطبيقات عملية</span>
+        </div>
+        <div class="filter-row" style="margin-bottom:24px">
+          <span class="chip">سهل</span>
+          <span class="chip active">متوسط</span>
+          <span class="chip">صعب</span>
+        </div>
+        <div class="card" style="padding:20px">
+          <strong>المعادلات الخطية — مستوى متوسط</strong>
+          <p style="margin-top:12px;color:var(--text-muted);font-size:14px">سؤال 1 · سؤال 2 · سؤال 3 — أسئلة وضعها المعلم (مصدر اختبار المدرس)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 07 TESTS HUB -->
+  <div class="screen-wrapper" id="tests-hub">
+    <div class="screen-label">07 — اختبارات داخل المادة (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#" class="active">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#">جدول الحصص</a>
+        </nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <div class="breadcrumb">دورات &gt; رياضيات &gt; <span>اختبارات</span></div>
+        <h1 style="font-size:32px;margin-bottom:8px">اختبارات</h1>
+        <p style="color:var(--text-muted);margin-bottom:32px">محاكي شخصي أو مدرس — من بنك التجميعات</p>
+        <div class="test-mode-grid">
+          <div class="card test-mode-card">
+            <h3>المحاكي الشخصي</h3>
+            <p>عدد الأسئلة، الدروس، المادة، المستوى — اختبار عشوائي</p>
+            <button class="btn btn-primary">ابدأ الإعداد</button>
+          </div>
+          <div class="card test-mode-card">
+            <h3>مدرس</h3>
+            <p>معادلة صعوبة · مراجعة فورية أو نهائية</p>
+            <button class="btn btn-primary">ابدأ الإعداد</button>
+          </div>
+        </div>
+        <div class="section-title">اختباراتك الأخيرة</div>
+        <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center">
+          <div><strong>محاكي · رياضيات</strong><br><span style="color:var(--text-muted);font-size:13px">8 أسئلة · 75% · 5 يونيو</span></div>
+          <button class="btn btn-secondary btn-sm">تفاصيل</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 08 SIMULATOR -->
+  <div class="screen-wrapper" id="simulator">
+    <div class="screen-label">08 — المحاكي الشخصي (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#">نتائج</a><a href="#">جدول الحصص</a></nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <div class="breadcrumb">← رجوع · <span>المحاكي الشخصي</span></div>
+        <div class="card form-card">
+          <h2 style="margin-bottom:24px">المحاكي الشخصي</h2>
+          <div class="form-group">
+            <label>المادة *</label>
+            <div class="form-control">رياضيات ▼</div>
+          </div>
+          <div class="form-group">
+            <label>الدروس *</label>
+            <div class="form-control">المعادلات الخطية، حل المعادلات ▼</div>
+          </div>
+          <div class="form-group">
+            <label>عدد الأسئلة *</label>
+            <div style="display:flex;align-items:center;gap:12px">
+              <button class="btn btn-ghost btn-sm">−</button>
+              <div class="form-control" style="width:80px;text-align:center">8</div>
+              <button class="btn btn-ghost btn-sm">+</button>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>المستوى</label>
+            <div class="radio-group">
+              <label><input type="radio" name="d" /> سهل</label>
+              <label><input type="radio" name="d" checked /> متوسط</label>
+              <label><input type="radio" name="d" /> صعب</label>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-ghost">إلغاء</button>
+            <button class="btn btn-primary">ابدأ الاختبار ←</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 09 TEACHER TEST -->
+  <div class="screen-wrapper" id="teacher-test">
+    <div class="screen-label">09 — اختبار المدرس (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول الحصص</a></nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <div class="breadcrumb">دورات &gt; رياضيات &gt; اختبارات &gt; <span>مدرس</span></div>
+        <div class="card form-card" style="max-width:720px">
+          <h2 style="margin-bottom:8px">اختبار المدرس</h2>
+          <p style="color:var(--text-muted);margin-bottom:24px">الأسئلة من بنك التجميعات حسب معادلة المستوى</p>
+          <div class="form-group"><label>المادة *</label><div class="form-control">رياضيات ▼</div></div>
+          <div class="form-group"><label>الدرس *</label><div class="form-control">المعادلات الخطية ▼</div></div>
+          <div class="form-group"><label>عدد الأسئلة *</label><div class="form-control" style="width:100px">20</div></div>
+          <div class="preset-grid">
+            <div class="card preset-card">
+              <h4>سهل</h4>
+              <div class="ratio">70% · 20% · 10%</div>
+            </div>
+            <div class="card preset-card selected">
+              <h4>متوسط</h4>
+              <div class="ratio">35% · 45% · 20%</div>
+            </div>
+            <div class="card preset-card">
+              <h4>صعب</h4>
+              <div class="ratio">20% · 40% · 40%</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>المراجعة</label>
+            <div class="radio-group">
+              <label><input type="radio" name="rev" checked /> فورية — بعد كل سؤال</label>
+              <label><input type="radio" name="rev" /> نهائية — في آخر الاختبار</label>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="width:100%">ابدأ اختبار المدرس</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 08 TEST RUNNER -->
+  <div class="screen-wrapper" id="test-runner">
+    <div class="screen-label">08 — شاشة الاختبار (Desktop)</div>
+    <div class="frame-desktop">
+      <div class="test-runner-header">
+        <span>محاكي شخصي · رياضيات</span>
+        <span>سؤال 3 من 8</span>
+        <span class="timer">⏱ 12:34</span>
+        <button class="btn btn-ghost btn-sm">إنهاء</button>
+      </div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+      <div class="runner-body">
+        <div class="question-panel">
+          <div style="background:var(--primary-light);padding:12px 16px;border-radius:var(--radius-sm);margin-bottom:20px;font-size:14px">🎬 فيديو توضيحي قبل الإجابة · <strong>مشاهدة</strong></div>
+          <h3>ما هي نتيجة تكامل الدالة f(x) = 2x بالنسبة لـ x؟</h3>
+          <div class="answer-option"><span>○</span> أ) x² + C</div>
+          <div class="answer-option selected"><span>●</span> ب) 2x² + C</div>
+          <div class="answer-option"><span>○</span> ج) x²/2 + C</div>
+          <div class="answer-option"><span>○</span> د) 2x + C</div>
+        </div>
+        <div class="runner-sidebar">
+          <div style="font-weight:700;margin-bottom:16px">خريطة الأسئلة</div>
+          <div class="q-nav">
+            <div class="q-btn answered">1</div>
+            <div class="q-btn answered">2</div>
+            <div class="q-btn current">3</div>
+            <div class="q-btn">4</div>
+            <div class="q-btn">5</div>
+            <div class="q-btn">6</div>
+            <div class="q-btn">7</div>
+            <div class="q-btn">8</div>
+          </div>
+        </div>
+      </div>
+      <div class="runner-footer">
+        <button class="btn btn-ghost">← السابق</button>
+        <button class="btn btn-ghost btn-sm">تخطي</button>
+        <button class="btn btn-primary">التالي →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 09 RESULTS -->
+  <div class="screen-wrapper" id="results">
+    <div class="screen-label">11 — النتائج: قائمة الاختبارات (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#">دورات</a>
+          <a href="#" class="active">نتائج</a>
+          <a href="#">جدول الحصص</a>
+        </nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <h1 style="font-size:28px;margin-bottom:8px">نتائجي</h1>
+        <p style="color:var(--text-muted);margin-bottom:24px">كل اختبار باسمه — اضغط لمراجعة إجاباتك</p>
+        <div class="card" style="padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+          <div><strong>محاكي — المعادلات الخطية</strong><br><span style="color:var(--text-muted);font-size:13px">75% · 5 يونيو · خطأان</span></div>
+          <button class="btn btn-secondary btn-sm">مراجعة</button>
+        </div>
+        <div class="card" style="padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;border:2px solid var(--primary)">
+          <div><strong>مدرس — حل المعادلات</strong><br><span style="color:var(--text-muted);font-size:13px">68% · 3 يونيو · 6 أخطاء</span></div>
+          <button class="btn btn-primary btn-sm">مراجعة</button>
+        </div>
+        <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center">
+          <div><strong>محاكي — تطبيقات عملية</strong><br><span style="color:var(--text-muted);font-size:13px">90% · 1 يونيو · خطأ واحد</span></div>
+          <button class="btn btn-secondary btn-sm">مراجعة</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-wrapper" id="results-detail">
+    <div class="screen-label">11b — مراجعة اختبار (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#">دورات</a>
+          <a href="#" class="active">نتائج</a>
+          <a href="#">جدول الحصص</a>
+        </nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+          <div>
+            <div class="breadcrumb">نتائج &gt; <span>مدرس — حل المعادلات</span></div>
+            <h1 style="font-size:24px;margin-top:8px">68% · 14 صحيح · 6 خطأ</h1>
+          </div>
+          <button class="btn btn-ghost">رجوع للقائمة</button>
+        </div>
+        <div class="filter-row" style="margin-bottom:20px">
+          <span class="chip active">الكل</span>
+          <span class="chip">الأخطاء فقط</span>
+        </div>
+        <div class="card review-item">
+          <div class="status correct">سؤال 1 — صحيح · إجابتك: أ</div>
+          <div class="correction-tabs"><span class="active">تصحيح كتابي</span><span>تصحيح فيديو</span></div>
+        </div>
+        <div class="card review-item">
+          <div class="status wrong">سؤال 2 — خطأ · إجابتك: ب · الصحيح: ج</div>
+          <div class="correction-tabs"><span class="active">تصحيح كتابي</span><span>تصحيح فيديو</span></div>
+          <p style="font-size:14px;color:var(--text-muted)">شرح الإجابة الصحيحة...</p>
+        </div>
+        <div class="card review-item">
+          <div class="status correct">سؤال 3 — صحيح · إجابتك: د</div>
+        </div>
+        <div class="card review-item">
+          <div class="status wrong">سؤال 4 — خطأ · إجابتك: أ · الصحيح: ب</div>
+          <div class="correction-tabs"><span class="active">تصحيح كتابي</span><span>تصحيح فيديو</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 SCHEDULE -->
+  <div class="screen-wrapper" id="schedule">
+    <div class="screen-label">10 — جدول الحصص (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#" class="active">جدول الحصص</a>
+        </nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <h1 style="font-size:32px;margin-bottom:24px">جدول الحصص</h1>
+        <div class="schedule-toggle">
+          <span class="chip active">قائمة</span>
+          <span class="chip">تقويم</span>
+        </div>
+        <div class="section-title">اليوم</div>
+        <div class="card session-card">
+          <div class="session-time">6:00 م</div>
+          <div class="session-info">
+            <h4>الرياضيات <span class="live-badge">مباشر الآن</span></h4>
+            <p>الأستاذ أحمد · 60 دقيقة</p>
+          </div>
+          <button class="btn btn-primary btn-sm">انضم عبر Zoom</button>
+        </div>
+        <div class="section-title" style="margin-top:24px">غداً</div>
+        <div class="card session-card">
+          <div class="session-time">5:00 م</div>
+          <div class="session-info">
+            <h4>فيزياء</h4>
+            <p>الأستاذة سارة · 45 دقيقة</p>
+          </div>
+          <button class="btn btn-primary btn-sm">انضم عبر Zoom</button>
+        </div>
+        <div class="card session-card">
+          <div class="session-time">7:30 م</div>
+          <div class="session-info">
+            <h4>كيمياء</h4>
+            <p>الأستاذ خالد · 50 دقيقة</p>
+          </div>
+          <button class="btn btn-secondary btn-sm">تذكير</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 SUBSCRIPTION -->
+  <div class="screen-wrapper" id="subscription">
+    <div class="screen-label">13 — اشتراكي (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#">جدول الحصص</a>
+          <a href="#" class="active">اشتراكي</a>
+        </nav>
+        <div class="header-actions">
+          <button class="header-auth-btn">تسجيل الدخول / إنشاء حساب</button>
+          <div class="avatar">م</div>
+        </div>
+      </header>
+      <div class="content">
+        <h1 style="font-size:32px;margin-bottom:24px">اشتراكي</h1>
+        <div class="card" style="padding:24px;margin-bottom:24px;border:2px solid var(--success)">
+          <h2 style="font-size:20px;margin-bottom:8px">الاشتراك نشط</h2>
+          <p style="color:var(--text-muted);margin-bottom:4px">الباقة: سنوي</p>
+          <p style="color:var(--text-muted);margin-bottom:4px">ينتهي في: 15 ديسمبر 2026</p>
+          <p style="font-weight:700;color:var(--primary);margin-bottom:16px">متبقي: 198 يوم</p>
+          <button class="btn btn-secondary">تجديد الاشتراك</button>
+        </div>
+        <h3 style="margin-bottom:16px">أو اشترك / جدّد عبر بوابة الدفع</h3>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;max-width:600px">
+          <div class="card" style="padding:16px;text-align:center"><strong>شهري</strong></div>
+          <div class="card" style="padding:16px;text-align:center"><strong>فصلي</strong></div>
+          <div class="card" style="padding:16px;text-align:center;border:2px solid var(--primary)"><strong>سنوي</strong></div>
+        </div>
+        <p style="margin-bottom:12px;font-weight:600">بوابات الدفع الإلكتروني</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px">
+          <button class="btn btn-secondary">بطاقة بنكية</button>
+          <button class="btn btn-secondary">فودافون كاش</button>
+          <button class="btn btn-secondary">محفظة إلكترونية</button>
+        </div>
+        <button class="btn btn-primary">إتمام الدفع والاشتراك</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14 LOGIN -->
+  <div class="screen-wrapper" id="login">
+    <div class="screen-label">14 — تسجيل الدخول (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#">جدول الحصص</a>
+          <a href="#">اشتراكي</a>
+        </nav>
+        <div class="header-actions">
+          <button class="header-auth-btn">تسجيل الدخول / إنشاء حساب</button>
+        </div>
+      </header>
+      <div class="content" style="display:flex;justify-content:center;padding-top:48px">
+        <div class="card form-card" style="width:100%;max-width:420px">
+          <h2 style="margin-bottom:24px;text-align:center">تسجيل الدخول</h2>
+          <div class="form-group">
+            <label>البريد الإلكتروني</label>
+            <div class="form-control">example@email.com</div>
+          </div>
+          <div class="form-group">
+            <label>كلمة المرور</label>
+            <div class="form-control">••••••••</div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:8px">تسجيل الدخول</button>
+          <p style="text-align:center;margin-top:16px;color:var(--text-muted);font-size:14px">ليس لديك حساب؟ <a href="#" style="color:var(--primary);font-weight:600">إنشاء حساب</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15 REGISTER -->
+  <div class="screen-wrapper" id="register">
+    <div class="screen-label">15 — إنشاء حساب (Desktop)</div>
+    <div class="frame-desktop">
+      <header class="header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#">جدول الحصص</a>
+          <a href="#">اشتراكي</a>
+        </nav>
+        <div class="header-actions">
+          <button class="header-auth-btn">تسجيل الدخول / إنشاء حساب</button>
+        </div>
+      </header>
+      <div class="content" style="display:flex;justify-content:center;padding-top:32px">
+        <div class="card form-card" style="width:100%;max-width:440px">
+          <h2 style="margin-bottom:24px;text-align:center">إنشاء حساب جديد</h2>
+          <div class="form-group">
+            <label>الاسم *</label>
+            <div class="form-control">الاسم الكامل</div>
+          </div>
+          <div class="form-group">
+            <label>رقم التليفون *</label>
+            <div class="form-control">01xxxxxxxxx</div>
+          </div>
+          <div class="form-group">
+            <label>الجنس *</label>
+            <div class="radio-group">
+              <label><input type="radio" name="gender" checked /> ذكر</label>
+              <label><input type="radio" name="gender" /> أنثى</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>البريد الإلكتروني *</label>
+            <div class="form-control">example@email.com</div>
+          </div>
+          <div class="form-group">
+            <label>كلمة المرور *</label>
+            <div class="form-control">••••••••</div>
+          </div>
+          <button class="btn btn-primary" style="width:100%;margin-top:8px">إنشاء الحساب</button>
+          <p style="text-align:center;margin-top:16px;color:var(--text-muted);font-size:14px">لديك حساب؟ <a href="#" style="color:var(--primary);font-weight:600">تسجيل الدخول</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

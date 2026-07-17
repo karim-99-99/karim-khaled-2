@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>منصة التعليم — نماذج التابلت (Canva)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #2563EB; --primary-light: #DBEAFE; --bg: #F8FAFC; --surface: #FFF;
+      --border: #E2E8F0; --text: #0F172A; --text-muted: #64748B;
+      --success: #16A34A; --error: #DC2626; --radius-sm: 8px; --font: 'Cairo', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: #1e293b; padding: 32px 20px; line-height: 1.5; }
+    .page-index { max-width: 720px; margin: 0 auto 40px; background: var(--surface); border-radius: 16px; padding: 28px; }
+    .page-index h1 { font-size: 24px; color: var(--primary); margin-bottom: 8px; }
+    .page-index p { color: var(--text-muted); margin-bottom: 16px; }
+    .page-index ol { padding-right: 22px; }
+    .page-index a { color: var(--primary); font-weight: 600; text-decoration: none; }
+    .screen-wrapper { display: flex; flex-direction: column; align-items: center; margin-bottom: 56px; scroll-margin-top: 20px; }
+    .screen-label { color: #fff; font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+    .screen-meta { color: #94a3b8; font-size: 12px; margin-bottom: 12px; }
+    .frame-tablet {
+      width: 768px; height: 1024px; background: var(--bg); overflow: hidden;
+      border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.2); flex-shrink: 0;
+      display: flex; flex-direction: column;
+    }
+    .t-header {
+      height: 60px; background: var(--surface); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0;
+    }
+    .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; color: var(--primary); }
+    .logo-icon { width: 34px; height: 34px; background: var(--primary); border-radius: var(--radius-sm); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .t-nav { display: flex; gap: 4px; flex-wrap: wrap; }
+    .t-nav a { padding: 6px 12px; text-decoration: none; color: var(--text-muted); font-size: 13px; font-weight: 600; border-radius: var(--radius-sm); }
+    .t-nav a.active { color: var(--primary); background: var(--primary-light); }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .auth-btn { padding: 6px 12px; border: 1px solid var(--primary); background: #fff; color: var(--primary); border-radius: var(--radius-sm); font-family: var(--font); font-size: 12px; font-weight: 600; }
+    .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .t-body { flex: 1; overflow: hidden; padding: 24px; }
+    .card { background: var(--surface); border-radius: var(--radius-sm); border: 1px solid var(--border); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 14px; font-weight: 600; border: none; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-secondary { background: #fff; color: var(--primary); border: 1px solid var(--border); }
+    .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-size: 12px; padding: 6px 12px; }
+    .chip { display: inline-flex; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); background: #fff; margin-left: 6px; margin-bottom: 6px; }
+    .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .hero { background: linear-gradient(135deg, #2563EB, #1D4ED8); color: #fff; border-radius: var(--radius-sm); padding: 20px 24px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .hero h2 { font-size: 24px; margin: 6px 0; }
+    .hero .meta { font-size: 14px; opacity: .9; }
+    .hero .eyebrow { font-size: 12px; opacity: .85; }
+    .section-title { font-size: 15px; font-weight: 700; margin: 16px 0 12px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .lesson-card { overflow: hidden; }
+    .lesson-thumb { height: 110px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 28px; }
+    .lesson-card-body { padding: 12px; }
+    .lesson-card-body h4 { font-size: 14px; margin-bottom: 4px; }
+    .lesson-card-body p { font-size: 12px; color: var(--text-muted); }
+    .breadcrumb { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+    .breadcrumb span { color: var(--primary); font-weight: 600; }
+    h1 { font-size: 26px; margin-bottom: 8px; }
+    .muted { color: var(--text-muted); font-size: 14px; margin-bottom: 16px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab { padding: 9px 16px; font-size: 14px; font-weight: 600; border-radius: var(--radius-sm); border: 1px solid var(--border); }
+    .tab.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .video-box { height: 220px; background: #0f172a; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 40px; margin-bottom: 16px; }
+    .lesson-row { display: flex; align-items: center; gap: 12px; padding: 12px; margin-bottom: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .form-control { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; color: var(--text-muted); }
+    .form-card { padding: 28px; max-width: 480px; margin: 0 auto; }
+    .test-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .test-card { padding: 20px; }
+    .test-card h3 { font-size: 17px; margin-bottom: 8px; }
+    .test-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+    .runner-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; justify-content: space-between; font-weight: 600; }
+    .option { padding: 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 10px; background: #fff; }
+    .option.selected { border-color: var(--primary); background: var(--primary-light); }
+    .split { display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
+    .preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+    .preset-card { padding: 14px; text-align: center; }
+    .preset-card.selected { border: 2px solid var(--primary); background: var(--primary-light); }
+    .preset-card .ratio { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+    .progress-bar { height: 5px; background: var(--border); margin-bottom: 16px; }
+    .progress-fill { height: 100%; width: 37%; background: var(--primary); }
+    .q-nav { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
+    .q-btn { height: 42px; border-radius: var(--radius-sm); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; background: #fff; }
+    .q-btn.current { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .q-btn.answered { border-color: var(--success); color: var(--success); }
+    .runner-footer { display: flex; justify-content: space-between; margin-top: 16px; }
+    .review-item { padding: 16px; margin-bottom: 10px; }
+    .review-item .status.correct { color: var(--success); font-weight: 700; margin-bottom: 10px; }
+    .review-item .status.wrong { color: var(--error); font-weight: 700; margin-bottom: 10px; }
+    .session-card { display: flex; align-items: center; gap: 16px; padding: 16px; margin-bottom: 10px; }
+    .session-time { font-size: 18px; font-weight: 700; color: var(--primary); min-width: 70px; }
+    .session-info { flex: 1; }
+    .session-info p { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+    .live-badge { background: var(--success); color: #fff; font-size: 10px; padding: 3px 8px; border-radius: 999px; font-weight: 700; }
+    .video-hint { background: var(--primary-light); padding: 10px 14px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 13px; }
+    .timer { color: #F59E0B; }
+    .form-actions { display: flex; justify-content: space-between; margin-top: 20px; }
+    .runner-layout { display: grid; grid-template-columns: 1fr 200px; gap: 20px; }
+  </style>
+</head>
+<body>
+
+  <div class="page-index">
+    <h1>نماذج التابلت — 768×1024</h1>
+    <p>للاستيراد في Canva. المكتبي: <a href="canva-mockups.html">canva-mockups.html</a> · الجوال: <a href="canva-mockups-mobile.html">canva-mockups-mobile.html</a></p>
+    <ol>
+      <li><a href="#t-home">01 الرئيسية</a></li>
+      <li><a href="#t-courses">02 الدورات</a></li>
+      <li><a href="#t-subject">03 مسارات المادة</a></li>
+      <li><a href="#t-taasees">04 تأسيس</a></li>
+      <li><a href="#t-lesson">05 الدرس</a></li>
+      <li><a href="#t-tagmeeat">06 تجميعات</a></li>
+      <li><a href="#t-tests">07 اختبارات</a></li>
+      <li><a href="#t-simulator">08 المحاكي الشخصي</a></li>
+      <li><a href="#t-teacher-test">09 اختبار المدرس</a></li>
+      <li><a href="#t-test-runner">10 شاشة الاختبار</a></li>
+      <li><a href="#t-results">11 النتائج</a></li>
+      <li><a href="#t-results-detail">12 مراجعة اختبار</a></li>
+      <li><a href="#t-schedule">13 جدول الحصص</a></li>
+      <li><a href="#t-subscription">14 اشتراكي</a></li>
+      <li><a href="#t-login">15 تسجيل الدخول</a></li>
+      <li><a href="#t-register">16 إنشاء حساب</a></li>
+    </ol>
+  </div>
+
+  <!-- 01 HOME -->
+  <div class="screen-wrapper" id="t-home">
+    <div class="screen-label">01 — الرئيسية (Tablet 768×1024)</div>
+    <div class="screen-meta">Screenshot at 100% zoom</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav">
+          <a href="#" class="active">الرئيسية</a><a href="#">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a>
+        </nav>
+        <div class="header-actions"><button class="auth-btn">دخول / حساب</button><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body">
+        <div class="hero">
+          <div><div class="eyebrow">الحصة القادمة</div><h2>الرياضيات</h2><div class="meta">السبت 5 مايو · 6:00 م</div></div>
+          <button class="btn btn-secondary" style="background:rgba(255,255,255,.2);color:#fff;border:none">رابط Zoom</button>
+        </div>
+        <div class="section-title">تصفح حسب المادة</div>
+        <div><span class="chip active">رياضيات</span><span class="chip active">فيزياء</span><span class="chip">كيمياء</span><span class="chip">أحياء</span></div>
+        <div class="section-title">الدروس المقترحة</div>
+        <div class="lesson-grid">
+          <div class="card lesson-card"><div class="lesson-thumb">▶</div><div class="lesson-card-body"><h4>مقدمة في التكامل</h4><p>12 دقيقة</p></div></div>
+          <div class="card lesson-card"><div class="lesson-thumb">▶</div><div class="lesson-card-body"><h4>قواعد التفاضل</h4><p>18 دقيقة</p></div></div>
+          <div class="card lesson-card"><div class="lesson-thumb" style="background:linear-gradient(135deg,#64748b,#94a3b8)">📄</div><div class="lesson-card-body"><h4>واجب الوحدة 3</h4><p>PDF</p></div></div>
+          <div class="card lesson-card"><div class="lesson-thumb">▶</div><div class="lesson-card-body"><h4>تطبيقات التكامل</h4><p>22 دقيقة</p></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 COURSES -->
+  <div class="screen-wrapper" id="t-courses">
+    <div class="screen-label">02 — الدورات (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><button class="auth-btn">دخول / حساب</button><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body">
+        <h1>دورات</h1>
+        <p class="muted">اختر المادة — ثم تأسيس أو تجميع أو اختبارات</p>
+        <div class="grid-2" style="max-width:560px">
+          <button class="btn btn-primary" style="min-height:80px;font-size:18px">رياضيات</button>
+          <button class="btn btn-secondary" style="min-height:80px;font-size:18px">فيزياء</button>
+          <button class="btn btn-secondary" style="min-height:80px;font-size:18px">كيمياء</button>
+          <button class="btn btn-secondary" style="min-height:80px;font-size:18px">أحياء</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 SUBJECT -->
+  <div class="screen-wrapper" id="t-subject">
+    <div class="screen-label">03 — مسارات المادة (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body">
+        <div class="breadcrumb">دورات &gt; <span>رياضيات</span></div>
+        <h1>رياضيات</h1>
+        <span class="chip active">تأسيس</span><span class="chip">تجميع</span><span class="chip">اختبارات</span>
+        <div class="card" style="padding:20px;margin-top:20px"><p class="muted" style="margin:0">تأسيس · تجميع · اختبارات — محاكي شخصي أو مدرس</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 04 TAASEES -->
+  <div class="screen-wrapper" id="t-taasees">
+    <div class="screen-label">04 — تأسيس (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body">
+        <div class="breadcrumb">دورات &gt; رياضيات &gt; <span>تأسيس</span></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h1 style="font-size:24px;margin:0">تأسيس — رياضيات</h1>
+          <button class="btn btn-secondary">إضافة درس</button>
+        </div>
+        <div class="lesson-row"><strong style="width:28px">1</strong><span style="flex:1">المعادلات الخطية</span><span class="muted" style="font-size:12px">فيديو · PDF · واجب</span><button class="btn btn-ghost">تعديل</button></div>
+        <div class="lesson-row"><strong style="width:28px">2</strong><span style="flex:1">حل المعادلات</span><span class="muted" style="font-size:12px">فيديو · واجب</span><button class="btn btn-ghost">تعديل</button></div>
+        <div class="lesson-row"><strong style="width:28px">3</strong><span style="flex:1">تطبيقات عملية</span><span class="muted" style="font-size:12px">PDF</span><button class="btn btn-ghost">تعديل</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 05 LESSON -->
+  <div class="screen-wrapper" id="t-lesson">
+    <div class="screen-label">05 — الدرس (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body">
+        <div class="breadcrumb">رياضيات &gt; تأسيس &gt; <span>الدرس 1</span></div>
+        <h1 style="font-size:22px">المعادلات الخطية</h1>
+        <div class="tabs"><span class="tab active">فيديو</span><span class="tab">PDF</span><span class="tab">واجب</span></div>
+        <div class="video-box">▶</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-secondary">إضافة فيديو</button>
+          <button class="btn btn-secondary">إضافة PDF</button>
+          <button class="btn btn-secondary">إضافة واجب</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 06 TAGMEEAT -->
+  <div class="screen-wrapper" id="t-tagmeeat">
+    <div class="screen-label">06 — تجميعات (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body">
+        <h1 style="font-size:22px">تجميعات — رياضيات</h1>
+        <span class="chip active">المعادلات الخطية</span><span class="chip">حل المعادلات</span>
+        <div style="margin-top:12px"><span class="chip">سهل</span><span class="chip active">متوسط</span><span class="chip">صعب</span></div>
+        <div class="card" style="padding:18px;margin-top:18px"><p class="muted" style="margin:0">3 أسئلة — مستوى متوسط — مصدر اختبار المدرس</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 07 TESTS -->
+  <div class="screen-wrapper" id="t-tests">
+    <div class="screen-label">07 — اختبارات (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body">
+        <h1>اختبارات</h1>
+        <p class="muted">محاكي شخصي أو مدرس</p>
+        <div class="test-grid">
+          <div class="card test-card"><h3>محاكي شخصي</h3><p>اختبار عشوائي حسب الدروس والمستوى</p><button class="btn btn-primary">إعداد</button></div>
+          <div class="card test-card"><h3>مدرس</h3><p>من بنك التجميعات · مراجعة فورية/نهائية</p><button class="btn btn-secondary">إعداد</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 08 SIMULATOR -->
+  <div class="screen-wrapper" id="t-simulator">
+    <div class="screen-label">08 — المحاكي الشخصي (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body" style="display:flex;justify-content:center;padding-top:24px">
+        <div class="card form-card">
+          <h2 style="margin-bottom:20px">المحاكي الشخصي</h2>
+          <div class="form-group"><label>المادة *</label><div class="form-control">رياضيات ▼</div></div>
+          <div class="form-group"><label>الدروس *</label><div class="form-control">المعادلات الخطية، حل المعادلات ▼</div></div>
+          <div class="form-group"><label>عدد الأسئلة *</label><div style="display:flex;gap:10px;align-items:center"><button class="btn btn-ghost">−</button><div class="form-control" style="width:80px;text-align:center">8</div><button class="btn btn-ghost">+</button></div></div>
+          <div class="form-group"><label>المستوى</label><span class="chip">سهل</span><span class="chip active">متوسط</span><span class="chip">صعب</span></div>
+          <div class="form-actions"><button class="btn btn-ghost">إلغاء</button><button class="btn btn-primary">ابدأ الاختبار ←</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 09 TEACHER TEST -->
+  <div class="screen-wrapper" id="t-teacher-test">
+    <div class="screen-label">09 — اختبار المدرس (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body" style="display:flex;justify-content:center;padding-top:24px">
+        <div class="card form-card">
+          <h2 style="margin-bottom:8px">اختبار المدرس</h2>
+          <p class="muted">الأسئلة من بنك التجميعات حسب معادلة المستوى</p>
+          <div class="form-group"><label>المادة *</label><div class="form-control">رياضيات ▼</div></div>
+          <div class="form-group"><label>الدرس *</label><div class="form-control">المعادلات الخطية ▼</div></div>
+          <div class="form-group"><label>عدد الأسئلة *</label><div class="form-control" style="width:100px">20</div></div>
+          <div class="preset-grid">
+            <div class="card preset-card"><strong>سهل</strong><div class="ratio">70% · 20% · 10%</div></div>
+            <div class="card preset-card selected"><strong>متوسط</strong><div class="ratio">35% · 45% · 20%</div></div>
+            <div class="card preset-card"><strong>صعب</strong><div class="ratio">20% · 40% · 40%</div></div>
+          </div>
+          <div class="form-group"><label>المراجعة</label><span class="chip active">فورية</span><span class="chip">نهائية</span></div>
+          <button class="btn btn-primary" style="width:100%">ابدأ اختبار المدرس</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 TEST RUNNER -->
+  <div class="screen-wrapper" id="t-test-runner">
+    <div class="screen-label">10 — شاشة الاختبار (Tablet)</div>
+    <div class="frame-tablet">
+      <div class="runner-bar"><span>محاكي شخصي · رياضيات</span><span>سؤال 3 من 8</span><span class="timer">⏱ 12:34</span><button class="btn btn-ghost">إنهاء</button></div>
+      <div class="progress-bar"><div class="progress-fill"></div></div>
+      <div class="t-body">
+        <div class="runner-layout">
+          <div>
+            <div class="video-hint">🎬 فيديو توضيحي قبل الإجابة · <strong>مشاهدة</strong></div>
+            <h3 style="font-size:16px;margin-bottom:16px;line-height:1.6">ما هي نتيجة تكامل الدالة f(x) = 2x بالنسبة لـ x؟</h3>
+            <div class="option">أ) x² + C</div>
+            <div class="option selected">ب) 2x² + C</div>
+            <div class="option">ج) x²/2 + C</div>
+            <div class="option">د) 2x + C</div>
+            <div class="runner-footer"><button class="btn btn-ghost">← السابق</button><button class="btn btn-ghost">تخطي</button><button class="btn btn-primary">التالي →</button></div>
+          </div>
+          <div>
+            <div style="font-weight:700;margin-bottom:12px">خريطة الأسئلة</div>
+            <div class="q-nav">
+              <div class="q-btn answered">1</div><div class="q-btn answered">2</div><div class="q-btn current">3</div><div class="q-btn">4</div>
+              <div class="q-btn">5</div><div class="q-btn">6</div><div class="q-btn">7</div><div class="q-btn">8</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11 RESULTS -->
+  <div class="screen-wrapper" id="t-results">
+    <div class="screen-label">11 — النتائج (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#" class="active">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body">
+        <h1>نتائجي</h1>
+        <div class="card" style="padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center">
+          <div><strong>محاكي — المعادلات الخطية</strong><br><span class="muted" style="font-size:13px">75% · 5 يونيو</span></div>
+          <button class="btn btn-secondary">مراجعة</button>
+        </div>
+        <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center;border:2px solid var(--primary)">
+          <div><strong>مدرس — حل المعادلات</strong><br><span class="muted" style="font-size:13px">68% · 6 أخطاء</span></div>
+          <button class="btn btn-primary">مراجعة</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12 RESULTS DETAIL -->
+  <div class="screen-wrapper" id="t-results-detail">
+    <div class="screen-label">12 — مراجعة اختبار (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#" class="active">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body">
+        <div class="breadcrumb">نتائج &gt; <span>مدرس — حل المعادلات</span></div>
+        <h1 style="font-size:22px;margin-bottom:12px">68% · 14 صحيح · 6 خطأ</h1>
+        <div style="margin-bottom:16px"><span class="chip active">الكل</span><span class="chip">الأخطاء فقط</span></div>
+        <div class="card review-item"><div class="status correct">سؤال 1 — صحيح · إجابتك: أ</div><span class="chip active">تصحيح كتابي</span><span class="chip">تصحيح فيديو</span></div>
+        <div class="card review-item"><div class="status wrong">سؤال 2 — خطأ · إجابتك: ب · الصحيح: ج</div><span class="chip active">تصحيح كتابي</span><span class="chip">تصحيح فيديو</span><p class="muted" style="margin-top:10px">شرح الإجابة الصحيحة...</p></div>
+        <div class="card review-item"><div class="status wrong">سؤال 4 — خطأ · إجابتك: أ · الصحيح: ب</div><span class="chip active">تصحيح كتابي</span><span class="chip">تصحيح فيديو</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13 SCHEDULE -->
+  <div class="screen-wrapper" id="t-schedule">
+    <div class="screen-label">13 — جدول الحصص (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#">نتائج</a><a href="#" class="active">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body">
+        <h1>جدول الحصص</h1>
+        <div style="margin-bottom:16px"><span class="chip active">قائمة</span><span class="chip">تقويم</span></div>
+        <div class="section-title">اليوم</div>
+        <div class="card session-card">
+          <div class="session-time">6:00 م</div>
+          <div class="session-info"><strong>الرياضيات <span class="live-badge">مباشر الآن</span></strong><p>الأستاذ أحمد · 60 دقيقة</p></div>
+          <button class="btn btn-primary">انضم عبر Zoom</button>
+        </div>
+        <div class="section-title">غداً</div>
+        <div class="card session-card">
+          <div class="session-time">5:00 م</div>
+          <div class="session-info"><strong>فيزياء</strong><p>الأستاذة سارة · 45 دقيقة</p></div>
+          <button class="btn btn-primary">انضم عبر Zoom</button>
+        </div>
+        <div class="card session-card">
+          <div class="session-time">7:30 م</div>
+          <div class="session-info"><strong>كيمياء</strong><p>الأستاذ خالد · 50 دقيقة</p></div>
+          <button class="btn btn-secondary">تذكير</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14 SUBSCRIPTION -->
+  <div class="screen-wrapper" id="t-subscription">
+    <div class="screen-label">14 — اشتراكي (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#" class="active">اشتراكي</a></nav>
+        <div class="header-actions"><div class="avatar">م</div></div>
+      </header>
+      <div class="t-body">
+        <h1>اشتراكي</h1>
+        <div class="split">
+          <div>
+            <div class="card" style="padding:20px;margin-bottom:16px;border-color:var(--success)">
+              <strong>اشتراك نشط — سنوي</strong>
+              <p class="muted">ينتهي 15 ديسمبر 2026 · متبقي 198 يوم</p>
+              <button class="btn btn-secondary">تجديد الاشتراك</button>
+            </div>
+            <button class="btn btn-primary">إتمام الدفع والاشتراك</button>
+          </div>
+          <div>
+            <div class="grid-3" style="margin-bottom:16px">
+              <div class="card" style="padding:14px;text-align:center"><strong>شهري</strong></div>
+              <div class="card" style="padding:14px;text-align:center"><strong>فصلي</strong></div>
+              <div class="card" style="padding:14px;text-align:center;border:2px solid var(--primary)"><strong>سنوي</strong></div>
+            </div>
+            <button class="btn btn-secondary btn-block" style="width:100%;margin-bottom:8px">بطاقة بنكية</button>
+            <button class="btn btn-secondary btn-block" style="width:100%;margin-bottom:8px">فودافون كاش</button>
+            <button class="btn btn-secondary btn-block" style="width:100%">محفظة إلكترونية</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15 LOGIN -->
+  <div class="screen-wrapper" id="t-login">
+    <div class="screen-label">15 — تسجيل الدخول (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><button class="auth-btn">دخول / حساب</button></div>
+      </header>
+      <div class="t-body" style="display:flex;align-items:flex-start;justify-content:center;padding-top:48px">
+        <div class="card form-card">
+          <h2 style="text-align:center;margin-bottom:24px">تسجيل الدخول</h2>
+          <div class="form-group"><label>البريد الإلكتروني</label><div class="form-control">example@email.com</div></div>
+          <div class="form-group"><label>كلمة المرور</label><div class="form-control">••••••••</div></div>
+          <button class="btn btn-primary" style="width:100%">تسجيل الدخول</button>
+          <p style="text-align:center;margin-top:16px;color:var(--text-muted);font-size:14px">ليس لديك حساب؟ <a href="#" style="color:var(--primary);font-weight:600">إنشاء حساب</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16 REGISTER -->
+  <div class="screen-wrapper" id="t-register">
+    <div class="screen-label">16 — إنشاء حساب (Tablet)</div>
+    <div class="frame-tablet">
+      <header class="t-header">
+        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <nav class="t-nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
+        <div class="header-actions"><button class="auth-btn">دخول / حساب</button></div>
+      </header>
+      <div class="t-body" style="display:flex;justify-content:center;padding-top:32px">
+        <div class="card form-card">
+          <h2 style="text-align:center;margin-bottom:20px">إنشاء حساب جديد</h2>
+          <div class="form-group"><label>الاسم *</label><div class="form-control">الاسم الكامل</div></div>
+          <div class="form-group"><label>رقم التليفون *</label><div class="form-control">01xxxxxxxxx</div></div>
+          <div class="form-group"><label>الجنس *</label><span class="chip active">ذكر</span><span class="chip">أنثى</span></div>
+          <div class="form-group"><label>البريد الإلكتروني *</label><div class="form-control">example@email.com</div></div>
+          <div class="form-group"><label>كلمة المرور *</label><div class="form-control">••••••••</div></div>
+          <button class="btn btn-primary" style="width:100%">إنشاء الحساب</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
