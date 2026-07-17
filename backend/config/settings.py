@@ -151,11 +151,18 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# CORS: Vite locally + Vercel in production.
+# CORS: Vite locally + Vercel (exact + any *.vercel.app preview/share URL).
 CORS_ALLOWED_ORIGINS = env_origins(
     "CORS_ALLOWED_ORIGINS",
     "http://localhost:5173,http://127.0.0.1:5173",
 )
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://[\w.-]+\.vercel\.app$",
+]
+CORS_ALLOW_CREDENTIALS = True
+CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS) + [
+    "https://*.vercel.app",
+]
 
 # --- Business rules ---
 # Free tier (visitors + non-subscribers) may answer only this many questions.
