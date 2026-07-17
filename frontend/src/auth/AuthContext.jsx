@@ -29,10 +29,16 @@ export function AuthProvider({ children }) {
   }
 
   async function register(payload) {
-    // New accounts can log in immediately with free-tier access
-    // (first lesson + first 10 questions) until admin activates them.
+    // Create the account first. If auto-login fails (cold start / network),
+    // the account still exists — caller can send the user to login.
     await client.post("/auth/register/", payload);
-    return login(payload.email, payload.password);
+    try {
+      return await login(payload.email, payload.password);
+    } catch (err) {
+      const e = new Error("ACCOUNT_CREATED_LOGIN_FAILED");
+      e.cause = err;
+      throw e;
+    }
   }
 
   function logout() {

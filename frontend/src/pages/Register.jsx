@@ -27,7 +27,27 @@ export default function Register() {
       await register(form);
       navigate("/");
     } catch (err) {
-      setErrors(err.response?.data || { detail: "تعذّر إنشاء الحساب" });
+      if (err?.message === "ACCOUNT_CREATED_LOGIN_FAILED") {
+        setErrors({
+          detail:
+            "تم إنشاء الحساب. الرجاء تسجيل الدخول الآن (قد يحتاج السيرفر دقيقة للاستيقاظ).",
+        });
+      } else if (!err.response) {
+        setErrors({
+          detail:
+            "تعذّر الاتصال بالسيرفر. انتظر 30–60 ثانية ثم أعد المحاولة.",
+        });
+      } else {
+        const data = err.response.data || {};
+        const flat = {};
+        for (const [k, v] of Object.entries(data)) {
+          flat[k] = Array.isArray(v) ? v.join(" ") : String(v);
+        }
+        if (!flat.detail && !flat.email && !flat.phone && !flat.password) {
+          flat.detail = "تعذّر إنشاء الحساب";
+        }
+        setErrors(flat);
+      }
     } finally {
       setBusy(false);
     }

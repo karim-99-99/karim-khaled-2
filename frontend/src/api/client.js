@@ -2,7 +2,8 @@ import axios from "axios";
 
 const baseURL = import.meta.env.VITE_API_URL || "http://127.0.0.1:8010/api";
 
-const client = axios.create({ baseURL });
+// Render free tier cold-starts can take 30–60s before the first response.
+const client = axios.create({ baseURL, timeout: 60000 });
 
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem("access");
