@@ -75,6 +75,7 @@ def admin_accounts(request):
                 "gender": u.gender,
                 "role": u.role,
                 "is_active": u.is_active,
+                "has_usable_password": u.has_usable_password(),
                 "created_at": u.created_at,
                 "subscription": _subscription_info(u),
                 "groups": groups,
@@ -100,6 +101,7 @@ def admin_accounts(request):
                 "contact_channel": u.contact_channel,
                 "role": u.role,
                 "is_active": u.is_active,
+                "has_usable_password": u.has_usable_password(),
                 "created_at": u.created_at,
                 "subject_id": u.taught_subject_id,
                 "subject_name": subject_name,
@@ -156,3 +158,36 @@ def set_user_role(request, user_id):
         user.taught_subject = None
     user.save()
     return Response(AdminUserSerializer(user).data)
+
+
+@api_view(["PATCH", "POST"])
+@permission_classes([IsAdmin])
+def set_user_password(request, user_id):
+    """
+    Admin sets a new password for a user.
+    Plaintext passwords are never stored or returned — only a new hash is saved.
+    """
+    user = User.objects.filter(id=user_id).first()
+    if not user:
+        return Response({"detail": "المستخدم غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+    if user.is_admin_role and user.id != request.user.id:
+        return Response(
+            {"detail": "لا يمكن تغيير كلمة مرور مدير آخر"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    password = (request.data.get("password") or "").strip()
+    if len(password) < 6:
+        return Response(
+            {"detail": "كلمة المرور يجب أن تكون 6 أحرف على الأقل"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    user.set_password(password)
+    user.save(update_fields=["password"])
+    return Response(
+        {
+            "id": user.id,
+            "full_name": user.full_name,
+            "has_usable_password": True,
+            "detail": "تم تعيين كلمة المرور بنجاح",
+        }
+    )

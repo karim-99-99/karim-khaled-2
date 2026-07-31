@@ -55,6 +55,27 @@ function AccountsTab() {
     load();
   }
 
+  async function resetPassword(user) {
+    const password = window.prompt(
+      `عيّن كلمة مرور جديدة لـ ${user.full_name || user.email} (6 أحرف على الأقل):`,
+      ""
+    );
+    if (password === null) return;
+    if (password.trim().length < 6) {
+      window.alert("كلمة المرور يجب أن تكون 6 أحرف على الأقل");
+      return;
+    }
+    try {
+      await client.post(`/admin/users/${user.id}/set-password/`, {
+        password: password.trim(),
+      });
+      window.alert("تم تعيين كلمة المرور. احفظها وأرسلها للطالب الآن — لن تظهر مرة أخرى من قاعدة البيانات.");
+      load();
+    } catch (e) {
+      window.alert(e.response?.data?.detail || "تعذّر تعيين كلمة المرور");
+    }
+  }
+
   if (!data) return <div className="spinner">جاري التحميل…</div>;
 
   const term = q.trim().toLowerCase();
@@ -132,6 +153,7 @@ function AccountsTab() {
                 <th>مدة الاشتراك</th>
                 <th>ينتهي في</th>
                 <th>المجموعات</th>
+                <th>كلمة المرور</th>
                 <th>الحساب</th>
               </tr>
             </thead>
@@ -157,6 +179,16 @@ function AccountsTab() {
                   <td>{s.subscription.subscription_end || "—"}</td>
                   <td>
                     {s.groups.length ? s.groups.join("، ") : <span style={{ color: "var(--text-muted)" }}>بدون مجموعة</span>}
+                  </td>
+                  <td style={{ whiteSpace: "nowrap", fontSize: 13 }}>
+                    {s.has_usable_password ? (
+                      <span className="badge badge-active">معيّنة</span>
+                    ) : (
+                      <span className="badge badge-expired">تيليجرام فقط</span>
+                    )}{" "}
+                    <button className="btn btn-sm btn-secondary" onClick={() => resetPassword(s)}>
+                      تعيين كلمة مرور
+                    </button>
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     <button className={`btn btn-sm ${s.is_active ? "btn-ghost" : "btn-primary"}`}
@@ -185,6 +217,7 @@ function AccountsTab() {
                 <th>المادة</th>
                 <th>عدد المجموعات</th>
                 <th>المجموعات</th>
+                <th>كلمة المرور</th>
                 <th>الحساب</th>
               </tr>
             </thead>
@@ -205,6 +238,16 @@ function AccountsTab() {
                   <td><strong>{t.groups_count}</strong></td>
                   <td>
                     {t.groups.length ? t.groups.join("، ") : <span style={{ color: "var(--text-muted)" }}>بدون مجموعة</span>}
+                  </td>
+                  <td style={{ whiteSpace: "nowrap", fontSize: 13 }}>
+                    {t.has_usable_password ? (
+                      <span className="badge badge-active">معيّنة</span>
+                    ) : (
+                      <span className="badge badge-expired">تيليجرام فقط</span>
+                    )}{" "}
+                    <button className="btn btn-sm btn-secondary" onClick={() => resetPassword(t)}>
+                      تعيين كلمة مرور
+                    </button>
                   </td>
                   <td>
                     <button className={`btn btn-sm ${t.is_active ? "btn-ghost" : "btn-primary"}`}
