@@ -1,14 +1,47 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import client from "../api/client";
+import { useAuth } from "../auth/AuthContext";
 
 /**
- * Popup return page for Telegram OIDC (hadafak sequence).
- * Posts code/state to opener, then closes.
+ * Telegram OIDC return page.
+ * Prefer posting code/state to the opener popup parent (hadafak).
+ * If opener is missing (Telegram Desktop / same-tab redirect), finish login here.
  */
 export default function TelegramCallback() {
+  const { acceptTokens } = useAuth();
+  const navigate = useNavigate();
   const [message, setMessage] = useState("جاري إكمال تسجيل تيليجرام…");
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function finishLocally(code, state) {
+      try {
+        const { data: tokens } = await client.post("/auth/telegram/complete/", {
+          code,
+          state,
+        });
+        if (cancelled) return;
+        await acceptTokens({
+          access: tokens.access || tokens.access_token,
+          refresh: tokens.refresh,
+          user: tokens.user,
+        });
+        setMessage("تم تسجيل الدخول بنجاح");
+        navigate("/", { replace: true });
+      } catch (err) {
+        if (cancelled) return;
+        setFailed(true);
+        setMessage(
+          err.response?.data?.detail ||
+            err.response?.data?.error ||
+            "فشل إكمال تسجيل تيليجرام"
+        );
+      }
+    }
+
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code");
     const state = params.get("state");
@@ -21,6 +54,7 @@ export default function TelegramCallback() {
           window.location.origin
         );
         setMessage("تم التأكيد — يمكنك إغلاق هذه النافذة");
+        setTimeout(() => window.close(), 400);
       } else {
         window.opener.postMessage(
           {
@@ -29,23 +63,37 @@ export default function TelegramCallback() {
           },
           window.location.origin
         );
-        setMessage("تعذّر إكمال تسجيل تيليجرام");
+        setFailed(true);
+        setMessage(error || "تعذّر إكمال تسجيل تيليجرام");
+        setTimeout(() => window.close(), 400);
       }
-      setTimeout(() => window.close(), 400);
-    } else if (code && state) {
-      // Opened without popup (rare): send user to login with params for recovery.
-      setMessage("أعد المحاولة من صفحة تسجيل الدخول");
-    } else {
-      setMessage("لا توجد بيانات تيليجرام");
+      return () => {
+        cancelled = true;
+      };
     }
-  }, []);
+
+    if (code && state) {
+      finishLocally(code, state);
+    } else {
+      setFailed(true);
+      setMessage(error || "لا توجد بيانات تيليجرام");
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [acceptTokens, navigate]);
 
   return (
     <div className="card form-card" style={{ textAlign: "center" }}>
-      <div className="spinner" style={{ marginBottom: 12 }}>{message}</div>
-      <Link to="/login" className="btn btn-secondary btn-sm">
-        العودة لتسجيل الدخول
-      </Link>
+      <div className="spinner" style={{ marginBottom: 12 }}>
+        {message}
+      </div>
+      {failed && (
+        <Link to="/login" className="btn btn-secondary btn-sm">
+          العودة لتسجيل الدخول
+        </Link>
+      )}
     </div>
   );
 }
