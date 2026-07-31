@@ -3,9 +3,29 @@ import { Link, useNavigate } from "react-router-dom";
 import client from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 
+function readTelegramParams() {
+  const fromQuery = Object.fromEntries(new URLSearchParams(window.location.search));
+  if (fromQuery.id && fromQuery.hash) return fromQuery;
+
+  // Some Telegram clients put data in the hash fragment.
+  const hash = window.location.hash.replace(/^#/, "");
+  if (hash) {
+    const fromHash = Object.fromEntries(new URLSearchParams(hash));
+    if (fromHash.id && fromHash.hash) return fromHash;
+    if (fromHash.tgAuthResult) {
+      try {
+        const padded = fromHash.tgAuthResult + "=".repeat((4 - (fromHash.tgAuthResult.length % 4)) % 4);
+        return JSON.parse(atob(padded));
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  return null;
+}
+
 /**
- * Return URL for Telegram OAuth redirect (mobile + fallback).
- * Telegram appends id, first_name, username, auth_date, hash, ...
+ * return_to target after oauth.telegram.org confirms login.
  */
 export default function TelegramCallback() {
   const { acceptTokens } = useAuth();
@@ -13,9 +33,9 @@ export default function TelegramCallback() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const params = Object.fromEntries(new URLSearchParams(window.location.search));
-    if (!params.id || !params.hash) {
-      setError("لم تكتمل بيانات تيليجرام. حاول مرة أخرى.");
+    const params = readTelegramParams();
+    if (!params?.id || !params?.hash) {
+      setError("لم تكتمل بيانات تيليجرام. حاول مرة أخرى من صفحة تسجيل الدخول.");
       return;
     }
 

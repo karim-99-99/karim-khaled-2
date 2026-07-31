@@ -28,24 +28,48 @@ def issue_tokens(user: User) -> dict:
     }
 
 
+_TELEGRAM_AUTH_FIELDS = (
+    "id",
+    "first_name",
+    "last_name",
+    "username",
+    "photo_url",
+    "auth_date",
+)
+
+
+def _telegram_scalar(value: Any) -> str:
+    if isinstance(value, (list, tuple)):
+        value = value[0] if value else ""
+    if value is None:
+        return ""
+    return str(value)
+
+
 def verify_telegram_login(data: dict[str, Any]) -> dict[str, Any]:
     """
-    Validate Telegram Login Widget payload.
+    Validate Telegram Login Widget / OAuth redirect payload.
     https://core.telegram.org/widgets/login#checking-authorization
     """
     bot_token = (settings.TELEGRAM_BOT_TOKEN or "").strip()
     if not bot_token:
         raise ValueError("TELEGRAM_NOT_CONFIGURED")
 
-    received_hash = data.get("hash")
+    received_hash = _telegram_scalar(data.get("hash"))
     if not received_hash:
         raise ValueError("MISSING_HASH")
 
-    check_dict = {
-        k: v
-        for k, v in data.items()
-        if k != "hash" and v is not None and v != ""
-    }
+    # Only hash the official fields — extra query keys break verification.
+    check_dict = {}
+    for key in _TELEGRAM_AUTH_FIELDS:
+        raw = data.get(key)
+        value = _telegram_scalar(raw)
+        if value != "":
+            check_dict[key] = value
+
+    if "id" not in check_dict or "auth_date" not in check_dict:
+        raise ValueError("MISSING_HASH")
+
     data_check_string = "\n".join(
         f"{k}={check_dict[k]}" for k in sorted(check_dict.keys())
     )
@@ -53,7 +77,7 @@ def verify_telegram_login(data: dict[str, Any]) -> dict[str, Any]:
     expected = hmac.new(
         secret_key, data_check_string.encode(), hashlib.sha256
     ).hexdigest()
-    if not hmac.compare_digest(expected, str(received_hash)):
+    if not hmac.compare_digest(expected, received_hash):
         raise ValueError("INVALID_HASH")
 
     auth_date = int(check_dict.get("auth_date") or 0)
