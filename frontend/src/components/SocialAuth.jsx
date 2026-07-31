@@ -1,38 +1,17 @@
 import { useEffect, useState } from "react";
 import client from "../api/client";
-import { useAuth } from "../auth/AuthContext";
-
-function loadTelegramWidget() {
-  return new Promise((resolve, reject) => {
-    if (window.Telegram?.Login?.auth) {
-      resolve();
-      return;
-    }
-    const existing = document.querySelector('script[data-telegram-widget="1"]');
-    if (existing) {
-      existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener("error", reject, { once: true });
-      // Script may already be loaded
-      if (window.Telegram?.Login?.auth) resolve();
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "https://telegram.org/js/telegram-widget.js?22";
-    script.async = true;
-    script.dataset.telegramWidget = "1";
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error("telegram widget failed"));
-    document.body.appendChild(script);
-  });
-}
 
 /**
- * Step 1: custom button → official Telegram modal on the page
- * ("Log in with Telegram" / Name, Username, Profile Photo / Continue with Telegram)
- * Then Telegram app confirm → callback creates the account.
+ * Telegram login via full-page OAuth redirect (no popup).
+ *
+ * Popup Login.auth often falls back to "enter phone number" and then
+ * never returns tokens (postMessage blocked) — so nothing happens.
+ *
+ * Redirect flow instead:
+ *   site → oauth.telegram.org ("Open Telegram") → Telegram app confirm
+ *   → /auth/telegram/callback → logged in
  */
-export default function SocialAuth({ onSuccess, mode = "login" }) {
-  const { acceptTokens } = useAuth();
+export default function SocialAuth({ mode = "login" }) {
   const [providers, setProviders] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -47,28 +26,9 @@ export default function SocialAuth({ onSuccess, mode = "login" }) {
           email: { enabled: true },
         })
       );
-    loadTelegramWidget().catch(() => {});
   }, []);
 
-  async function completeWithUser(user) {
-    const { data } = await client.post("/auth/telegram/", user);
-    await acceptTokens(data);
-    onSuccess?.(data.user);
-  }
-
-  function redirectFallback(botId) {
-    const origin = window.location.origin;
-    const returnTo = `${origin}/auth/telegram/callback`;
-    const url = new URL("https://oauth.telegram.org/auth");
-    url.searchParams.set("bot_id", String(botId));
-    url.searchParams.set("origin", origin);
-    url.searchParams.set("request_access", "write");
-    url.searchParams.set("return_to", returnTo);
-    url.searchParams.set("lang", "en");
-    window.location.href = url.toString();
-  }
-
-  async function startTelegram(e) {
+  function startTelegram(e) {
     e?.preventDefault?.();
     setError("");
     const botId = providers?.telegram?.bot_id;
@@ -77,39 +37,24 @@ export default function SocialAuth({ onSuccess, mode = "login" }) {
       return;
     }
 
-    setBusy(true);
-    try {
-      await loadTelegramWidget();
-      if (!window.Telegram?.Login?.auth) {
-        redirectFallback(botId);
-        return;
-      }
-
-      // Opens the in-page modal from your screenshot (step 1).
-      window.Telegram.Login.auth(
-        {
-          bot_id: Number(botId) || botId,
-          request_access: "write",
-          lang: "en",
-        },
-        async (user) => {
-          if (!user) {
-            setBusy(false);
-            return;
-          }
-          try {
-            await completeWithUser(user);
-          } catch (err) {
-            setError(err.response?.data?.detail || "فشل تسجيل تيليجرام");
-            setBusy(false);
-          }
-        }
-      );
-      // Modal is open; user continues in Telegram UI.
-      setTimeout(() => setBusy(false), 800);
-    } catch {
-      redirectFallback(botId);
+    const origin = window.location.origin;
+    // Must match BotFather domain exactly (no trailing slash / www).
+    if (!origin.includes("karim-khaled-2.vercel.app") && !origin.includes("localhost")) {
+      setError("افتح الموقع من الرابط: https://karim-khaled-2.vercel.app");
+      return;
     }
+
+    setBusy(true);
+    sessionStorage.setItem("tg_auth_from", mode);
+
+    const returnTo = `${origin}/auth/telegram/callback`;
+    const url = new URL("https://oauth.telegram.org/auth");
+    url.searchParams.set("bot_id", String(botId));
+    url.searchParams.set("origin", origin);
+    url.searchParams.set("request_access", "write");
+    url.searchParams.set("return_to", returnTo);
+    // Full page — shows "Open Telegram to confirm", not the phone form popup.
+    window.location.assign(url.toString());
   }
 
   const title =
@@ -131,6 +76,10 @@ export default function SocialAuth({ onSuccess, mode = "login" }) {
         }}
       >
         {title}
+        <br />
+        <span style={{ fontSize: 12 }}>
+          سيتم فتح تطبيق تيليجرام للتأكيد — بدون كتابة رقم التليفون
+        </span>
       </p>
 
       <button
@@ -158,7 +107,7 @@ export default function SocialAuth({ onSuccess, mode = "login" }) {
             d="M98 170c3 0 4-1 6-3l16-16 34 25c6 3 11 1 12-6l23-107c2-9-3-13-9-10L51 108c-8 3-8 8-1 10l42 13 98-62c5-3 9-1 5 2"
           />
         </svg>
-        {busy ? "جاري الفتح…" : "تسجيل عبر تيليجرام"}
+        {busy ? "جاري فتح تيليجرام…" : "تسجيل عبر تيليجرام"}
       </button>
 
       {error && <div className="error-text" style={{ marginTop: 8 }}>{error}</div>}

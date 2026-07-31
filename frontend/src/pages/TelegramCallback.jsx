@@ -35,15 +35,28 @@ export default function TelegramCallback() {
   useEffect(() => {
     const params = readTelegramParams();
     if (!params?.id || !params?.hash) {
-      setError("لم تكتمل بيانات تيليجرام. حاول مرة أخرى من صفحة تسجيل الدخول.");
+      setError(
+        "لم تكتمل بيانات تيليجرام. اضغط «Open Telegram» وأكّد الدخول من التطبيق، ثم انتظر العودة للموقع."
+      );
       return;
     }
 
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await client.post("/auth/telegram/", params);
+        // Only send Telegram auth fields (extra query keys break hash check).
+        const payload = {
+          id: params.id,
+          first_name: params.first_name,
+          last_name: params.last_name,
+          username: params.username,
+          photo_url: params.photo_url,
+          auth_date: params.auth_date,
+          hash: params.hash,
+        };
+        const { data } = await client.post("/auth/telegram/", payload);
         if (cancelled) return;
+        sessionStorage.removeItem("tg_auth_from");
         await acceptTokens(data);
         navigate("/", { replace: true });
       } catch (err) {
