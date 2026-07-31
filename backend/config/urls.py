@@ -9,6 +9,7 @@ from accounts.views import (
     RegisterView,
     admin_accounts,
     available_students,
+    change_password,
     set_user_active,
     set_user_password,
     set_user_role,
@@ -61,6 +62,7 @@ api_patterns = [
     path("auth/login/", LoginView.as_view()),
     path("auth/refresh/", TokenRefreshView.as_view()),
     path("auth/me/", MeView.as_view()),
+    path("auth/change-password/", change_password),
     # Public / video
     path("home/free-content/", home_free_content),
     path("home/next-session/", next_session),

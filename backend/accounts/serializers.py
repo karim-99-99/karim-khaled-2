@@ -27,7 +27,26 @@ class UserSerializer(serializers.ModelSerializer):
             "has_active_subscription",
             "created_at",
         ]
-        read_only_fields = ["id", "role", "created_at"]
+        read_only_fields = ["id", "role", "email", "created_at"]
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    old_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True, min_length=6)
+    new_password_confirm = serializers.CharField(write_only=True, min_length=6)
+
+    def validate(self, attrs):
+        if attrs["new_password"] != attrs["new_password_confirm"]:
+            raise serializers.ValidationError(
+                {"new_password_confirm": "كلمة المرور الجديدة غير متطابقة"}
+            )
+        return attrs
+
+    def validate_old_password(self, value):
+        user = self.context["request"].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("كلمة المرور الحالية غير صحيحة")
+        return value
 
 
 class RegisterSerializer(serializers.ModelSerializer):

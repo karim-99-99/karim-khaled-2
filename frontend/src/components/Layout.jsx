@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
 export default function Layout() {
@@ -32,10 +32,15 @@ export default function Layout() {
         <div className="header-actions">
           {user ? (
             <>
+              <Link to="/profile" className="btn btn-ghost btn-sm" title="الملف الشخصي">
+                حسابي
+              </Link>
               <button className="btn btn-ghost btn-sm" onClick={handleLogout}>
                 خروج
               </button>
-              <div className="avatar">{initial}</div>
+              <Link to="/profile" className="avatar" title={user.full_name}>
+                {initial}
+              </Link>
             </>
           ) : (
             <NavLink to="/login" className="btn btn-secondary btn-sm">

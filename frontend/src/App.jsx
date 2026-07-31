@@ -22,6 +22,7 @@ import TeacherPanel from "./pages/TeacherPanel";
 import TeacherSchedule from "./pages/TeacherSchedule";
 import AdminPanel from "./pages/AdminPanel";
 import QuestionEditor from "./pages/QuestionEditor";
+import Profile from "./pages/Profile";
 
 export default function App() {
   return (
@@ -30,6 +31,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
 
         <Route path="/courses" element={<RequireAuth><Courses /></RequireAuth>} />
         <Route path="/courses/:subjectId" element={<RequireAuth><SubjectHub /></RequireAuth>} />
