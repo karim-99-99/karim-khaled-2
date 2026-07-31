@@ -26,11 +26,13 @@ def auth_providers(request):
     """Which social login methods are configured."""
     tg_user = (settings.TELEGRAM_BOT_USERNAME or "").strip().lstrip("@")
     tg_token = (settings.TELEGRAM_BOT_TOKEN or "").strip()
+    bot_id = tg_token.split(":", 1)[0] if tg_token and ":" in tg_token else ""
     return Response(
         {
             "telegram": {
-                "enabled": bool(tg_user and tg_token),
+                "enabled": bool(tg_user and tg_token and bot_id),
                 "bot_username": tg_user,
+                "bot_id": bot_id,
             },
             # WhatsApp login hidden for now (kept in backend for later).
             "whatsapp": {"enabled": False},
