@@ -39,11 +39,22 @@ class User(AbstractUser):
         MALE = "male", "ذكر"
         FEMALE = "female", "أنثى"
 
+    class ContactChannel(models.TextChoices):
+        EMAIL = "email", "بريد إلكتروني"
+        TELEGRAM = "telegram", "تيليجرام"
+        WHATSAPP = "whatsapp", "واتساب"
+
     # Drop username; use email.
     username = None
     email = models.EmailField("البريد الإلكتروني", unique=True)
     full_name = models.CharField("الاسم الكامل", max_length=150)
     phone = models.CharField("رقم التليفون", max_length=20, unique=True)
+    contact_channel = models.CharField(
+        "وسيلة التواصل",
+        max_length=20,
+        choices=ContactChannel.choices,
+        default=ContactChannel.EMAIL,
+    )
     gender = models.CharField(max_length=10, choices=Gender.choices, blank=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.STUDENT)
     # For teachers: the single subject they teach. Lessons/questions they create

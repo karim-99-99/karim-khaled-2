@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
+from .phone import normalize_phone, phones_match_query, synthetic_email
+
 User = get_user_model()
 
 
@@ -18,6 +20,7 @@ class UserSerializer(serializers.ModelSerializer):
             "full_name",
             "email",
             "phone",
+            "contact_channel",
             "gender",
             "role",
             "taught_subject",
@@ -30,20 +33,63 @@ class UserSerializer(serializers.ModelSerializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
+    contact_channel = serializers.ChoiceField(
+        choices=User.ContactChannel.choices,
+        default=User.ContactChannel.EMAIL,
+    )
+    email = serializers.EmailField(required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ["full_name", "phone", "gender", "email", "password"]
-
-    def validate_email(self, value):
-        if User.objects.filter(email__iexact=value).exists():
-            raise serializers.ValidationError("هذا البريد مسجل بالفعل")
-        return value.lower()
+        fields = [
+            "full_name",
+            "phone",
+            "gender",
+            "email",
+            "password",
+            "contact_channel",
+        ]
 
     def validate_phone(self, value):
-        if User.objects.filter(phone=value).exists():
+        normalized = normalize_phone(value)
+        if len(normalized) < 10:
+            raise serializers.ValidationError("رقم التليفون غير صحيح")
+        for candidate in phones_match_query(value):
+            if User.objects.filter(phone=candidate).exists():
+                raise serializers.ValidationError("رقم التليفون مسجل بالفعل")
+        if User.objects.filter(phone=normalized).exists():
             raise serializers.ValidationError("رقم التليفون مسجل بالفعل")
-        return value
+        return normalized
+
+    def validate(self, attrs):
+        channel = attrs.get("contact_channel") or User.ContactChannel.EMAIL
+        email = (attrs.get("email") or "").strip().lower()
+
+        if channel in (
+            User.ContactChannel.TELEGRAM,
+            User.ContactChannel.WHATSAPP,
+        ):
+            # Messenger signup: email is filled automatically from the phone.
+            phone = attrs["phone"]
+            email = synthetic_email(phone, channel)
+            if User.objects.filter(email__iexact=email).exists():
+                raise serializers.ValidationError(
+                    {"phone": "هذا الرقم مسجل بالفعل"}
+                )
+            attrs["email"] = email
+        else:
+            if not email:
+                raise serializers.ValidationError(
+                    {"email": "البريد الإلكتروني مطلوب"}
+                )
+            if User.objects.filter(email__iexact=email).exists():
+                raise serializers.ValidationError(
+                    {"email": "هذا البريد مسجل بالفعل"}
+                )
+            attrs["email"] = email
+
+        attrs["contact_channel"] = channel
+        return attrs
 
     def create(self, validated_data):
         password = validated_data.pop("password")
@@ -57,7 +103,21 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """Adds user profile info to the login response."""
+    """Login with email+password OR phone+password (Telegram / WhatsApp)."""
+
+    phone = serializers.CharField(required=False, allow_blank=True, write_only=True)
+    login_method = serializers.ChoiceField(
+        choices=["email", "telegram", "whatsapp"],
+        required=False,
+        default="email",
+        write_only=True,
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Parent marks USERNAME_FIELD (email) as required; phone login skips it.
+        self.fields[self.username_field].required = False
+        self.fields[self.username_field].allow_blank = True
 
     @classmethod
     def get_token(cls, user):
@@ -67,14 +127,38 @@ class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
         return token
 
     def validate(self, attrs):
-        # is_active is now an admin ban switch (new accounts can log in).
-        banned = User.objects.filter(
-            email__iexact=attrs.get("email", ""), is_active=False
-        ).first()
-        if banned:
-            raise serializers.ValidationError(
-                {"detail": "تم إيقاف حسابك، برجاء التواصل مع الإدارة."}
-            )
+        method = attrs.pop("login_method", None) or "email"
+        phone = (attrs.pop("phone", None) or "").strip()
+        email = (attrs.get(self.username_field) or "").strip()
+
+        if method in ("telegram", "whatsapp") or (phone and not email):
+            user = None
+            for candidate in phones_match_query(phone):
+                user = User.objects.filter(phone=candidate).first()
+                if user:
+                    break
+            if not user:
+                normalized = normalize_phone(phone)
+                user = User.objects.filter(phone=normalized).first()
+            if not user:
+                raise serializers.ValidationError(
+                    {"detail": "رقم التليفون أو كلمة المرور غير صحيحة"}
+                )
+            if not user.is_active:
+                raise serializers.ValidationError(
+                    {"detail": "تم إيقاف حسابك، برجاء التواصل مع الإدارة."}
+                )
+            attrs[self.username_field] = user.email
+        else:
+            banned = User.objects.filter(
+                email__iexact=email, is_active=False
+            ).first()
+            if banned:
+                raise serializers.ValidationError(
+                    {"detail": "تم إيقاف حسابك، برجاء التواصل مع الإدارة."}
+                )
+            attrs[self.username_field] = email.lower()
+
         data = super().validate(attrs)
         data["user"] = UserSerializer(self.user).data
         return data

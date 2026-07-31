@@ -131,6 +131,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "full_name",
             "phone",
             "email",
+            "contact_channel",
             "role",
             "is_active",
             "subscription",

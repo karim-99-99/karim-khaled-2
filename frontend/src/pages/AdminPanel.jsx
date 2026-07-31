@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import client from "../api/client";
 
+function contactLabel(account) {
+  const channel = account.contact_channel;
+  if (channel === "telegram") return "تيليجرام";
+  if (channel === "whatsapp") return "واتساب";
+  const email = account.email || "";
+  if (email.endsWith("@telegram.local")) return "تيليجرام";
+  if (email.endsWith("@whatsapp.local")) return "واتساب";
+  return email || "—";
+}
+
 export default function AdminPanel() {
   const [tab, setTab] = useState("accounts");
   return (
@@ -91,7 +101,7 @@ function AccountsTab() {
               <thead>
                 <tr>
                   <th>الاسم</th>
-                  <th>البريد</th>
+                  <th>التواصل</th>
                   <th>التليفون</th>
                   <th>تاريخ التسجيل</th>
                   <th>الدور</th>
@@ -116,7 +126,7 @@ function AccountsTab() {
             <thead>
               <tr>
                 <th>الاسم</th>
-                <th>البريد</th>
+                <th>التواصل</th>
                 <th>التليفون</th>
                 <th>الاشتراك</th>
                 <th>مدة الاشتراك</th>
@@ -132,7 +142,7 @@ function AccountsTab() {
                     <strong>{s.full_name || "—"}</strong>{" "}
                     <span style={{ color: "var(--text-muted)", fontSize: 11 }}>#{s.id}</span>
                   </td>
-                  <td>{s.email || "—"}</td>
+                  <td>{contactLabel(s)}</td>
                   <td>{s.phone || "—"}</td>
                   <td>
                     <span className={`badge ${s.subscription.subscription_status === "active" ? "badge-active" : "badge-expired"}`}>
@@ -170,7 +180,7 @@ function AccountsTab() {
             <thead>
               <tr>
                 <th>الاسم</th>
-                <th>البريد</th>
+                <th>التواصل</th>
                 <th>التليفون</th>
                 <th>المادة</th>
                 <th>عدد المجموعات</th>
@@ -185,7 +195,7 @@ function AccountsTab() {
                     <strong>{t.full_name || "—"}</strong>{" "}
                     <span style={{ color: "var(--text-muted)", fontSize: 11 }}>#{t.id}</span>
                   </td>
-                  <td>{t.email || "—"}</td>
+                  <td>{contactLabel(t)}</td>
                   <td>{t.phone || "—"}</td>
                   <td>
                     {t.subject_name
@@ -254,7 +264,7 @@ function PendingRow({ account, subjects, onDone }) {
         <strong>{account.full_name || "—"}</strong>{" "}
         <span style={{ color: "var(--text-muted)", fontSize: 11 }}>#{account.id}</span>
       </td>
-      <td>{account.email || "—"}</td>
+      <td>{contactLabel(account)}</td>
       <td>{account.phone || "—"}</td>
       <td style={{ whiteSpace: "nowrap", fontSize: 13 }}>
         {account.created_at

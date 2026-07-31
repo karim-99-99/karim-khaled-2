@@ -20,8 +20,29 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(email, password) {
-    const { data } = await client.post("/auth/login/", { email, password });
+  async function login(credentials, maybePassword) {
+    // Supports: { method, email, password } or { method, phone, password }
+    // Legacy: login(email, password)
+    let body;
+    if (typeof credentials === "string") {
+      body = {
+        email: credentials,
+        password: maybePassword,
+        login_method: "email",
+      };
+    } else {
+      const method = credentials.method || credentials.login_method || "email";
+      body = {
+        login_method: method,
+        password: credentials.password,
+      };
+      if (method === "email") {
+        body.email = credentials.email;
+      } else {
+        body.phone = credentials.phone;
+      }
+    }
+    const { data } = await client.post("/auth/login/", body);
     localStorage.setItem("access", data.access);
     localStorage.setItem("refresh", data.refresh);
     setUser(data.user);
@@ -33,7 +54,19 @@ export function AuthProvider({ children }) {
     // the account still exists — caller can send the user to login.
     await client.post("/auth/register/", payload);
     try {
-      return await login(payload.email, payload.password);
+      const method = payload.contact_channel || "email";
+      if (method === "email") {
+        return await login({
+          method: "email",
+          email: payload.email,
+          password: payload.password,
+        });
+      }
+      return await login({
+        method,
+        phone: payload.phone,
+        password: payload.password,
+      });
     } catch (err) {
       const e = new Error("ACCOUNT_CREATED_LOGIN_FAILED");
       e.cause = err;
