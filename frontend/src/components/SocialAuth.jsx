@@ -1,68 +1,71 @@
 import { useEffect, useState } from "react";
 import client from "../api/client";
 
+// Works even if Render is cold / /auth/providers fails.
+const FALLBACK_BOT_ID = import.meta.env.VITE_TELEGRAM_BOT_ID || "8880815898";
+
+function buildTelegramOAuthUrl(botId) {
+  const origin = window.location.origin;
+  const returnTo = `${origin}/auth/telegram/callback`;
+  const url = new URL("https://oauth.telegram.org/auth");
+  url.searchParams.set("bot_id", String(botId));
+  url.searchParams.set("origin", origin);
+  url.searchParams.set("return_to", returnTo);
+  url.searchParams.set("request_access", "write");
+  return url.toString();
+}
+
 /**
- * Telegram login via full-page OAuth redirect (no popup).
- *
- * Popup Login.auth often falls back to "enter phone number" and then
- * never returns tokens (postMessage blocked) — so nothing happens.
- *
- * Redirect flow instead:
- *   site → oauth.telegram.org ("Open Telegram") → Telegram app confirm
- *   → /auth/telegram/callback → logged in
+ * Full-page Telegram OAuth (Open Telegram → confirm → callback).
+ * Does not wait for backend to start the flow (avoids Render cold-start block).
  */
 export default function SocialAuth({ mode = "login" }) {
-  const [providers, setProviders] = useState(null);
+  const [botId, setBotId] = useState(FALLBACK_BOT_ID);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     client
       .get("/auth/providers/")
-      .then((res) => setProviders(res.data))
-      .catch(() =>
-        setProviders({
-          telegram: { enabled: false },
-          email: { enabled: true },
-        })
-      );
+      .then((res) => {
+        const id = res.data?.telegram?.bot_id;
+        if (id) setBotId(String(id));
+      })
+      .catch(() => {
+        /* keep fallback bot id */
+      });
   }, []);
 
   function startTelegram(e) {
     e?.preventDefault?.();
+    e?.stopPropagation?.();
     setError("");
-    const botId = providers?.telegram?.bot_id;
-    if (!providers?.telegram?.enabled || !botId) {
-      setError("تسجيل تيليجرام غير مفعّل على السيرفر بعد");
+
+    if (!botId) {
+      setError("بوت تيليجرام غير مضبوط");
       return;
     }
 
     const origin = window.location.origin;
-    // Must match BotFather domain exactly (no trailing slash / www).
-    if (!origin.includes("karim-khaled-2.vercel.app") && !origin.includes("localhost")) {
-      setError("افتح الموقع من الرابط: https://karim-khaled-2.vercel.app");
+    if (
+      !origin.includes("karim-khaled-2.vercel.app") &&
+      !origin.includes("localhost") &&
+      !origin.includes("127.0.0.1")
+    ) {
+      setError("افتح الموقع من: https://karim-khaled-2.vercel.app");
       return;
     }
 
     setBusy(true);
     sessionStorage.setItem("tg_auth_from", mode);
-
-    const returnTo = `${origin}/auth/telegram/callback`;
-    const url = new URL("https://oauth.telegram.org/auth");
-    url.searchParams.set("bot_id", String(botId));
-    url.searchParams.set("origin", origin);
-    url.searchParams.set("request_access", "write");
-    url.searchParams.set("return_to", returnTo);
-    // Full page — shows "Open Telegram to confirm", not the phone form popup.
-    window.location.assign(url.toString());
+    // Same-window redirect — required so Telegram can return_to the site.
+    window.location.href = buildTelegramOAuthUrl(botId);
   }
 
   const title =
     mode === "register"
       ? "إنشاء حساب عبر تيليجرام"
       : "تسجيل الدخول عبر تيليجرام";
-
-  const enabled = Boolean(providers?.telegram?.enabled && providers?.telegram?.bot_id);
 
   return (
     <div style={{ marginBottom: 20 }}>
@@ -78,7 +81,7 @@ export default function SocialAuth({ mode = "login" }) {
         {title}
         <br />
         <span style={{ fontSize: 12 }}>
-          سيتم فتح تطبيق تيليجرام للتأكيد — بدون كتابة رقم التليفون
+          اضغط الزر → Open Telegram → Log in داخل التطبيق (بدون كتابة رقم)
         </span>
       </p>
 
@@ -86,7 +89,7 @@ export default function SocialAuth({ mode = "login" }) {
         type="button"
         className="btn btn-block"
         onClick={startTelegram}
-        disabled={!enabled || busy}
+        disabled={busy}
         style={{
           marginBottom: 10,
           background: "#fff",
@@ -97,7 +100,6 @@ export default function SocialAuth({ mode = "login" }) {
           alignItems: "center",
           justifyContent: "center",
           gap: 10,
-          opacity: !enabled ? 0.55 : 1,
         }}
       >
         <svg width="22" height="22" viewBox="0 0 240 240" aria-hidden="true">
