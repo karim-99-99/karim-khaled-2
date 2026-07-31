@@ -17,6 +17,7 @@ from jwt import PyJWKClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import TelegramOAuthState, User
+from .phone import normalize_phone
 from .serializers import UserSerializer
 
 TELEGRAM_AUTH = "https://oauth.telegram.org/auth"
@@ -79,7 +80,7 @@ def start_telegram_oauth(redirect_uri: str) -> dict:
         "client_id": telegram_client_id(),
         "redirect_uri": redirect_uri,
         "response_type": "code",
-        "scope": "openid profile",
+        "scope": "openid profile phone",
         "state": state,
         "code_challenge": code_challenge,
         "code_challenge_method": "S256",
@@ -147,6 +148,21 @@ def exchange_telegram_code(*, code: str, state: str) -> dict:
     return claims
 
 
+def _phone_from_claims(claims: dict) -> str | None:
+    raw = (claims.get("phone_number") or claims.get("phone") or "").strip()
+    if not raw:
+        return None
+    normalized = normalize_phone(raw)
+    return normalized or raw
+
+
+def _can_set_phone(user: User | None, phone: str) -> bool:
+    qs = User.objects.filter(phone=phone)
+    if user is not None:
+        qs = qs.exclude(pk=user.pk)
+    return not qs.exists()
+
+
 def upsert_telegram_user_from_claims(claims: dict) -> User:
     tg_id = str(claims.get("id") or claims.get("sub") or "")
     if not tg_id:
@@ -157,6 +173,7 @@ def upsert_telegram_user_from_claims(claims: dict) -> User:
     family = (claims.get("family_name") or "").strip()
     username = (claims.get("preferred_username") or "").strip()
     full_name = name or f"{given} {family}".strip() or username or f"Telegram {tg_id}"
+    phone = _phone_from_claims(claims)
 
     user = User.objects.filter(telegram_id=tg_id).first()
     if user:
@@ -167,6 +184,9 @@ def upsert_telegram_user_from_claims(claims: dict) -> User:
         if username and user.telegram_username != username:
             user.telegram_username = username
             changed.append("telegram_username")
+        if phone and user.phone != phone and _can_set_phone(user, phone):
+            user.phone = phone
+            changed.append("phone")
         if changed:
             user.save(update_fields=changed)
         return user
@@ -175,7 +195,7 @@ def upsert_telegram_user_from_claims(claims: dict) -> User:
     user = User(
         email=email,
         full_name=full_name,
-        phone=None,
+        phone=phone if phone and _can_set_phone(None, phone) else None,
         telegram_id=tg_id,
         telegram_username=username,
         role=User.Role.STUDENT,

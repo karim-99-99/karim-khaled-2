@@ -12,7 +12,19 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ["email", "full_name", "phone"]
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        ("المعلومات", {"fields": ("full_name", "phone", "gender", "role")}),
+        (
+            "المعلومات",
+            {
+                "fields": (
+                    "full_name",
+                    "phone",
+                    "gender",
+                    "role",
+                    "telegram_id",
+                    "telegram_username",
+                )
+            },
+        ),
         (
             "الصلاحيات",
             {
