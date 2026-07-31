@@ -23,6 +23,7 @@ import TeacherSchedule from "./pages/TeacherSchedule";
 import AdminPanel from "./pages/AdminPanel";
 import QuestionEditor from "./pages/QuestionEditor";
 import Profile from "./pages/Profile";
+import TelegramCallback from "./pages/TelegramCallback";
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
+        <Route path="/auth/telegram/callback" element={<TelegramCallback />} />
 
         <Route path="/courses" element={<RequireAuth><Courses /></RequireAuth>} />
         <Route path="/courses/:subjectId" element={<RequireAuth><SubjectHub /></RequireAuth>} />

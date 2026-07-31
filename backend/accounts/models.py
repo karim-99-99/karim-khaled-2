@@ -47,6 +47,12 @@ class User(AbstractUser):
     phone = models.CharField(
         "رقم التليفون", max_length=20, unique=True, null=True, blank=True
     )
+    telegram_id = models.CharField(
+        "معرف تيليجرام", max_length=64, unique=True, null=True, blank=True
+    )
+    telegram_username = models.CharField(
+        "يوزر تيليجرام", max_length=150, blank=True, default=""
+    )
     gender = models.CharField(max_length=10, choices=Gender.choices, blank=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.STUDENT)
     taught_subject = models.ForeignKey(
@@ -89,3 +95,21 @@ class User(AbstractUser):
             .order_by("-end_date")
             .first()
         )
+
+
+class TelegramOAuthState(models.Model):
+    """PKCE state for Telegram OIDC popup login (hadafak-style)."""
+
+    state = models.CharField(max_length=64, unique=True, db_index=True)
+    code_verifier = models.CharField(max_length=128)
+    redirect_uri = models.URLField(max_length=500)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    @property
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+

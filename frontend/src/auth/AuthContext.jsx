@@ -20,12 +20,16 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function login(email, password) {
-    const { data } = await client.post("/auth/login/", { email, password });
+  async function acceptTokens(data) {
     localStorage.setItem("access", data.access);
     localStorage.setItem("refresh", data.refresh);
     setUser(data.user);
     return data.user;
+  }
+
+  async function login(email, password) {
+    const { data } = await client.post("/auth/login/", { email, password });
+    return acceptTokens(data);
   }
 
   async function register(payload) {
@@ -52,7 +56,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, refreshUser }}
+      value={{ user, loading, login, register, logout, refreshUser, acceptTokens }}
     >
       {children}
     </AuthContext.Provider>

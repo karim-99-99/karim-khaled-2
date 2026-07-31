@@ -175,3 +175,13 @@ BUNNY_STREAM_TOKEN_KEY = env("BUNNY_STREAM_TOKEN_KEY", "")
 BUNNY_STREAM_CDN_HOSTNAME = env("BUNNY_STREAM_CDN_HOSTNAME", "")
 BUNNY_TOKEN_TTL_SECONDS = int(env("BUNNY_TOKEN_TTL_SECONDS", "10800"))  # 3 hours
 
+# --- Telegram OIDC (popup login like hadafak) ---
+# BotFather mini-app → Bot Settings → Web Login: Client ID + Client Secret
+TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CLIENT_ID = env("TELEGRAM_CLIENT_ID", "")  # bot numeric id if empty
+TELEGRAM_CLIENT_SECRET = env("TELEGRAM_CLIENT_SECRET", "")  # Web Login secret only
+TELEGRAM_ALLOWED_REDIRECT_URIS = env_list(
+    "TELEGRAM_ALLOWED_REDIRECT_URIS",
+    "https://karim-khaled-2.vercel.app/auth/telegram/callback,http://localhost:5173/auth/telegram/callback",
+)
+

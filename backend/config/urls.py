@@ -3,6 +3,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from accounts.telegram_views import telegram_complete, telegram_start, telegram_status
 from accounts.views import (
     LoginView,
     MeView,
@@ -63,6 +64,10 @@ api_patterns = [
     path("auth/refresh/", TokenRefreshView.as_view()),
     path("auth/me/", MeView.as_view()),
     path("auth/change-password/", change_password),
+    path("auth/telegram/status/", telegram_status),
+    path("auth/telegram/start/", telegram_start),
+    path("auth/telegram/callback/", telegram_complete),
+    path("auth/telegram/complete/", telegram_complete),
     # Public / video
     path("home/free-content/", home_free_content),
     path("home/next-session/", next_session),

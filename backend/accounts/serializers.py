@@ -20,6 +20,8 @@ class UserSerializer(serializers.ModelSerializer):
             "full_name",
             "email",
             "phone",
+            "telegram_id",
+            "telegram_username",
             "gender",
             "role",
             "taught_subject",
@@ -27,7 +29,14 @@ class UserSerializer(serializers.ModelSerializer):
             "has_active_subscription",
             "created_at",
         ]
-        read_only_fields = ["id", "role", "email", "created_at"]
+        read_only_fields = [
+            "id",
+            "role",
+            "email",
+            "telegram_id",
+            "telegram_username",
+            "created_at",
+        ]
 
 
 class ChangePasswordSerializer(serializers.Serializer):
