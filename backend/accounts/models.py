@@ -1,5 +1,6 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+from django.utils import timezone
 
 
 class UserManager(BaseUserManager):
@@ -48,7 +49,15 @@ class User(AbstractUser):
     username = None
     email = models.EmailField("البريد الإلكتروني", unique=True)
     full_name = models.CharField("الاسم الكامل", max_length=150)
-    phone = models.CharField("رقم التليفون", max_length=20, unique=True)
+    phone = models.CharField(
+        "رقم التليفون", max_length=20, unique=True, null=True, blank=True
+    )
+    telegram_id = models.CharField(
+        "معرف تيليجرام", max_length=64, unique=True, null=True, blank=True
+    )
+    telegram_username = models.CharField(
+        "يوزر تيليجرام", max_length=150, blank=True, default=""
+    )
     contact_channel = models.CharField(
         "وسيلة التواصل",
         max_length=20,
@@ -69,7 +78,7 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["full_name", "phone"]
+    REQUIRED_FIELDS = ["full_name"]
 
     objects = UserManager()
 
@@ -91,17 +100,46 @@ class User(AbstractUser):
     @property
     def has_active_subscription(self):
         """True when the student has a subscription whose end_date is in the future."""
-        from django.utils import timezone
-
         return self.subscriptions.filter(end_date__gte=timezone.now().date()).exists()
 
     @property
     def active_subscription(self):
         """The current (latest) active subscription object, or None."""
-        from django.utils import timezone
-
         return (
             self.subscriptions.filter(end_date__gte=timezone.now().date())
             .order_by("-end_date")
             .first()
         )
+
+
+class WhatsAppAuthSession(models.Model):
+    """Pending WhatsApp deep-link login/register session."""
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        COMPLETED = "completed", "Completed"
+        EXPIRED = "expired", "Expired"
+
+    token = models.CharField(max_length=64, unique=True, db_index=True)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.PENDING
+    )
+    phone = models.CharField(max_length=32, blank=True, default="")
+    full_name = models.CharField(max_length=150, blank=True, default="")
+    user = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    access_token = models.TextField(blank=True, default="")
+    refresh_token = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"WA session {self.token[:8]}… ({self.status})"
+
+    @property
+    def is_expired(self):
+        return timezone.now() >= self.expires_at

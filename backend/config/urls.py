@@ -3,6 +3,14 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from accounts.social_views import (
+    auth_providers,
+    telegram_auth,
+    whatsapp_dev_complete,
+    whatsapp_start,
+    whatsapp_status,
+    whatsapp_webhook,
+)
 from accounts.views import (
     LoginView,
     MeView,
@@ -60,6 +68,12 @@ api_patterns = [
     path("auth/login/", LoginView.as_view()),
     path("auth/refresh/", TokenRefreshView.as_view()),
     path("auth/me/", MeView.as_view()),
+    path("auth/providers/", auth_providers),
+    path("auth/telegram/", telegram_auth),
+    path("auth/whatsapp/start/", whatsapp_start),
+    path("auth/whatsapp/status/<str:token>/", whatsapp_status),
+    path("auth/whatsapp/webhook/", whatsapp_webhook),
+    path("auth/whatsapp/dev-complete/", whatsapp_dev_complete),
     # Public / video
     path("home/free-content/", home_free_content),
     path("home/next-session/", next_session),

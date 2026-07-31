@@ -35,7 +35,9 @@ export default function VideoPlayer({ bunnyId }) {
     return () => clearInterval(id);
   }, []);
 
-  const watermark = user ? `${user.full_name} · ${user.phone}` : "";
+  const watermark = user
+    ? `${user.full_name} · ${user.phone || user.telegram_username || "طالب"}`
+    : "";
 
   const frame = {
     position: "relative",

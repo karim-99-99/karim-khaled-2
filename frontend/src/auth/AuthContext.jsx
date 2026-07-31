@@ -20,9 +20,14 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
+  async function acceptTokens(data) {
+    localStorage.setItem("access", data.access);
+    localStorage.setItem("refresh", data.refresh);
+    setUser(data.user);
+    return data.user;
+  }
+
   async function login(credentials, maybePassword) {
-    // Supports: { method, email, password } or { method, phone, password }
-    // Legacy: login(email, password)
     let body;
     if (typeof credentials === "string") {
       body = {
@@ -43,28 +48,15 @@ export function AuthProvider({ children }) {
       }
     }
     const { data } = await client.post("/auth/login/", body);
-    localStorage.setItem("access", data.access);
-    localStorage.setItem("refresh", data.refresh);
-    setUser(data.user);
-    return data.user;
+    return acceptTokens(data);
   }
 
   async function register(payload) {
-    // Create the account first. If auto-login fails (cold start / network),
-    // the account still exists — caller can send the user to login.
     await client.post("/auth/register/", payload);
     try {
-      const method = payload.contact_channel || "email";
-      if (method === "email") {
-        return await login({
-          method: "email",
-          email: payload.email,
-          password: payload.password,
-        });
-      }
       return await login({
-        method,
-        phone: payload.phone,
+        method: "email",
+        email: payload.email,
         password: payload.password,
       });
     } catch (err) {
@@ -87,7 +79,15 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, refreshUser }}
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        logout,
+        refreshUser,
+        acceptTokens,
+      }}
     >
       {children}
     </AuthContext.Provider>
