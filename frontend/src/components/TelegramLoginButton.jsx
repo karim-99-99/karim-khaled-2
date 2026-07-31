@@ -2,12 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import client from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 
+function prefersFullPageOAuth() {
+  if (typeof window === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  const mobileUA =
+    /Android|iPhone|iPad|iPod|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
+  const narrow = window.matchMedia?.("(max-width: 900px)")?.matches;
+  return mobileUA || Boolean(coarse && narrow);
+}
+
 /**
- * Hadafak-style Telegram login:
- * 1) Backend returns oauth.telegram.org URL
- * 2) Open centered popup
- * 3) Callback page postMessages code/state
- * 4) Backend exchanges code → JWT
+ * Desktop: Hadafak-style popup + postMessage.
+ * Mobile: full-page redirect (popups are blocked / lose opener).
  */
 export default function TelegramLoginButton({ onSuccess, label = "تسجيل عبر تيليجرام" }) {
   const { acceptTokens } = useAuth();
@@ -20,7 +27,7 @@ export default function TelegramLoginButton({ onSuccess, label = "تسجيل ع�
     client
       .get("/auth/telegram/status/")
       .then((res) => setEnabled(Boolean(res.data?.enabled)))
-      .catch(() => setEnabled(true)); // still allow click; start will error clearly
+      .catch(() => setEnabled(true));
   }, []);
 
   useEffect(() => {
@@ -75,17 +82,30 @@ export default function TelegramLoginButton({ onSuccess, label = "تسجيل ع�
         return;
       }
 
-      // Same as hadafak: strip embed=1 and open a centered popup.
       const oauthUrl = String(data.url).replace("&embed=1", "");
+
+      // Mobile / tablet: navigate in the same tab (popup + opener break on phones).
+      if (prefersFullPageOAuth()) {
+        window.location.assign(oauthUrl);
+        return;
+      }
+
       const w = 600;
       const h = 700;
       const left = window.screen.width / 2 - w / 2;
       const top = window.screen.height / 2 - h / 2;
-      popupRef.current = window.open(
+      const popup = window.open(
         oauthUrl,
         "TelegramOAuth",
         `width=${w},height=${h},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes`
       );
+      popupRef.current = popup;
+
+      // Popup blocked → same-tab fallback (also common on some desktop browsers).
+      if (!popup || popup.closed) {
+        window.location.assign(oauthUrl);
+        return;
+      }
 
       const timer = setInterval(() => {
         const p = popupRef.current;
