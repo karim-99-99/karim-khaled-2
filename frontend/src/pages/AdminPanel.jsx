@@ -47,14 +47,17 @@ function AccountsTab() {
 
   if (!data) return <div className="spinner">جاري التحميل…</div>;
 
-  const term = q.trim();
+  const term = q.trim().toLowerCase();
   const filterFn = (p) =>
-    !term || p.full_name.includes(term) || (p.phone || "").includes(term);
+    !term ||
+    (p.full_name || "").toLowerCase().includes(term) ||
+    (p.phone || "").toLowerCase().includes(term) ||
+    (p.email || "").toLowerCase().includes(term);
   const students = data.students.filter(filterFn);
   const teachers = data.teachers.filter(filterFn);
   // "Pending activation": student accounts that have not been activated yet
   // (no active subscription). Admin either grants a subscription or converts
-  // them to a teacher.
+  // them to a teacher. Newest signups first so admins can spot them quickly.
   const isPending = (p) =>
     p.role === "student" && p.subscription?.subscription_status !== "active";
   const pending = data.students.filter(isPending).filter(filterFn);
@@ -73,7 +76,7 @@ function AccountsTab() {
             المدرسون ({data.totals.teachers})
           </span>
         </div>
-        <input className="form-control" style={{ maxWidth: 260 }} placeholder="بحث بالاسم أو التليفون"
+        <input className="form-control" style={{ maxWidth: 280 }} placeholder="بحث بالاسم أو الإيميل أو التليفون"
           value={q} onChange={(e) => setQ(e.target.value)} />
       </div>
 
@@ -88,7 +91,9 @@ function AccountsTab() {
               <thead>
                 <tr>
                   <th>الاسم</th>
+                  <th>البريد</th>
                   <th>التليفون</th>
+                  <th>تاريخ التسجيل</th>
                   <th>الدور</th>
                   <th>المادة (للمدرس)</th>
                   <th>مدة اشتراك الطالب</th>
@@ -111,6 +116,7 @@ function AccountsTab() {
             <thead>
               <tr>
                 <th>الاسم</th>
+                <th>البريد</th>
                 <th>التليفون</th>
                 <th>الاشتراك</th>
                 <th>مدة الاشتراك</th>
@@ -122,8 +128,12 @@ function AccountsTab() {
             <tbody>
               {students.map((s) => (
                 <tr key={s.id}>
-                  <td>{s.full_name} <span style={{ color: "var(--text-muted)", fontSize: 11 }}>#{s.id}</span></td>
-                  <td>{s.phone}</td>
+                  <td>
+                    <strong>{s.full_name || "—"}</strong>{" "}
+                    <span style={{ color: "var(--text-muted)", fontSize: 11 }}>#{s.id}</span>
+                  </td>
+                  <td>{s.email || "—"}</td>
+                  <td>{s.phone || "—"}</td>
                   <td>
                     <span className={`badge ${s.subscription.subscription_status === "active" ? "badge-active" : "badge-expired"}`}>
                       {s.subscription.subscription_status === "active" ? "مشترك" : "غير مشترك"}
@@ -160,6 +170,7 @@ function AccountsTab() {
             <thead>
               <tr>
                 <th>الاسم</th>
+                <th>البريد</th>
                 <th>التليفون</th>
                 <th>المادة</th>
                 <th>عدد المجموعات</th>
@@ -170,8 +181,12 @@ function AccountsTab() {
             <tbody>
               {teachers.map((t) => (
                 <tr key={t.id}>
-                  <td>{t.full_name} <span style={{ color: "var(--text-muted)", fontSize: 11 }}>#{t.id}</span></td>
-                  <td>{t.phone}</td>
+                  <td>
+                    <strong>{t.full_name || "—"}</strong>{" "}
+                    <span style={{ color: "var(--text-muted)", fontSize: 11 }}>#{t.id}</span>
+                  </td>
+                  <td>{t.email || "—"}</td>
+                  <td>{t.phone || "—"}</td>
                   <td>
                     {t.subject_name
                       ? <span className="badge" style={{ background: "#ede9fe", color: "#7c3aed" }}>{t.subject_name}</span>
@@ -236,9 +251,19 @@ function PendingRow({ account, subjects, onDone }) {
   return (
     <tr>
       <td>
-        {account.full_name} <span style={{ color: "var(--text-muted)", fontSize: 11 }}>#{account.id}</span>
+        <strong>{account.full_name || "—"}</strong>{" "}
+        <span style={{ color: "var(--text-muted)", fontSize: 11 }}>#{account.id}</span>
       </td>
-      <td>{account.phone}</td>
+      <td>{account.email || "—"}</td>
+      <td>{account.phone || "—"}</td>
+      <td style={{ whiteSpace: "nowrap", fontSize: 13 }}>
+        {account.created_at
+          ? new Date(account.created_at).toLocaleString("ar-EG", {
+              dateStyle: "short",
+              timeStyle: "short",
+            })
+          : "—"}
+      </td>
       <td>
         <select className="form-control" style={{ minWidth: 110 }} value={role}
           onChange={(e) => setRole(e.target.value)}>

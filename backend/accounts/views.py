@@ -61,7 +61,7 @@ def admin_accounts(request):
     per-person details for the admin.
     """
     students = []
-    for u in User.objects.filter(role=User.Role.STUDENT).order_by("full_name"):
+    for u in User.objects.filter(role=User.Role.STUDENT).order_by("-created_at"):
         groups = list(
             GroupStudent.objects.filter(student=u).values_list("group__name", flat=True)
         )
@@ -74,6 +74,7 @@ def admin_accounts(request):
                 "gender": u.gender,
                 "role": u.role,
                 "is_active": u.is_active,
+                "created_at": u.created_at,
                 "subscription": _subscription_info(u),
                 "groups": groups,
                 "groups_count": len(groups),
@@ -81,7 +82,7 @@ def admin_accounts(request):
         )
 
     teachers = []
-    for u in User.objects.filter(role=User.Role.TEACHER).order_by("full_name"):
+    for u in User.objects.filter(role=User.Role.TEACHER).order_by("-created_at"):
         links = GroupTeacher.objects.filter(teacher=u).select_related("group", "subject")
         group_names = sorted({l.group.name for l in links})
         subject_name = None
@@ -97,6 +98,7 @@ def admin_accounts(request):
                 "email": u.email,
                 "role": u.role,
                 "is_active": u.is_active,
+                "created_at": u.created_at,
                 "subject_id": u.taught_subject_id,
                 "subject_name": subject_name,
                 "groups": group_names,
