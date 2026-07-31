@@ -1,13 +1,9 @@
-"""Normalize Egyptian-style phone numbers for lookup and synthetic emails."""
+"""Normalize Egyptian-style phone numbers for lookup."""
 
 import re
 
 
 def normalize_phone(value: str) -> str:
-    """
-    Strip non-digits and normalize common Egypt prefixes to local 01xxxxxxxxx.
-    Examples: +2010..., 002010..., 010... → 010...
-    """
     if value is None:
         return ""
     digits = re.sub(r"\D", "", str(value).strip())
@@ -21,7 +17,6 @@ def normalize_phone(value: str) -> str:
 
 
 def phones_match_query(phone: str):
-    """Return a list of equivalent phone strings to try when looking up a user."""
     n = normalize_phone(phone)
     if not n:
         return []
@@ -31,10 +26,3 @@ def phones_match_query(phone: str):
         variants.add("+20" + n[1:])
         variants.add("0020" + n[1:])
     return [v for v in variants if v]
-
-
-def synthetic_email(phone: str, channel: str) -> str:
-    """Stable unique email for messenger-only accounts (Django USERNAME_FIELD)."""
-    digits = normalize_phone(phone) or re.sub(r"\D", "", str(phone))
-    domain = "telegram.local" if channel == "telegram" else "whatsapp.local"
-    return f"{digits}@{domain}"

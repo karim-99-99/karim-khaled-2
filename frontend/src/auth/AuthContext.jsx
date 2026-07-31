@@ -20,45 +20,18 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, []);
 
-  async function acceptTokens(data) {
+  async function login(email, password) {
+    const { data } = await client.post("/auth/login/", { email, password });
     localStorage.setItem("access", data.access);
     localStorage.setItem("refresh", data.refresh);
     setUser(data.user);
     return data.user;
   }
 
-  async function login(credentials, maybePassword) {
-    let body;
-    if (typeof credentials === "string") {
-      body = {
-        email: credentials,
-        password: maybePassword,
-        login_method: "email",
-      };
-    } else {
-      const method = credentials.method || credentials.login_method || "email";
-      body = {
-        login_method: method,
-        password: credentials.password,
-      };
-      if (method === "email") {
-        body.email = credentials.email;
-      } else {
-        body.phone = credentials.phone;
-      }
-    }
-    const { data } = await client.post("/auth/login/", body);
-    return acceptTokens(data);
-  }
-
   async function register(payload) {
     await client.post("/auth/register/", payload);
     try {
-      return await login({
-        method: "email",
-        email: payload.email,
-        password: payload.password,
-      });
+      return await login(payload.email, payload.password);
     } catch (err) {
       const e = new Error("ACCOUNT_CREATED_LOGIN_FAILED");
       e.cause = err;
@@ -79,15 +52,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        loading,
-        login,
-        register,
-        logout,
-        refreshUser,
-        acceptTokens,
-      }}
+      value={{ user, loading, login, register, logout, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

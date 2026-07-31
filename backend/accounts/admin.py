@@ -1,39 +1,18 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
-from .models import User, WhatsAppAuthSession
+from .models import User
 
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     ordering = ["-created_at"]
-    list_display = [
-        "email",
-        "full_name",
-        "phone",
-        "contact_channel",
-        "telegram_username",
-        "role",
-        "is_active",
-    ]
-    list_filter = ["role", "is_active", "contact_channel"]
-    search_fields = ["email", "full_name", "phone", "telegram_id", "telegram_username"]
+    list_display = ["email", "full_name", "phone", "role", "is_active"]
+    list_filter = ["role", "is_active"]
+    search_fields = ["email", "full_name", "phone"]
     fieldsets = (
         (None, {"fields": ("email", "password")}),
-        (
-            "المعلومات",
-            {
-                "fields": (
-                    "full_name",
-                    "phone",
-                    "gender",
-                    "role",
-                    "contact_channel",
-                    "telegram_id",
-                    "telegram_username",
-                )
-            },
-        ),
+        ("المعلومات", {"fields": ("full_name", "phone", "gender", "role")}),
         (
             "الصلاحيات",
             {
@@ -64,10 +43,3 @@ class CustomUserAdmin(UserAdmin):
             },
         ),
     )
-
-
-@admin.register(WhatsAppAuthSession)
-class WhatsAppAuthSessionAdmin(admin.ModelAdmin):
-    list_display = ["token", "status", "phone", "full_name", "created_at", "expires_at"]
-    list_filter = ["status"]
-    search_fields = ["token", "phone", "full_name"]

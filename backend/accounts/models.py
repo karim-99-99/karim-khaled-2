@@ -40,11 +40,6 @@ class User(AbstractUser):
         MALE = "male", "ذكر"
         FEMALE = "female", "أنثى"
 
-    class ContactChannel(models.TextChoices):
-        EMAIL = "email", "بريد إلكتروني"
-        TELEGRAM = "telegram", "تيليجرام"
-        WHATSAPP = "whatsapp", "واتساب"
-
     # Drop username; use email.
     username = None
     email = models.EmailField("البريد الإلكتروني", unique=True)
@@ -52,22 +47,8 @@ class User(AbstractUser):
     phone = models.CharField(
         "رقم التليفون", max_length=20, unique=True, null=True, blank=True
     )
-    telegram_id = models.CharField(
-        "معرف تيليجرام", max_length=64, unique=True, null=True, blank=True
-    )
-    telegram_username = models.CharField(
-        "يوزر تيليجرام", max_length=150, blank=True, default=""
-    )
-    contact_channel = models.CharField(
-        "وسيلة التواصل",
-        max_length=20,
-        choices=ContactChannel.choices,
-        default=ContactChannel.EMAIL,
-    )
     gender = models.CharField(max_length=10, choices=Gender.choices, blank=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.STUDENT)
-    # For teachers: the single subject they teach. Lessons/questions they create
-    # are filed under this subject and reach all groups they are assigned to.
     taught_subject = models.ForeignKey(
         "catalog.Subject",
         related_name="teachers",
@@ -99,47 +80,12 @@ class User(AbstractUser):
 
     @property
     def has_active_subscription(self):
-        """True when the student has a subscription whose end_date is in the future."""
         return self.subscriptions.filter(end_date__gte=timezone.now().date()).exists()
 
     @property
     def active_subscription(self):
-        """The current (latest) active subscription object, or None."""
         return (
             self.subscriptions.filter(end_date__gte=timezone.now().date())
             .order_by("-end_date")
             .first()
         )
-
-
-class WhatsAppAuthSession(models.Model):
-    """Pending WhatsApp deep-link login/register session."""
-
-    class Status(models.TextChoices):
-        PENDING = "pending", "Pending"
-        COMPLETED = "completed", "Completed"
-        EXPIRED = "expired", "Expired"
-
-    token = models.CharField(max_length=64, unique=True, db_index=True)
-    status = models.CharField(
-        max_length=20, choices=Status.choices, default=Status.PENDING
-    )
-    phone = models.CharField(max_length=32, blank=True, default="")
-    full_name = models.CharField(max_length=150, blank=True, default="")
-    user = models.ForeignKey(
-        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
-    )
-    access_token = models.TextField(blank=True, default="")
-    refresh_token = models.TextField(blank=True, default="")
-    created_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
-
-    class Meta:
-        ordering = ["-created_at"]
-
-    def __str__(self):
-        return f"WA session {self.token[:8]}… ({self.status})"
-
-    @property
-    def is_expired(self):
-        return timezone.now() >= self.expires_at

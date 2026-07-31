@@ -5,7 +5,6 @@ import { RequireAuth, RequireRole } from "./components/Guards";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import TelegramCallback from "./pages/TelegramCallback";
 import Courses from "./pages/Courses";
 import SubjectHub from "./pages/SubjectHub";
 import Lessons from "./pages/Lessons";
@@ -31,7 +30,6 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/auth/telegram/callback" element={<TelegramCallback />} />
 
         <Route path="/courses" element={<RequireAuth><Courses /></RequireAuth>} />
         <Route path="/courses/:subjectId" element={<RequireAuth><SubjectHub /></RequireAuth>} />

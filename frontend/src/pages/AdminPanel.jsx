@@ -2,13 +2,7 @@ import { useEffect, useState } from "react";
 import client from "../api/client";
 
 function contactLabel(account) {
-  const channel = account.contact_channel;
-  if (channel === "telegram") return "تيليجرام";
-  if (channel === "whatsapp") return "واتساب";
-  const email = account.email || "";
-  if (email.endsWith("@telegram.local")) return "تيليجرام";
-  if (email.endsWith("@whatsapp.local")) return "واتساب";
-  return email || "—";
+  return account.email || "—";
 }
 
 export default function AdminPanel() {
@@ -184,7 +178,7 @@ function AccountsTab() {
                     {s.has_usable_password ? (
                       <span className="badge badge-active">معيّنة</span>
                     ) : (
-                      <span className="badge badge-expired">تيليجرام فقط</span>
+                      <span className="badge badge-expired">بدون كلمة مرور</span>
                     )}{" "}
                     <button className="btn btn-sm btn-secondary" onClick={() => resetPassword(s)}>
                       تعيين كلمة مرور
@@ -243,7 +237,7 @@ function AccountsTab() {
                     {t.has_usable_password ? (
                       <span className="badge badge-active">معيّنة</span>
                     ) : (
-                      <span className="badge badge-expired">تيليجرام فقط</span>
+                      <span className="badge badge-expired">بدون كلمة مرور</span>
                     )}{" "}
                     <button className="btn btn-sm btn-secondary" onClick={() => resetPassword(t)}>
                       تعيين كلمة مرور
