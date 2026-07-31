@@ -73,7 +73,7 @@ def start_telegram_oauth(redirect_uri: str) -> dict:
         state=state,
         code_verifier=code_verifier,
         redirect_uri=redirect_uri,
-        expires_at=timezone.now() + timedelta(minutes=10),
+        expires_at=timezone.now() + timedelta(minutes=30),
     )
 
     params = {
@@ -98,8 +98,19 @@ def _basic_auth_header(client_id: str, client_secret: str) -> str:
 
 
 def exchange_telegram_code(*, code: str, state: str) -> dict:
+    """
+    Exchange authorization code for ID token claims.
+    Idempotent: a second call with the same state returns claims from the
+    already-consumed login (via consumed_user) by raising a special path
+    handled in complete_telegram_login.
+    """
     row = TelegramOAuthState.objects.filter(state=state).first()
-    if not row or row.is_expired:
+    if not row:
+        raise ValueError("INVALID_STATE")
+    if row.consumed_user_id:
+        raise ValueError(f"ALREADY_CONSUMED:{row.consumed_user_id}")
+    if row.is_expired:
+        row.delete()
         raise ValueError("INVALID_STATE")
 
     body = urlencode(
@@ -127,9 +138,8 @@ def exchange_telegram_code(*, code: str, state: str) -> dict:
         with urlopen(req, timeout=30) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
     except Exception as exc:
+        # Keep PKCE state so the user can retry once after a transient failure.
         raise ValueError(f"TOKEN_EXCHANGE_FAILED:{exc}") from exc
-    finally:
-        row.delete()
 
     id_token = payload.get("id_token")
     if not id_token:
@@ -145,7 +155,47 @@ def exchange_telegram_code(*, code: str, state: str) -> dict:
         issuer="https://oauth.telegram.org",
         options={"require": ["exp", "iat", "sub"]},
     )
+    # Attach row id so caller can mark consumed after user upsert.
+    claims["_oauth_state_id"] = row.pk
     return claims
+
+
+def mark_oauth_state_consumed(*, state_id: int, user: User) -> None:
+    TelegramOAuthState.objects.filter(pk=state_id).update(
+        consumed_user=user,
+        consumed_at=timezone.now(),
+    )
+
+
+def complete_telegram_login(*, code: str, state: str) -> dict:
+    """Full login: exchange code → upsert user → JWT (idempotent)."""
+    row = TelegramOAuthState.objects.filter(state=state).first()
+    if row and row.consumed_user_id:
+        user = row.consumed_user
+        if not user.is_active:
+            raise ValueError("ACCOUNT_DISABLED")
+        return issue_tokens(user)
+
+    try:
+        claims = exchange_telegram_code(code=code, state=state)
+    except ValueError as exc:
+        msg = str(exc)
+        if msg.startswith("ALREADY_CONSUMED:"):
+            user_id = int(msg.split(":", 1)[1])
+            user = User.objects.filter(pk=user_id).first()
+            if user:
+                if not user.is_active:
+                    raise ValueError("ACCOUNT_DISABLED")
+                return issue_tokens(user)
+        raise
+
+    state_id = claims.pop("_oauth_state_id", None)
+    user = upsert_telegram_user_from_claims(claims)
+    if not user.is_active:
+        raise ValueError("ACCOUNT_DISABLED")
+    if state_id:
+        mark_oauth_state_consumed(state_id=state_id, user=user)
+    return issue_tokens(user)
 
 
 def _phone_from_claims(claims: dict) -> str | None:

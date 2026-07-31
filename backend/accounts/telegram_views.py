@@ -4,11 +4,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 from .telegram_oidc import (
-    exchange_telegram_code,
-    issue_tokens,
+    complete_telegram_login,
     start_telegram_oauth,
     telegram_configured,
-    upsert_telegram_user_from_claims,
 )
 
 
@@ -66,9 +64,14 @@ def telegram_complete(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
     try:
-        claims = exchange_telegram_code(code=code, state=state)
-        user = upsert_telegram_user_from_claims(claims)
+        tokens = complete_telegram_login(code=code, state=state)
     except ValueError as exc:
+        msg = str(exc)
+        if msg == "ACCOUNT_DISABLED":
+            return Response(
+                {"detail": "تم إيقاف حسابك، برجاء التواصل مع الإدارة."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         return Response(
             {"detail": f"فشل التحقق من تيليجرام ({exc})"},
             status=status.HTTP_400_BAD_REQUEST,
@@ -79,14 +82,6 @@ def telegram_complete(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if not user.is_active:
-        return Response(
-            {"detail": "تم إيقاف حسابك، برجاء التواصل مع الإدارة."},
-            status=status.HTTP_403_FORBIDDEN,
-        )
-
-    tokens = issue_tokens(user)
-    # hadafak-compatible key + our keys
     return Response(
         {
             "access_token": tokens["access"],

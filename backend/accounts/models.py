@@ -105,11 +105,22 @@ class TelegramOAuthState(models.Model):
     redirect_uri = models.URLField(max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
+    # Idempotent complete: StrictMode / double callback can hit twice.
+    consumed_user = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="telegram_oauth_states",
+    )
+    consumed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
 
     @property
     def is_expired(self):
+        if self.consumed_at:
+            return False
         return timezone.now() >= self.expires_at
 

@@ -3,6 +3,10 @@ import { Link, useNavigate } from "react-router-dom";
 import client from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 
+/** Survives React StrictMode remount — prevents double /complete calls. */
+const inflightStates = new Set();
+const completedByState = new Map();
+
 /**
  * Telegram OIDC return page.
  * Prefer posting code/state to the opener popup parent (hadafak).
@@ -18,11 +22,25 @@ export default function TelegramCallback() {
     let cancelled = false;
 
     async function finishLocally(code, state) {
+      if (completedByState.has(state)) {
+        const tokens = completedByState.get(state);
+        await acceptTokens({
+          access: tokens.access || tokens.access_token,
+          refresh: tokens.refresh,
+          user: tokens.user,
+        });
+        if (!cancelled) navigate("/", { replace: true });
+        return;
+      }
+      if (inflightStates.has(state)) return;
+      inflightStates.add(state);
+
       try {
         const { data: tokens } = await client.post("/auth/telegram/complete/", {
           code,
           state,
         });
+        completedByState.set(state, tokens);
         if (cancelled) return;
         await acceptTokens({
           access: tokens.access || tokens.access_token,
@@ -32,7 +50,13 @@ export default function TelegramCallback() {
         setMessage("تم تسجيل الدخول بنجاح");
         navigate("/", { replace: true });
       } catch (err) {
+        inflightStates.delete(state);
         if (cancelled) return;
+        // If a parallel call already logged us in, just go home.
+        if (localStorage.getItem("access")) {
+          navigate("/", { replace: true });
+          return;
+        }
         setFailed(true);
         setMessage(
           err.response?.data?.detail ||
