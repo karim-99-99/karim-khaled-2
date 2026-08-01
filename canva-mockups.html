@@ -1,17 +1,20 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>منصة التعليم الإلكتروني — Canva Mockups</title>
+  <title>زاد التحصيلي — Canva Mockups</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --primary: #2563EB;
-      --primary-dark: #1D4ED8;
-      --primary-light: #DBEAFE;
+    :root, .theme-brand {
+      --primary: #0045AD;
+      --primary-dark: #003388;
+      --primary-light: #E5EEFF;
+      --accent: #FFC400;
+      --accent-dark: #E6B000;
+      --accent-soft: #FFF6D6;
       --bg: #F8FAFC;
       --surface: #FFFFFF;
       --border: #E2E8F0;
@@ -26,6 +29,40 @@
       --shadow: 0 2px 8px rgba(0,0,0,0.08);
       --shadow-lg: 0 8px 24px rgba(0,0,0,0.12);
       --font: 'Cairo', 'Tajawal', sans-serif;
+    }
+
+    /* Subject themes — one site, CSS class swap only */
+    .theme-math {
+      --primary: #5B8C2A;
+      --primary-dark: #4A7422;
+      --primary-light: #EEF5E4;
+      --accent: #FFC400;
+      --accent-dark: #E6B000;
+      --accent-soft: #F5FBE8;
+    }
+    .theme-physics {
+      --primary: #7C3AED;
+      --primary-dark: #6D28D9;
+      --primary-light: #EDE9FE;
+      --accent: #E8B84A;
+      --accent-dark: #C9972E;
+      --accent-soft: #FDF6E3;
+    }
+    .theme-chem {
+      --primary: #C41E3A;
+      --primary-dark: #9B1B30;
+      --primary-light: #FCE8EC;
+      --accent: #D4AF37;
+      --accent-dark: #B8941F;
+      --accent-soft: #FBF5E0;
+    }
+    .theme-bio {
+      --primary: #E6A800;
+      --primary-dark: #C88A00;
+      --primary-light: #FFF8E1;
+      --accent: #9A7400;
+      --accent-dark: #7A5C00;
+      --accent-soft: #FFF3CD;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -121,17 +158,17 @@
       color: var(--primary);
     }
 
-    .logo-icon {
-      width: 36px;
-      height: 36px;
-      background: var(--primary);
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 18px;
+    .logo-icon, .logo-img {
+      height: 52px;
+      width: auto;
+      max-width: 180px;
+      object-fit: contain;
+      display: block;
+      background: transparent;
+      border-radius: 0;
     }
+    .logo-text { display: none; }
+    .logo { gap: 8px; }
 
     .nav { display: flex; gap: 8px; }
     .nav a {
@@ -161,7 +198,7 @@
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: linear-gradient(135deg, var(--primary), #7c3aed);
+      background: linear-gradient(135deg, var(--primary), var(--accent));
       color: white;
       display: flex;
       align-items: center;
@@ -186,6 +223,7 @@
       cursor: default;
     }
     .btn-primary { background: var(--primary); color: white; }
+    .btn-accent { background: var(--accent); color: #0F172A; }
     .btn-secondary { background: white; color: var(--primary); border: 1px solid var(--border); }
     .btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
     .btn-sm { padding: 8px 16px; font-size: 13px; }
@@ -236,7 +274,7 @@
     .hero-next-class .eyebrow { font-size: 13px; opacity: 0.85; margin-bottom: 8px; }
     .hero-next-class h2 { font-size: 28px; margin-bottom: 8px; }
     .hero-next-class .meta { font-size: 16px; opacity: 0.9; }
-    .hero-next-class .btn { background: white; color: var(--primary); }
+    .hero-next-class .btn { background: var(--accent); color: #0F172A; font-weight: 700; }
 
     .quick-action {
       width: 200px;
@@ -256,7 +294,7 @@
     .lesson-card { overflow: hidden; }
     .lesson-thumb {
       height: 140px;
-      background: linear-gradient(135deg, #1e3a5f, #2563EB);
+      background: linear-gradient(135deg, #002A66, #0045AD);
       position: relative;
       display: flex;
       align-items: center;
@@ -284,8 +322,8 @@
       height: 160px;
       border-radius: var(--radius-md) var(--radius-md) 0 0;
     }
-    .course-card .cover.math { background: linear-gradient(135deg, #1e40af, #3b82f6); }
-    .course-card .cover.physics { background: linear-gradient(135deg, #7c3aed, #a78bfa); }
+    .course-card .cover.math { background: linear-gradient(135deg, #003388, #1A5FD4); }
+    .course-card .cover.physics { background: linear-gradient(135deg, #FFC400, #FFD54F); }
     .course-card .cover.chem { background: linear-gradient(135deg, #059669, #34d399); }
     .course-card-body { padding: 20px; }
     .course-card-body h3 { font-size: 20px; margin-bottom: 8px; }
@@ -541,27 +579,204 @@
       .screen-wrapper { page-break-after: always; margin-bottom: 0; }
       .frame-desktop, .frame-mobile { box-shadow: none; }
     }
+  
+    /* ===== Color richness: gold + subject palette ===== */
+    .header { border-bottom: 3px solid var(--accent); }
+    .header-auth-btn {
+      background: var(--accent) !important;
+      border-color: var(--accent) !important;
+      color: #0F172A !important;
+    }
+    .chip.active {
+      background: var(--accent) !important;
+      color: #0F172A !important;
+      border-color: var(--accent-dark) !important;
+    }
+    .chip.math { background: #E5EEFF; color: #0045AD; border-color: #0045AD; }
+    .chip.physics { background: #FFF6D6; color: #9A7400; border-color: #FFC400; }
+    .chip.chem { background: #D1FAE5; color: #047857; border-color: #10B981; }
+    .chip.bio { background: #FFE4E6; color: #BE123C; border-color: #FB7185; }
+    .chip.math.active, .chip.physics.active, .chip.chem.active, .chip.bio.active {
+      color: #0F172A !important;
+    }
+    .hero-next-class {
+      background:
+        radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--accent) 35%, transparent), transparent 40%),
+        radial-gradient(circle at 88% 80%, rgba(255,255,255,.12), transparent 35%),
+        linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 55%, var(--primary-dark) 100%) !important;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 28px color-mix(in srgb, var(--primary) 28%, transparent);
+    }
+    .hero-next-class::after {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 8px;
+      background: var(--accent);
+    }
+    .quick-action {
+      background: linear-gradient(180deg, #FFF6D6, #fff) !important;
+      border: 2px solid var(--accent) !important;
+    }
+    .quick-action h3 { color: var(--primary); }
+    .level-tabs span.active {
+      background: var(--accent) !important;
+      color: #0F172A !important;
+    }
+    .lesson-thumb {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, color-mix(in srgb, var(--primary) 80%, white) 100%) !important;
+    }
+    .lesson-thumb.gold {
+      background: linear-gradient(135deg, #E6B000 0%, #FFC400 55%, #FFE082 100%) !important;
+      color: #0F172A !important;
+    }
+    .lesson-thumb.teal {
+      background: linear-gradient(135deg, #0F766E 0%, #14B8A6 100%) !important;
+    }
+    .lesson-thumb.rose {
+      background: linear-gradient(135deg, #BE123C 0%, #FB7185 100%) !important;
+    }
+    .lesson-thumb .badge {
+      background: var(--accent) !important;
+      color: #0F172A !important;
+    }
+    .subject-tile {
+      border: none !important;
+      border-radius: 16px !important;
+      color: #fff !important;
+      font-weight: 700 !important;
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
+    }
+    .subject-tile.math { background: linear-gradient(145deg, #4A7422, #6B8E23) !important; }
+    .subject-tile.physics { background: linear-gradient(145deg, #6D28D9, #9333EA) !important; }
+    .subject-tile.chem { background: linear-gradient(145deg, #9B1B30, #C41E3A) !important; }
+    .subject-tile.bio { background: linear-gradient(145deg, #C88A00, #FFB800) !important; color: #0F172A !important; }
+    .path-card {
+      border-radius: 16px;
+      padding: 22px;
+      border: 1px solid var(--border);
+      background: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .path-card::before {
+      content: "";
+      position: absolute;
+      top: 0; right: 0; left: 0;
+      height: 6px;
+    }
+    .path-card.taasees::before { background: var(--primary); }
+    .path-card.tagmeeat::before { background: var(--accent); }
+    .path-card.tests::before { background: color-mix(in srgb, var(--primary) 70%, var(--accent)); }
+    .path-card h3 { color: var(--primary) !important; }
+    .path-card.tagmeeat h3 { color: var(--accent-dark) !important; }
+
+    .theme-strip {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      width: 1440px;
+      max-width: 100%;
+    }
+    .theme-strip-card {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      background: var(--bg);
+    }
+    .theme-strip-card .mini-header {
+      height: 48px;
+      background: var(--surface);
+      border-bottom: 3px solid var(--accent);
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+    }
+    .theme-strip-card .mini-header img { height: 32px; width: auto; }
+    .theme-strip-card .mini-body { padding: 14px; }
+    .theme-strip-card .mini-body h4 { font-size: 16px; color: var(--primary); margin-bottom: 8px; }
+    .theme-strip-card .mini-chip {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+    .btn-cta, .btn-accent {
+      background: var(--accent) !important;
+      color: #0F172A !important;
+      box-shadow: 0 6px 16px rgba(255,196,0,.35);
+    }
+    .section-title::after {
+      content: "";
+      display: inline-block;
+      width: 28px; height: 4px;
+      background: var(--accent);
+      margin-right: 10px;
+      border-radius: 4px;
+      vertical-align: middle;
+    }
+    .nav a.active {
+      color: #0F172A !important;
+      background: var(--accent) !important;
+    }
+    .score-ring {
+      border: 8px solid var(--accent) !important;
+      color: var(--primary) !important;
+    }
+    .live-badge { background: #16A34A !important; }
+    .m-bottom span.active, .mobile-bottom-nav span.active {
+      color: #9A7400 !important;
+    }
+    .frame-desktop, .frame-tablet, .frame-mobile {
+      background:
+        radial-gradient(ellipse at top right, color-mix(in srgb, var(--accent) 8%, transparent), transparent 45%),
+        radial-gradient(ellipse at bottom left, color-mix(in srgb, var(--primary) 6%, transparent), transparent 40%),
+        var(--bg) !important;
+    }
   </style>
 </head>
 <body>
 
   <div class="page-index">
-    <h1>منصة التعليم الإلكتروني — نماذج Canva</h1>
-    <p>افتح هذا الملف في المتصفح، ثم التقط لقطة شاشة لكل إطار (1440×1024) وارفعها إلى Canva.</p>
-    <p><strong>نسخ أخرى:</strong> <a href="canva-mockups-mobile.html">جوال 375×812</a> · <a href="canva-mockups-tablet.html">تابلت 768×1024</a></p>
+    <div style="display:flex;align-items:center;gap:20px;margin-bottom:16px;flex-wrap:wrap">
+      <img src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" style="height:88px;width:auto" />
+      <div>
+        <h1 style="margin:0">زاد التحصيلي — نماذج Canva (لابتوب)</h1>
+        <p style="margin:6px 0 0;color:var(--text-muted)">زادك للمئوية · Royal Blue #0045AD · Gold #FFC400</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap">
+      <span style="width:48px;height:48px;border-radius:10px;background:#0045AD" title="#0045AD"></span>
+      <span style="width:48px;height:48px;border-radius:10px;background:#003388" title="#003388"></span>
+      <span style="width:48px;height:48px;border-radius:10px;background:#FFC400" title="#FFC400"></span>
+      <span style="width:48px;height:48px;border-radius:10px;background:#FFF6D6;border:1px solid #E2E8F0" title="#FFF6D6"></span>
+      <span style="width:48px;height:48px;border-radius:10px;background:#FFFFFF;border:1px solid #E2E8F0" title="#FFFFFF"></span>
+      <span style="width:48px;height:48px;border-radius:10px;background:#0F172A" title="#0F172A"></span>
+    </div>
+    <p>افتح هذا الملف في المتصفح على <strong>زووم 100%</strong>، ثم التقط لقطة شاشة لكل إطار (1440×1024) وارفعها إلى Canva.</p>
+    <p><strong>ثيمات المواد:</strong> عند دخول مادة، يُضاف <code>theme-math</code> / <code>theme-physics</code> / <code>theme-chem</code> / <code>theme-bio</code> على الإطار ويُستبدل الشعار — موقع واحد، لا 4 نسخ.</p>
+    <p><strong>نسخ أخرى:</strong> <a href="canva-mockups-mobile.html">جوال 375×812</a> · <a href="canva-mockups-tablet.html">تابلت 768×1024</a> · <a href="brand-board.html">لوحة الهوية البصرية</a></p>
     <ol>
-      <li><a href="#home-desktop">01 — الرئيسية (سطح المكتب)</a></li>
+      <li><a href="#home-desktop">01 — الرئيسية (سطح المكتب · أزرق)</a></li>
       <li><a href="#home-mobile">01b — الرئيسية (جوال)</a></li>
       <li><a href="#courses">02 — الدورات (4 مواد)</a></li>
-      <li><a href="#subject-hub">03 — مسارات المادة</a></li>
-      <li><a href="#taasees">04 — تأسيس (الدروس)</a></li>
-      <li><a href="#lesson">05 — درس التأسيس</a></li>
-      <li><a href="#tagmeeat">06 — تجميعات</a></li>
-      <li><a href="#tests-hub">07 — اختبارات (محاكي / مدرس)</a></li>
-      <li><a href="#simulator">08 — المحاكي الشخصي</a></li>
-      <li><a href="#teacher-test">09 — اختبار المدرس</a></li>
-      <li><a href="#test-runner">10 — شاشة الاختبار</a></li>
-      <li><a href="#results">11 — النتائج (قائمة الاختبارات)</a></li>
+      <li><a href="#subject-hub-math">03a — مسارات المادة: رياضيات (أخضر)</a></li>
+      <li><a href="#subject-hub-physics">03b — مسارات المادة: فيزياء (بنفسجي)</a></li>
+      <li><a href="#subject-hub-chem">03c — مسارات المادة: كيمياء (أحمر)</a></li>
+      <li><a href="#subject-hub-bio">03d — مسارات المادة: أحياء (ذهبي)</a></li>
+      <li><a href="#theme-strip">03e — مقارنة ثيمات المواد (شريط)</a></li>
+      <li><a href="#taasees">04 — تأسيس (رياضيات · أخضر)</a></li>
+      <li><a href="#lesson">05 — درس التأسيس (رياضيات)</a></li>
+      <li><a href="#tagmeeat">06 — تجميعات (رياضيات)</a></li>
+      <li><a href="#tests-hub">07 — اختبارات (رياضيات)</a></li>
+      <li><a href="#simulator">08 — المحاكي الشخصي (رياضيات)</a></li>
+      <li><a href="#teacher-test">09 — اختبار المدرس (رياضيات)</a></li>
+      <li><a href="#test-runner">10 — شاشة الاختبار (رياضيات)</a></li>
+      <li><a href="#results">11 — النتائج (قائمة الاختبارات · أزرق)</a></li>
       <li><a href="#results-detail">11b — مراجعة اختبار</a></li>
       <li><a href="#schedule">12 — جدول الحصص</a></li>
       <li><a href="#subscription">13 — اشتراكي</a></li>
@@ -576,7 +791,7 @@
     <div class="screen-meta">Screenshot this frame at 100% zoom for Canva import</div>
     <div class="frame-desktop">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="nav">
           <a href="#" class="active">الرئيسية</a>
           <a href="#">دورات</a>
@@ -604,10 +819,10 @@
         </div>
         <div class="section-title">تصفح حسب المادة</div>
         <div class="filter-row">
-          <span class="chip active">رياضيات</span>
-          <span class="chip active">فيزياء</span>
-          <span class="chip">أحياء</span>
-          <span class="chip">كيمياء</span>
+          <span class="chip math active">رياضيات</span>
+          <span class="chip physics">فيزياء</span>
+          <span class="chip bio">أحياء</span>
+          <span class="chip chem">كيمياء</span>
         </div>
         <div class="level-tabs">
           <span class="active">1</span>
@@ -620,16 +835,14 @@
             <div class="lesson-thumb">▶<span class="badge">سهل</span></div>
             <div class="lesson-card-body"><h4>مقدمة في التكامل</h4><p>المستوى 1 · 12 دقيقة</p></div>
           </div>
-          <div class="card lesson-card">
-            <div class="lesson-thumb">▶<span class="badge">متوسط</span></div>
+          <div class="card lesson-card"><div class="lesson-thumb gold">▶<span class="badge">متوسط</span></div>
             <div class="lesson-card-body"><h4>قواعد التفاضل</h4><p>المستوى 2 · 18 دقيقة</p></div>
           </div>
           <div class="card lesson-card">
-            <div class="lesson-thumb" style="background:linear-gradient(135deg,#64748b,#94a3b8)">📄</div>
+            <div class="lesson-thumb teal">📄</div>
             <div class="lesson-card-body"><h4>واجب الوحدة 3</h4><p>PDF · واجب منزلي</p></div>
           </div>
-          <div class="card lesson-card">
-            <div class="lesson-thumb">▶<span class="badge">صعب</span></div>
+          <div class="card lesson-card"><div class="lesson-thumb rose">▶<span class="badge">صعب</span></div>
             <div class="lesson-card-body"><h4>تطبيقات التكامل</h4><p>المستوى 3 · 22 دقيقة</p></div>
           </div>
         </div>
@@ -642,7 +855,7 @@
     <div class="screen-label">01b — الرئيسية (Mobile 375×812)</div>
     <div class="frame-mobile">
       <div class="mobile-header">
-        <div class="logo"><div class="logo-icon">ت</div></div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" style="height:32px" /></div>
         <strong>الرئيسية</strong>
         <div class="avatar" style="width:32px;height:32px;font-size:12px">م</div>
       </div>
@@ -681,7 +894,7 @@
     <div class="screen-label">02 — الدورات: اختيار المادة (Desktop)</div>
     <div class="frame-desktop">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="nav">
           <a href="#">الرئيسية</a>
           <a href="#" class="active">دورات</a>
@@ -694,21 +907,22 @@
         <h1 style="font-size:32px;margin-bottom:8px">دورات</h1>
         <p style="color:var(--text-muted);margin-bottom:32px">اختر المادة — ثم تأسيس أو تجميع أو اختبارات</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:720px">
-          <button class="btn btn-primary" style="min-height:88px;font-size:20px">رياضيات</button>
-          <button class="btn btn-secondary" style="min-height:88px;font-size:20px">فيزياء</button>
-          <button class="btn btn-secondary" style="min-height:88px;font-size:20px">كيمياء</button>
-          <button class="btn btn-secondary" style="min-height:88px;font-size:20px">أحياء</button>
+          <button class="btn subject-tile math" style="min-height:100px;font-size:22px">رياضيات</button>
+          <button class="btn subject-tile physics" style="min-height:100px;font-size:22px">فيزياء</button>
+          <button class="btn subject-tile chem" style="min-height:100px;font-size:22px">كيمياء</button>
+          <button class="btn subject-tile bio" style="min-height:100px;font-size:22px">أحياء</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 03 SUBJECT HUB -->
-  <div class="screen-wrapper" id="subject-hub">
-    <div class="screen-label">03 — مسارات المادة: رياضيات (Desktop)</div>
-    <div class="frame-desktop">
+  <!-- 03 SUBJECT HUB — MATH -->
+  <div class="screen-wrapper" id="subject-hub-math">
+    <div class="screen-label">03a — مسارات المادة: رياضيات · theme-math (Desktop)</div>
+    <div class="screen-meta">class="frame-desktop theme-math" · logo-math.png · #5B8C2A</div>
+    <div class="frame-desktop theme-math">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-math.png" alt="رياضيات" /></div>
         <nav class="nav">
           <a href="#">الرئيسية</a>
           <a href="#" class="active">دورات</a>
@@ -719,25 +933,128 @@
       </header>
       <div class="content">
         <div class="breadcrumb">دورات &gt; <span>رياضيات</span></div>
-        <h1 style="font-size:32px;margin-bottom:24px">رياضيات</h1>
-        <div class="filter-row" style="margin-bottom:24px">
-          <span class="chip active">تأسيس</span>
-          <span class="chip">تجميع</span>
-          <span class="chip">اختبارات</span>
+        <h1 style="font-size:32px;margin-bottom:24px;color:var(--primary)">رياضيات</h1>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+          <div class="path-card taasees"><h3 style="margin-bottom:8px">تأسيس</h3><p style="color:var(--text-muted);font-size:14px">دروس مرقمة: فيديو، PDF، واجب</p></div>
+          <div class="path-card tagmeeat"><h3 style="margin-bottom:8px">تجميع</h3><p style="color:var(--text-muted);font-size:14px">سهل / متوسط / صعب حسب الدرس</p></div>
+          <div class="path-card tests"><h3 style="margin-bottom:8px">اختبارات</h3><p style="color:var(--text-muted);font-size:14px">محاكي شخصي أو اختبار مدرس</p></div>
         </div>
-        <div class="card" style="padding:24px">
-          <p style="color:var(--text-muted)">تأسيس: دروس مرقمة — فيديو، PDF، واجب (أسئلة اختيار). التجميع: نفس الدروس بمستويات سهل/متوسط/صعب. الاختبارات: محاكي شخصي أو مدرس.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 SUBJECT HUB — PHYSICS -->
+  <div class="screen-wrapper" id="subject-hub-physics">
+    <div class="screen-label">03b — مسارات المادة: فيزياء · theme-physics (Desktop)</div>
+    <div class="screen-meta">class="frame-desktop theme-physics" · logo-physics.png · #7C3AED</div>
+    <div class="frame-desktop theme-physics">
+      <header class="header">
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-physics.png" alt="فيزياء" /></div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#" class="active">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#">جدول الحصص</a>
+        </nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <div class="breadcrumb">دورات &gt; <span>فيزياء</span></div>
+        <h1 style="font-size:32px;margin-bottom:24px;color:var(--primary)">فيزياء</h1>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+          <div class="path-card taasees"><h3 style="margin-bottom:8px">تأسيس</h3><p style="color:var(--text-muted);font-size:14px">دروس مرقمة: فيديو، PDF، واجب</p></div>
+          <div class="path-card tagmeeat"><h3 style="margin-bottom:8px">تجميع</h3><p style="color:var(--text-muted);font-size:14px">سهل / متوسط / صعب حسب الدرس</p></div>
+          <div class="path-card tests"><h3 style="margin-bottom:8px">اختبارات</h3><p style="color:var(--text-muted);font-size:14px">محاكي شخصي أو اختبار مدرس</p></div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 SUBJECT HUB — CHEM -->
+  <div class="screen-wrapper" id="subject-hub-chem">
+    <div class="screen-label">03c — مسارات المادة: كيمياء · theme-chem (Desktop)</div>
+    <div class="screen-meta">class="frame-desktop theme-chem" · logo-chem.png · #C41E3A</div>
+    <div class="frame-desktop theme-chem">
+      <header class="header">
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-chem.png" alt="كيمياء" /></div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#" class="active">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#">جدول الحصص</a>
+        </nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <div class="breadcrumb">دورات &gt; <span>كيمياء</span></div>
+        <h1 style="font-size:32px;margin-bottom:24px;color:var(--primary)">كيمياء</h1>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+          <div class="path-card taasees"><h3 style="margin-bottom:8px">تأسيس</h3><p style="color:var(--text-muted);font-size:14px">دروس مرقمة: فيديو، PDF، واجب</p></div>
+          <div class="path-card tagmeeat"><h3 style="margin-bottom:8px">تجميع</h3><p style="color:var(--text-muted);font-size:14px">سهل / متوسط / صعب حسب الدرس</p></div>
+          <div class="path-card tests"><h3 style="margin-bottom:8px">اختبارات</h3><p style="color:var(--text-muted);font-size:14px">محاكي شخصي أو اختبار مدرس</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 SUBJECT HUB — BIO -->
+  <div class="screen-wrapper" id="subject-hub-bio">
+    <div class="screen-label">03d — مسارات المادة: أحياء · theme-bio (Desktop)</div>
+    <div class="screen-meta">class="frame-desktop theme-bio" · logo-bio.png · #E6A800</div>
+    <div class="frame-desktop theme-bio">
+      <header class="header">
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-bio.png" alt="أحياء" /></div>
+        <nav class="nav">
+          <a href="#">الرئيسية</a>
+          <a href="#" class="active">دورات</a>
+          <a href="#">نتائج</a>
+          <a href="#">جدول الحصص</a>
+        </nav>
+        <div class="avatar">م</div>
+      </header>
+      <div class="content">
+        <div class="breadcrumb">دورات &gt; <span>أحياء</span></div>
+        <h1 style="font-size:32px;margin-bottom:24px;color:var(--primary)">أحياء</h1>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+          <div class="path-card taasees"><h3 style="margin-bottom:8px">تأسيس</h3><p style="color:var(--text-muted);font-size:14px">دروس مرقمة: فيديو، PDF، واجب</p></div>
+          <div class="path-card tagmeeat"><h3 style="margin-bottom:8px">تجميع</h3><p style="color:var(--text-muted);font-size:14px">سهل / متوسط / صعب حسب الدرس</p></div>
+          <div class="path-card tests"><h3 style="margin-bottom:8px">اختبارات</h3><p style="color:var(--text-muted);font-size:14px">محاكي شخصي أو اختبار مدرس</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03e THEME STRIP — comparison -->
+  <div class="screen-wrapper" id="theme-strip">
+    <div class="screen-label">03e — مقارنة ثيمات المواد (شريط واحد للـ Canva)</div>
+    <div class="screen-meta">Screenshot this strip — same layout, 4 palettes + logos</div>
+    <div class="theme-strip">
+      <div class="theme-strip-card theme-math">
+        <div class="mini-header"><img src="frontend/public/logo-math.png" alt="رياضيات" /></div>
+        <div class="mini-body"><h4>رياضيات</h4><span class="mini-chip">theme-math</span></div>
+      </div>
+      <div class="theme-strip-card theme-physics">
+        <div class="mini-header"><img src="frontend/public/logo-physics.png" alt="فيزياء" /></div>
+        <div class="mini-body"><h4>فيزياء</h4><span class="mini-chip">theme-physics</span></div>
+      </div>
+      <div class="theme-strip-card theme-chem">
+        <div class="mini-header"><img src="frontend/public/logo-chem.png" alt="كيمياء" /></div>
+        <div class="mini-body"><h4>كيمياء</h4><span class="mini-chip">theme-chem</span></div>
+      </div>
+      <div class="theme-strip-card theme-bio">
+        <div class="mini-header"><img src="frontend/public/logo-bio.png" alt="أحياء" /></div>
+        <div class="mini-body"><h4>أحياء</h4><span class="mini-chip">theme-bio</span></div>
       </div>
     </div>
   </div>
 
   <!-- 04 TAASEES -->
   <div class="screen-wrapper" id="taasees">
-    <div class="screen-label">04 — تأسيس: قائمة الدروس (Desktop)</div>
-    <div class="frame-desktop">
+    <div class="screen-label">04 — تأسيس: قائمة الدروس · رياضيات (Desktop)</div>
+    <div class="screen-meta">theme-math · logo-math.png</div>
+    <div class="frame-desktop theme-math">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-math.png" alt="رياضيات" /></div>
         <nav class="nav">
           <a href="#">الرئيسية</a>
           <a href="#" class="active">دورات</a>
@@ -761,10 +1078,11 @@
 
   <!-- 05 LESSON -->
   <div class="screen-wrapper" id="lesson">
-    <div class="screen-label">05 — درس التأسيس (Desktop)</div>
-    <div class="frame-desktop">
+    <div class="screen-label">05 — درس التأسيس · رياضيات (Desktop)</div>
+    <div class="screen-meta">theme-math · logo-math.png</div>
+    <div class="frame-desktop theme-math">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-math.png" alt="رياضيات" /></div>
         <nav class="nav">
           <a href="#">الرئيسية</a>
           <a href="#" class="active">دورات</a>
@@ -795,10 +1113,11 @@
 
   <!-- 06 TAGMEEAT -->
   <div class="screen-wrapper" id="tagmeeat">
-    <div class="screen-label">06 — تجميعات (Desktop)</div>
-    <div class="frame-desktop">
+    <div class="screen-label">06 — تجميعات · رياضيات (Desktop)</div>
+    <div class="screen-meta">theme-math · logo-math.png</div>
+    <div class="frame-desktop theme-math">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-math.png" alt="رياضيات" /></div>
         <nav class="nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول الحصص</a></nav>
         <div class="avatar">م</div>
       </header>
@@ -826,10 +1145,11 @@
 
   <!-- 07 TESTS HUB -->
   <div class="screen-wrapper" id="tests-hub">
-    <div class="screen-label">07 — اختبارات داخل المادة (Desktop)</div>
-    <div class="frame-desktop">
+    <div class="screen-label">07 — اختبارات داخل المادة · رياضيات (Desktop)</div>
+    <div class="screen-meta">theme-math · logo-math.png</div>
+    <div class="frame-desktop theme-math">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-math.png" alt="رياضيات" /></div>
         <nav class="nav">
           <a href="#">الرئيسية</a>
           <a href="#" class="active">دورات</a>
@@ -846,12 +1166,12 @@
           <div class="card test-mode-card">
             <h3>المحاكي الشخصي</h3>
             <p>عدد الأسئلة، الدروس، المادة، المستوى — اختبار عشوائي</p>
-            <button class="btn btn-primary">ابدأ الإعداد</button>
+            <button class="btn btn-cta">ابدأ الإعداد</button>
           </div>
           <div class="card test-mode-card">
             <h3>مدرس</h3>
             <p>معادلة صعوبة · مراجعة فورية أو نهائية</p>
-            <button class="btn btn-primary">ابدأ الإعداد</button>
+            <button class="btn btn-cta">ابدأ الإعداد</button>
           </div>
         </div>
         <div class="section-title">اختباراتك الأخيرة</div>
@@ -865,10 +1185,11 @@
 
   <!-- 08 SIMULATOR -->
   <div class="screen-wrapper" id="simulator">
-    <div class="screen-label">08 — المحاكي الشخصي (Desktop)</div>
-    <div class="frame-desktop">
+    <div class="screen-label">08 — المحاكي الشخصي · رياضيات (Desktop)</div>
+    <div class="screen-meta">theme-math · logo-math.png</div>
+    <div class="frame-desktop theme-math">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-math.png" alt="رياضيات" /></div>
         <nav class="nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#">نتائج</a><a href="#">جدول الحصص</a></nav>
         <div class="avatar">م</div>
       </header>
@@ -902,7 +1223,7 @@
           </div>
           <div class="form-actions">
             <button class="btn btn-ghost">إلغاء</button>
-            <button class="btn btn-primary">ابدأ الاختبار ←</button>
+            <button class="btn btn-cta">ابدأ الاختبار ←</button>
           </div>
         </div>
       </div>
@@ -911,10 +1232,11 @@
 
   <!-- 09 TEACHER TEST -->
   <div class="screen-wrapper" id="teacher-test">
-    <div class="screen-label">09 — اختبار المدرس (Desktop)</div>
-    <div class="frame-desktop">
+    <div class="screen-label">09 — اختبار المدرس · رياضيات (Desktop)</div>
+    <div class="screen-meta">theme-math · logo-math.png</div>
+    <div class="frame-desktop theme-math">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-math.png" alt="رياضيات" /></div>
         <nav class="nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول الحصص</a></nav>
         <div class="avatar">م</div>
       </header>
@@ -947,7 +1269,7 @@
               <label><input type="radio" name="rev" /> نهائية — في آخر الاختبار</label>
             </div>
           </div>
-          <button class="btn btn-primary" style="width:100%">ابدأ اختبار المدرس</button>
+          <button class="btn btn-cta" style="width:100%">ابدأ اختبار المدرس</button>
         </div>
       </div>
     </div>
@@ -955,8 +1277,9 @@
 
   <!-- 08 TEST RUNNER -->
   <div class="screen-wrapper" id="test-runner">
-    <div class="screen-label">08 — شاشة الاختبار (Desktop)</div>
-    <div class="frame-desktop">
+    <div class="screen-label">10 — شاشة الاختبار · رياضيات (Desktop)</div>
+    <div class="screen-meta">theme-math · logo-math.png</div>
+    <div class="frame-desktop theme-math">
       <div class="test-runner-header">
         <span>محاكي شخصي · رياضيات</span>
         <span>سؤال 3 من 8</span>
@@ -990,7 +1313,7 @@
       <div class="runner-footer">
         <button class="btn btn-ghost">← السابق</button>
         <button class="btn btn-ghost btn-sm">تخطي</button>
-        <button class="btn btn-primary">التالي →</button>
+        <button class="btn btn-cta">التالي →</button>
       </div>
     </div>
   </div>
@@ -1000,7 +1323,7 @@
     <div class="screen-label">11 — النتائج: قائمة الاختبارات (Desktop)</div>
     <div class="frame-desktop">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="nav">
           <a href="#">الرئيسية</a>
           <a href="#">دورات</a>
@@ -1018,7 +1341,7 @@
         </div>
         <div class="card" style="padding:16px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;border:2px solid var(--primary)">
           <div><strong>مدرس — حل المعادلات</strong><br><span style="color:var(--text-muted);font-size:13px">68% · 3 يونيو · 6 أخطاء</span></div>
-          <button class="btn btn-primary btn-sm">مراجعة</button>
+          <button class="btn btn-cta btn-sm">مراجعة</button>
         </div>
         <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center">
           <div><strong>محاكي — تطبيقات عملية</strong><br><span style="color:var(--text-muted);font-size:13px">90% · 1 يونيو · خطأ واحد</span></div>
@@ -1032,7 +1355,7 @@
     <div class="screen-label">11b — مراجعة اختبار (Desktop)</div>
     <div class="frame-desktop">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="nav">
           <a href="#">الرئيسية</a>
           <a href="#">دورات</a>
@@ -1078,7 +1401,7 @@
     <div class="screen-label">10 — جدول الحصص (Desktop)</div>
     <div class="frame-desktop">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="nav">
           <a href="#">الرئيسية</a>
           <a href="#">دورات</a>
@@ -1100,7 +1423,7 @@
             <h4>الرياضيات <span class="live-badge">مباشر الآن</span></h4>
             <p>الأستاذ أحمد · 60 دقيقة</p>
           </div>
-          <button class="btn btn-primary btn-sm">انضم عبر Zoom</button>
+          <button class="btn btn-cta btn-sm">انضم عبر Zoom</button>
         </div>
         <div class="section-title" style="margin-top:24px">غداً</div>
         <div class="card session-card">
@@ -1109,7 +1432,7 @@
             <h4>فيزياء</h4>
             <p>الأستاذة سارة · 45 دقيقة</p>
           </div>
-          <button class="btn btn-primary btn-sm">انضم عبر Zoom</button>
+          <button class="btn btn-cta btn-sm">انضم عبر Zoom</button>
         </div>
         <div class="card session-card">
           <div class="session-time">7:30 م</div>
@@ -1128,7 +1451,7 @@
     <div class="screen-label">13 — اشتراكي (Desktop)</div>
     <div class="frame-desktop">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="nav">
           <a href="#">الرئيسية</a>
           <a href="#">دورات</a>
@@ -1162,7 +1485,7 @@
           <button class="btn btn-secondary">فودافون كاش</button>
           <button class="btn btn-secondary">محفظة إلكترونية</button>
         </div>
-        <button class="btn btn-primary">إتمام الدفع والاشتراك</button>
+        <button class="btn btn-cta">إتمام الدفع والاشتراك</button>
       </div>
     </div>
   </div>
@@ -1172,7 +1495,7 @@
     <div class="screen-label">14 — تسجيل الدخول (Desktop)</div>
     <div class="frame-desktop">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="nav">
           <a href="#">الرئيسية</a>
           <a href="#">دورات</a>
@@ -1195,7 +1518,7 @@
             <label>كلمة المرور</label>
             <div class="form-control">••••••••</div>
           </div>
-          <button class="btn btn-primary" style="width:100%;margin-top:8px">تسجيل الدخول</button>
+          <button class="btn btn-cta" style="width:100%;margin-top:8px">تسجيل الدخول</button>
           <p style="text-align:center;margin-top:16px;color:var(--text-muted);font-size:14px">ليس لديك حساب؟ <a href="#" style="color:var(--primary);font-weight:600">إنشاء حساب</a></p>
         </div>
       </div>
@@ -1207,7 +1530,7 @@
     <div class="screen-label">15 — إنشاء حساب (Desktop)</div>
     <div class="frame-desktop">
       <header class="header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="nav">
           <a href="#">الرئيسية</a>
           <a href="#">دورات</a>
@@ -1245,7 +1568,7 @@
             <label>كلمة المرور *</label>
             <div class="form-control">••••••••</div>
           </div>
-          <button class="btn btn-primary" style="width:100%;margin-top:8px">إنشاء الحساب</button>
+          <button class="btn btn-cta" style="width:100%;margin-top:8px">إنشاء الحساب</button>
           <p style="text-align:center;margin-top:16px;color:var(--text-muted);font-size:14px">لديك حساب؟ <a href="#" style="color:var(--primary);font-weight:600">تسجيل الدخول</a></p>
         </div>
       </div>

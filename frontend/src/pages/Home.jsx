@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import client from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { resolveSubjectKey } from "../theme/subjects";
 
 export default function Home() {
   const { user } = useAuth();
@@ -76,25 +77,31 @@ export default function Home() {
 
       <div className="section-title">تصفح حسب المادة</div>
       <div className="filter-row">
-        {content?.subjects?.map((s) => (
-          <Link key={s.id} to={user ? `/courses/${s.id}` : "/login"} className="chip">
-            {s.name}
-          </Link>
-        ))}
+        {content?.subjects?.map((s) => {
+          const cls = resolveSubjectKey(s.name) || "math";
+          return (
+            <Link key={s.id} to={user ? `/courses/${s.id}` : "/login"} className={`chip ${cls}`}>
+              {s.name}
+            </Link>
+          );
+        })}
       </div>
 
       <div className="section-title">الدروس المتاحة مجاناً</div>
       {!content && <div className="spinner">جاري التحميل…</div>}
       <div className="grid grid-4">
-        {content?.free_lessons?.map((l) => (
-          <Link key={l.id} to={user ? `/lessons/${l.id}` : "/login"} className="card">
-            <div className="lesson-thumb">▶</div>
-            <div className="lesson-card-body">
-              <h4>{l.title}</h4>
-              <p>{l.subject_name} · معاينة مجانية</p>
-            </div>
-          </Link>
-        ))}
+        {content?.free_lessons?.map((l, i) => {
+          const thumb = ["", "gold", "teal", "rose"][i % 4];
+          return (
+            <Link key={l.id} to={user ? `/lessons/${l.id}` : "/login"} className="card">
+              <div className={`lesson-thumb ${thumb}`.trim()}>▶</div>
+              <div className="lesson-card-body">
+                <h4>{l.title}</h4>
+                <p>{l.subject_name} · معاينة مجانية</p>
+              </div>
+            </Link>
+          );
+        })}
         {content?.free_lessons?.length === 0 && (
           <p style={{ color: "var(--text-muted)" }}>لا توجد دروس مجانية بعد.</p>
         )}

@@ -1,16 +1,23 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>منصة التعليم — نماذج التابلت (Canva)</title>
+  <title>زاد التحصيلي — نماذج التابلت (Canva)</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --primary: #2563EB; --primary-light: #DBEAFE; --bg: #F8FAFC; --surface: #FFF;
+    :root, .theme-brand {
+      --primary: #0045AD; --primary-dark: #003388; --primary-light: #E5EEFF;
+      --accent: #FFC400;
+      --accent-dark: #E6B000;
+      --accent-soft: #FFF6D6; --bg: #F8FAFC; --surface: #FFF;
       --border: #E2E8F0; --text: #0F172A; --text-muted: #64748B;
       --success: #16A34A; --error: #DC2626; --radius-sm: 8px; --font: 'Cairo', sans-serif;
     }
+    .theme-math { --primary: #5B8C2A; --primary-dark: #4A7422; --primary-light: #EEF5E4; --accent: #FFC400; --accent-dark: #E6B000; --accent-soft: #F5FBE8; }
+    .theme-physics { --primary: #7C3AED; --primary-dark: #6D28D9; --primary-light: #EDE9FE; --accent: #E8B84A; --accent-dark: #C9972E; --accent-soft: #FDF6E3; }
+    .theme-chem { --primary: #C41E3A; --primary-dark: #9B1B30; --primary-light: #FCE8EC; --accent: #D4AF37; --accent-dark: #B8941F; --accent-soft: #FBF5E0; }
+    .theme-bio { --primary: #E6A800; --primary-dark: #C88A00; --primary-light: #FFF8E1; --accent: #9A7400; --accent-dark: #7A5C00; --accent-soft: #FFF3CD; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: var(--font); background: #1e293b; padding: 32px 20px; line-height: 1.5; }
     .page-index { max-width: 720px; margin: 0 auto 40px; background: var(--surface); border-radius: 16px; padding: 28px; }
@@ -31,7 +38,17 @@
       display: flex; align-items: center; justify-content: space-between; padding: 0 24px; flex-shrink: 0;
     }
     .logo { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; color: var(--primary); }
-    .logo-icon { width: 34px; height: 34px; background: var(--primary); border-radius: var(--radius-sm); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .logo-icon, .logo-img {
+      height: 44px;
+      width: auto;
+      max-width: 150px;
+      object-fit: contain;
+      display: block;
+      background: transparent;
+      border-radius: 0;
+    }
+    .logo-text { display: none; }
+    .logo { gap: 8px; }
     .t-nav { display: flex; gap: 4px; flex-wrap: wrap; }
     .t-nav a { padding: 6px 12px; text-decoration: none; color: var(--text-muted); font-size: 13px; font-weight: 600; border-radius: var(--radius-sm); }
     .t-nav a.active { color: var(--primary); background: var(--primary-light); }
@@ -42,20 +59,22 @@
     .card { background: var(--surface); border-radius: var(--radius-sm); border: 1px solid var(--border); }
     .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 20px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 14px; font-weight: 600; border: none; }
     .btn-primary { background: var(--primary); color: #fff; }
+    .btn-accent { background: var(--accent); color: #0F172A; }
     .btn-secondary { background: #fff; color: var(--primary); border: 1px solid var(--border); }
     .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-size: 12px; padding: 6px 12px; }
     .chip { display: inline-flex; padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; border: 1px solid var(--border); background: #fff; margin-left: 6px; margin-bottom: 6px; }
     .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-    .hero { background: linear-gradient(135deg, #2563EB, #1D4ED8); color: #fff; border-radius: var(--radius-sm); padding: 20px 24px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+    .hero { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; border-radius: var(--radius-sm); padding: 20px 24px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
     .hero h2 { font-size: 24px; margin: 6px 0; }
     .hero .meta { font-size: 14px; opacity: .9; }
+    .hero .btn, .hero .btn-primary { background: var(--accent) !important; color: #0F172A !important; }
     .hero .eyebrow { font-size: 12px; opacity: .85; }
     .section-title { font-size: 15px; font-weight: 700; margin: 16px 0 12px; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
     .lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
     .lesson-card { overflow: hidden; }
-    .lesson-thumb { height: 110px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 28px; }
+    .lesson-thumb { height: 110px; background: linear-gradient(135deg, #1A5FD4, #003388); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 28px; }
     .lesson-card-body { padding: 12px; }
     .lesson-card-body h4 { font-size: 14px; margin-bottom: 4px; }
     .lesson-card-body p { font-size: 12px; color: var(--text-muted); }
@@ -103,6 +122,128 @@
     .timer { color: #F59E0B; }
     .form-actions { display: flex; justify-content: space-between; margin-top: 20px; }
     .runner-layout { display: grid; grid-template-columns: 1fr 200px; gap: 20px; }
+  
+    /* ===== Color richness: gold + subject palette ===== */
+    .header { border-bottom: 3px solid var(--accent); }
+    .header-auth-btn {
+      background: var(--accent) !important;
+      border-color: var(--accent) !important;
+      color: #0F172A !important;
+    }
+    .chip.active {
+      background: var(--accent) !important;
+      color: #0F172A !important;
+      border-color: var(--accent-dark) !important;
+    }
+    .chip.math { background: #E5EEFF; color: #0045AD; border-color: #0045AD; }
+    .chip.physics { background: #FFF6D6; color: #9A7400; border-color: #FFC400; }
+    .chip.chem { background: #D1FAE5; color: #047857; border-color: #10B981; }
+    .chip.bio { background: #FFE4E6; color: #BE123C; border-color: #FB7185; }
+    .chip.math.active, .chip.physics.active, .chip.chem.active, .chip.bio.active {
+      color: #0F172A !important;
+    }
+    .hero-next-class {
+      background:
+        radial-gradient(circle at 12% 20%, rgba(255,196,0,.35), transparent 40%),
+        radial-gradient(circle at 88% 80%, rgba(255,255,255,.12), transparent 35%),
+        linear-gradient(135deg, #0045AD 0%, #003388 55%, #0B2F6B 100%) !important;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 28px rgba(0,69,173,.28);
+    }
+    .hero-next-class::after {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 8px;
+      background: var(--accent);
+    }
+    .quick-action {
+      background: linear-gradient(180deg, #FFF6D6, #fff) !important;
+      border: 2px solid var(--accent) !important;
+    }
+    .quick-action h3 { color: var(--primary); }
+    .level-tabs span.active {
+      background: var(--accent) !important;
+      color: #0F172A !important;
+    }
+    .lesson-thumb {
+      background: linear-gradient(135deg, #003388 0%, #0045AD 50%, #1A5FD4 100%) !important;
+    }
+    .lesson-thumb.gold {
+      background: linear-gradient(135deg, #E6B000 0%, #FFC400 55%, #FFE082 100%) !important;
+      color: #0F172A !important;
+    }
+    .lesson-thumb.teal {
+      background: linear-gradient(135deg, #0F766E 0%, #14B8A6 100%) !important;
+    }
+    .lesson-thumb.rose {
+      background: linear-gradient(135deg, #BE123C 0%, #FB7185 100%) !important;
+    }
+    .lesson-thumb .badge {
+      background: var(--accent) !important;
+      color: #0F172A !important;
+    }
+    .subject-tile {
+      border: none !important;
+      border-radius: 16px !important;
+      color: #fff !important;
+      font-weight: 700 !important;
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
+    }
+    .subject-tile.math { background: linear-gradient(145deg, #4A7422, #6B8E23) !important; }
+    .subject-tile.physics { background: linear-gradient(145deg, #6D28D9, #9333EA) !important; }
+    .subject-tile.chem { background: linear-gradient(145deg, #9B1B30, #C41E3A) !important; }
+    .subject-tile.bio { background: linear-gradient(145deg, #C88A00, #FFB800) !important; color: #0F172A !important; }
+    .path-card.taasees::before { background: var(--primary); }
+    .path-card.tagmeeat::before { background: var(--accent); }
+    .path-card.tests::before { background: color-mix(in srgb, var(--primary) 70%, var(--accent)); }
+    .path-card {
+      border-radius: 16px;
+      padding: 22px;
+      border: 1px solid var(--border);
+      background: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .path-card::before {
+      content: "";
+      position: absolute;
+      top: 0; right: 0; left: 0;
+      height: 6px;
+    }
+    .btn-cta, .btn-accent {
+      background: var(--accent) !important;
+      color: #0F172A !important;
+      box-shadow: 0 6px 16px rgba(255,196,0,.35);
+    }
+    .section-title::after {
+      content: "";
+      display: inline-block;
+      width: 28px; height: 4px;
+      background: var(--accent);
+      margin-right: 10px;
+      border-radius: 4px;
+      vertical-align: middle;
+    }
+    .nav a.active {
+      color: #0F172A !important;
+      background: var(--accent) !important;
+    }
+    .score-ring {
+      border: 8px solid var(--accent) !important;
+      color: var(--primary) !important;
+    }
+    .live-badge { background: #16A34A !important; }
+    .m-bottom span.active, .mobile-bottom-nav span.active {
+      color: #9A7400 !important;
+    }
+    .frame-desktop, .frame-tablet, .frame-mobile {
+      background:
+        radial-gradient(ellipse at top right, rgba(255,196,0,.08), transparent 45%),
+        radial-gradient(ellipse at bottom left, rgba(0,69,173,.06), transparent 40%),
+        var(--bg) !important;
+    }
   </style>
 </head>
 <body>
@@ -136,7 +277,7 @@
     <div class="screen-meta">Screenshot at 100% zoom</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav">
           <a href="#" class="active">الرئيسية</a><a href="#">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a>
         </nav>
@@ -165,7 +306,7 @@
     <div class="screen-label">02 — الدورات (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><button class="auth-btn">دخول / حساب</button><div class="avatar">م</div></div>
       </header>
@@ -173,7 +314,7 @@
         <h1>دورات</h1>
         <p class="muted">اختر المادة — ثم تأسيس أو تجميع أو اختبارات</p>
         <div class="grid-2" style="max-width:560px">
-          <button class="btn btn-primary" style="min-height:80px;font-size:18px">رياضيات</button>
+          <button class="btn btn-cta" style="min-height:80px;font-size:18px">رياضيات</button>
           <button class="btn btn-secondary" style="min-height:80px;font-size:18px">فيزياء</button>
           <button class="btn btn-secondary" style="min-height:80px;font-size:18px">كيمياء</button>
           <button class="btn btn-secondary" style="min-height:80px;font-size:18px">أحياء</button>
@@ -184,10 +325,10 @@
 
   <!-- 03 SUBJECT -->
   <div class="screen-wrapper" id="t-subject">
-    <div class="screen-label">03 — مسارات المادة (Tablet)</div>
-    <div class="frame-tablet">
+    <div class="screen-label">03 — مسارات المادة · رياضيات (Tablet · theme-math)</div>
+    <div class="frame-tablet theme-math">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-math.png" alt="رياضيات" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><div class="avatar">م</div></div>
       </header>
@@ -205,7 +346,7 @@
     <div class="screen-label">04 — تأسيس (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><div class="avatar">م</div></div>
       </header>
@@ -227,7 +368,7 @@
     <div class="screen-label">05 — الدرس (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><div class="avatar">م</div></div>
       </header>
@@ -250,7 +391,7 @@
     <div class="screen-label">06 — تجميعات (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><div class="avatar">م</div></div>
       </header>
@@ -268,7 +409,7 @@
     <div class="screen-label">07 — اختبارات (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><div class="avatar">م</div></div>
       </header>
@@ -276,7 +417,7 @@
         <h1>اختبارات</h1>
         <p class="muted">محاكي شخصي أو مدرس</p>
         <div class="test-grid">
-          <div class="card test-card"><h3>محاكي شخصي</h3><p>اختبار عشوائي حسب الدروس والمستوى</p><button class="btn btn-primary">إعداد</button></div>
+          <div class="card test-card"><h3>محاكي شخصي</h3><p>اختبار عشوائي حسب الدروس والمستوى</p><button class="btn btn-cta">إعداد</button></div>
           <div class="card test-card"><h3>مدرس</h3><p>من بنك التجميعات · مراجعة فورية/نهائية</p><button class="btn btn-secondary">إعداد</button></div>
         </div>
       </div>
@@ -288,7 +429,7 @@
     <div class="screen-label">08 — المحاكي الشخصي (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><div class="avatar">م</div></div>
       </header>
@@ -299,7 +440,7 @@
           <div class="form-group"><label>الدروس *</label><div class="form-control">المعادلات الخطية، حل المعادلات ▼</div></div>
           <div class="form-group"><label>عدد الأسئلة *</label><div style="display:flex;gap:10px;align-items:center"><button class="btn btn-ghost">−</button><div class="form-control" style="width:80px;text-align:center">8</div><button class="btn btn-ghost">+</button></div></div>
           <div class="form-group"><label>المستوى</label><span class="chip">سهل</span><span class="chip active">متوسط</span><span class="chip">صعب</span></div>
-          <div class="form-actions"><button class="btn btn-ghost">إلغاء</button><button class="btn btn-primary">ابدأ الاختبار ←</button></div>
+          <div class="form-actions"><button class="btn btn-ghost">إلغاء</button><button class="btn btn-cta">ابدأ الاختبار ←</button></div>
         </div>
       </div>
     </div>
@@ -310,7 +451,7 @@
     <div class="screen-label">09 — اختبار المدرس (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#" class="active">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><div class="avatar">م</div></div>
       </header>
@@ -327,7 +468,7 @@
             <div class="card preset-card"><strong>صعب</strong><div class="ratio">20% · 40% · 40%</div></div>
           </div>
           <div class="form-group"><label>المراجعة</label><span class="chip active">فورية</span><span class="chip">نهائية</span></div>
-          <button class="btn btn-primary" style="width:100%">ابدأ اختبار المدرس</button>
+          <button class="btn btn-cta" style="width:100%">ابدأ اختبار المدرس</button>
         </div>
       </div>
     </div>
@@ -348,7 +489,7 @@
             <div class="option selected">ب) 2x² + C</div>
             <div class="option">ج) x²/2 + C</div>
             <div class="option">د) 2x + C</div>
-            <div class="runner-footer"><button class="btn btn-ghost">← السابق</button><button class="btn btn-ghost">تخطي</button><button class="btn btn-primary">التالي →</button></div>
+            <div class="runner-footer"><button class="btn btn-ghost">← السابق</button><button class="btn btn-ghost">تخطي</button><button class="btn btn-cta">التالي →</button></div>
           </div>
           <div>
             <div style="font-weight:700;margin-bottom:12px">خريطة الأسئلة</div>
@@ -367,7 +508,7 @@
     <div class="screen-label">11 — النتائج (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#" class="active">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><div class="avatar">م</div></div>
       </header>
@@ -379,7 +520,7 @@
         </div>
         <div class="card" style="padding:16px;display:flex;justify-content:space-between;align-items:center;border:2px solid var(--primary)">
           <div><strong>مدرس — حل المعادلات</strong><br><span class="muted" style="font-size:13px">68% · 6 أخطاء</span></div>
-          <button class="btn btn-primary">مراجعة</button>
+          <button class="btn btn-cta">مراجعة</button>
         </div>
       </div>
     </div>
@@ -390,7 +531,7 @@
     <div class="screen-label">12 — مراجعة اختبار (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#" class="active">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><div class="avatar">م</div></div>
       </header>
@@ -410,7 +551,7 @@
     <div class="screen-label">13 — جدول الحصص (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#">نتائج</a><a href="#" class="active">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><div class="avatar">م</div></div>
       </header>
@@ -421,13 +562,13 @@
         <div class="card session-card">
           <div class="session-time">6:00 م</div>
           <div class="session-info"><strong>الرياضيات <span class="live-badge">مباشر الآن</span></strong><p>الأستاذ أحمد · 60 دقيقة</p></div>
-          <button class="btn btn-primary">انضم عبر Zoom</button>
+          <button class="btn btn-cta">انضم عبر Zoom</button>
         </div>
         <div class="section-title">غداً</div>
         <div class="card session-card">
           <div class="session-time">5:00 م</div>
           <div class="session-info"><strong>فيزياء</strong><p>الأستاذة سارة · 45 دقيقة</p></div>
-          <button class="btn btn-primary">انضم عبر Zoom</button>
+          <button class="btn btn-cta">انضم عبر Zoom</button>
         </div>
         <div class="card session-card">
           <div class="session-time">7:30 م</div>
@@ -443,7 +584,7 @@
     <div class="screen-label">14 — اشتراكي (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#" class="active">اشتراكي</a></nav>
         <div class="header-actions"><div class="avatar">م</div></div>
       </header>
@@ -456,7 +597,7 @@
               <p class="muted">ينتهي 15 ديسمبر 2026 · متبقي 198 يوم</p>
               <button class="btn btn-secondary">تجديد الاشتراك</button>
             </div>
-            <button class="btn btn-primary">إتمام الدفع والاشتراك</button>
+            <button class="btn btn-cta">إتمام الدفع والاشتراك</button>
           </div>
           <div>
             <div class="grid-3" style="margin-bottom:16px">
@@ -478,7 +619,7 @@
     <div class="screen-label">15 — تسجيل الدخول (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><button class="auth-btn">دخول / حساب</button></div>
       </header>
@@ -487,7 +628,7 @@
           <h2 style="text-align:center;margin-bottom:24px">تسجيل الدخول</h2>
           <div class="form-group"><label>البريد الإلكتروني</label><div class="form-control">example@email.com</div></div>
           <div class="form-group"><label>كلمة المرور</label><div class="form-control">••••••••</div></div>
-          <button class="btn btn-primary" style="width:100%">تسجيل الدخول</button>
+          <button class="btn btn-cta" style="width:100%">تسجيل الدخول</button>
           <p style="text-align:center;margin-top:16px;color:var(--text-muted);font-size:14px">ليس لديك حساب؟ <a href="#" style="color:var(--primary);font-weight:600">إنشاء حساب</a></p>
         </div>
       </div>
@@ -499,7 +640,7 @@
     <div class="screen-label">16 — إنشاء حساب (Tablet)</div>
     <div class="frame-tablet">
       <header class="t-header">
-        <div class="logo"><div class="logo-icon">ت</div> منصة التعلم</div>
+        <div class="logo"><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /></div>
         <nav class="t-nav"><a href="#">الرئيسية</a><a href="#">دورات</a><a href="#">نتائج</a><a href="#">جدول</a><a href="#">اشتراكي</a></nav>
         <div class="header-actions"><button class="auth-btn">دخول / حساب</button></div>
       </header>
@@ -511,7 +652,7 @@
           <div class="form-group"><label>الجنس *</label><span class="chip active">ذكر</span><span class="chip">أنثى</span></div>
           <div class="form-group"><label>البريد الإلكتروني *</label><div class="form-control">example@email.com</div></div>
           <div class="form-group"><label>كلمة المرور *</label><div class="form-control">••••••••</div></div>
-          <button class="btn btn-primary" style="width:100%">إنشاء الحساب</button>
+          <button class="btn btn-cta" style="width:100%">إنشاء الحساب</button>
         </div>
       </div>
     </div>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>زاد التحصيلي — لوحة الهوية البصرية (Canva)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --primary: #0045AD;
+      --primary-dark: #003388;
+      --primary-light: #E5EEFF;
+      --accent: #FFC400;
+      --accent-dark: #E6B000;
+      --accent-soft: #FFF6D6;
+      --bg: #F7F9FC;
+      --surface: #FFFFFF;
+      --border: #E2E8F0;
+      --text: #0F172A;
+      --text-muted: #64748B;
+      --font: 'Cairo', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: #0B1F44;
+      color: var(--text);
+      padding: 40px 20px 80px;
+      line-height: 1.6;
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    .board {
+      background: var(--surface);
+      border-radius: 20px;
+      padding: 40px;
+      margin-bottom: 28px;
+    }
+    .hero-brand {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+      flex-wrap: wrap;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+    .hero-brand img { height: 140px; width: auto; }
+    .hero-brand h1 { font-size: 32px; color: var(--primary); margin-bottom: 6px; }
+    .hero-brand p { color: var(--text-muted); font-size: 16px; }
+    .tagline {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 6px 14px;
+      background: var(--accent-soft);
+      color: var(--primary-dark);
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    h2 {
+      font-size: 20px;
+      color: var(--primary);
+      margin: 0 0 16px;
+      padding-bottom: 8px;
+      border-bottom: 3px solid var(--accent);
+      display: inline-block;
+    }
+    .section { margin-bottom: 36px; }
+    .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+    .swatch {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .swatch .chip { height: 72px; }
+    .swatch .meta { padding: 10px 12px; }
+    .swatch .meta strong { display: block; font-size: 13px; }
+    .swatch .meta span { font-size: 12px; color: var(--text-muted); }
+    .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 720px) { .rules { grid-template-columns: 1fr; } }
+    .rule {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      background: var(--bg);
+    }
+    .rule h3 { font-size: 15px; margin-bottom: 8px; color: var(--primary); }
+    .rule p { font-size: 14px; color: var(--text-muted); }
+    .btns { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 12px 22px; border-radius: 10px; font-family: var(--font);
+      font-weight: 700; font-size: 15px; border: none;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-accent { background: var(--accent); color: #0F172A; }
+    .btn-secondary { background: #fff; color: var(--primary); border: 1px solid var(--border); }
+    .type-sample { background: var(--bg); border-radius: 14px; padding: 20px; border: 1px solid var(--border); }
+    .type-sample .h1 { font-size: 28px; font-weight: 700; color: var(--text); }
+    .type-sample .h2 { font-size: 20px; font-weight: 700; color: var(--primary); margin-top: 8px; }
+    .type-sample .body { font-size: 15px; color: var(--text-muted); margin-top: 8px; }
+    .type-sample .caption { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+    .devices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    @media (max-width: 800px) { .devices { grid-template-columns: 1fr; } }
+    .device-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      text-decoration: none;
+      color: inherit;
+      background: linear-gradient(180deg, #fff 0%, var(--primary-light) 100%);
+      transition: transform .15s ease;
+    }
+    .device-card:hover { transform: translateY(-2px); }
+    .device-card .size { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+    .device-card h3 { color: var(--primary); font-size: 18px; margin-bottom: 6px; }
+    .device-card p { font-size: 13px; color: var(--text-muted); }
+    .pages {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+    .page-pill {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .page-pill span { display: block; color: var(--accent-dark); font-size: 11px; font-weight: 700; margin-bottom: 2px; }
+    .note {
+      margin-top: 20px;
+      padding: 16px 18px;
+      background: var(--accent-soft);
+      border-radius: 12px;
+      font-size: 14px;
+      color: var(--primary-dark);
+    }
+    .subject-themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+    .subject-theme-card {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .subject-theme-card .bar { height: 6px; }
+    .subject-theme-card .inner { padding: 16px; text-align: center; }
+    .subject-theme-card img { height: 72px; width: auto; margin-bottom: 10px; }
+    .subject-theme-card h3 { font-size: 16px; margin-bottom: 6px; }
+    .subject-theme-card code { font-size: 12px; color: var(--text-muted); background: var(--bg); padding: 2px 8px; border-radius: 6px; }
+    .subject-theme-card .sw { display: flex; gap: 6px; justify-content: center; margin-top: 10px; }
+    .subject-theme-card .sw span { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); }
+    .footer-links { color: #94a3b8; text-align: center; font-size: 14px; }
+    .footer-links a { color: var(--accent); font-weight: 700; text-decoration: none; margin: 0 8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="board">
+      <div class="hero-brand">
+        <img src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" />
+        <div>
+          <h1>لوحة الهوية البصرية</h1>
+          <p>دليل الألوان والواجهات لاستيرادها في Canva وتصميم كل صفحات الموقع على اللابتوب والجوال والتابلت.</p>
+          <span class="tagline">زادك للمئوية</span>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>الألوان الأساسية</h2>
+        <div class="swatches">
+          <div class="swatch"><div class="chip" style="background:#0045AD"></div><div class="meta"><strong>Royal Blue</strong><span>#0045AD · Primary</span></div></div>
+          <div class="swatch"><div class="chip" style="background:#003388"></div><div class="meta"><strong>Deep Blue</strong><span>#003388 · Hover / Dark</span></div></div>
+          <div class="swatch"><div class="chip" style="background:#E5EEFF"></div><div class="meta"><strong>Soft Blue</strong><span>#E5EEFF · Active bg</span></div></div>
+          <div class="swatch"><div class="chip" style="background:#FFC400"></div><div class="meta"><strong>Gold</strong><span>#FFC400 · Accent CTA</span></div></div>
+          <div class="swatch"><div class="chip" style="background:#E6B000"></div><div class="meta"><strong>Gold Dark</strong><span>#E6B000 · Accent hover</span></div></div>
+          <div class="swatch"><div class="chip" style="background:#FFF6D6"></div><div class="meta"><strong>Gold Soft</strong><span>#FFF6D6 · Highlights</span></div></div>
+          <div class="swatch"><div class="chip" style="background:#FFFFFF;border-bottom:1px solid #E2E8F0"></div><div class="meta"><strong>White</strong><span>#FFFFFF · Surfaces</span></div></div>
+          <div class="swatch"><div class="chip" style="background:#F7F9FC;border-bottom:1px solid #E2E8F0"></div><div class="meta"><strong>Page BG</strong><span>#F7F9FC · Background</span></div></div>
+          <div class="swatch"><div class="chip" style="background:#10B981"></div><div class="meta"><strong>Chemistry</strong><span>#10B981 · كيمياء</span></div></div>
+          <div class="swatch"><div class="chip" style="background:#FB7185"></div><div class="meta"><strong>Biology</strong><span>#FB7185 · أحياء</span></div></div>
+          <div class="swatch"><div class="chip" style="background:#14B8A6"></div><div class="meta"><strong>Teal</strong><span>#14B8A6 · PDF / واجبات</span></div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>ثيمات المواد (Subject themes)</h2>
+        <p style="color:var(--text-muted);font-size:14px;margin-bottom:16px">موقع واحد — عند دخول مادة يُضاف <code>theme-math</code> / <code>theme-physics</code> / <code>theme-chem</code> / <code>theme-bio</code> على الإطار ويُستبدل الشعار في الهيدر. الشعار الرئيسي الأزرق يبقى للرئيسية والصفحات العامة.</p>
+        <div class="subject-themes">
+          <div class="subject-theme-card">
+            <div class="bar" style="background:#0045AD"></div>
+            <div class="inner"><img src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" /><h3 style="color:#0045AD">المنصة (افتراضي)</h3><code>theme-brand / :root</code><div class="sw"><span style="background:#0045AD" title="primary"></span><span style="background:#FFC400" title="accent"></span></div></div>
+          </div>
+          <div class="subject-theme-card">
+            <div class="bar" style="background:#5B8C2A"></div>
+            <div class="inner"><img src="frontend/public/logo-math.png" alt="رياضيات" /><h3 style="color:#5B8C2A">الرياضيات</h3><code>theme-math</code><div class="sw"><span style="background:#5B8C2A"></span><span style="background:#FFC400"></span></div></div>
+          </div>
+          <div class="subject-theme-card">
+            <div class="bar" style="background:#7C3AED"></div>
+            <div class="inner"><img src="frontend/public/logo-physics.png" alt="فيزياء" /><h3 style="color:#7C3AED">الفيزياء</h3><code>theme-physics</code><div class="sw"><span style="background:#7C3AED"></span><span style="background:#E8B84A"></span></div></div>
+          </div>
+          <div class="subject-theme-card">
+            <div class="bar" style="background:#C41E3A"></div>
+            <div class="inner"><img src="frontend/public/logo-chem.png" alt="كيمياء" /><h3 style="color:#C41E3A">الكيمياء</h3><code>theme-chem</code><div class="sw"><span style="background:#C41E3A"></span><span style="background:#D4AF37"></span></div></div>
+          </div>
+          <div class="subject-theme-card">
+            <div class="bar" style="background:#E6A800"></div>
+            <div class="inner"><img src="frontend/public/logo-bio.png" alt="أحياء" /><h3 style="color:#E6A800">الأحياء</h3><code>theme-bio</code><div class="sw"><span style="background:#E6A800"></span><span style="background:#9A7400"></span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>قواعد الاستخدام</h2>
+        <div class="rules">
+          <div class="rule">
+            <h3>الأزرق الملكي</h3>
+            <p>الهيدر، الروابط النشطة، الأزرار الثانوية، شريط التقدم، أيقونات التنقل، وهوية المنصة الأساسية.</p>
+          </div>
+          <div class="rule">
+            <h3>الذهبي</h3>
+            <p>أزرار الدعوة للعمل فقط: ابدأ الاختبار، اشترك الآن، رابط الحصة، التسجيل. لا تستخدمه لكل الأزرار.</p>
+          </div>
+          <div class="rule">
+            <h3>الخلفية</h3>
+            <p>وضع فاتح دائماً: أبيض أو رمادي مزرق خفيف. مساحات واسعة نظيفة مثل خلفية الشعار.</p>
+          </div>
+          <div class="rule">
+            <h3>الشعار</h3>
+            <p>استخدم الشعار الكامل في الهيدر وصفحات الدخول. لا تضع الشعار فوق صور مزدحمة أو خلفية داكنة بدون مساحة بيضاء.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>الأزرار</h2>
+        <div class="btns">
+          <button class="btn btn-accent">ابدأ الاختبار</button>
+          <button class="btn btn-primary">عرض الدورات</button>
+          <button class="btn btn-secondary">رجوع</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>الخطوط</h2>
+        <div class="type-sample">
+          <div class="h1">عنوان رئيسي — Cairo Bold</div>
+          <div class="h2">عنوان فرعي — زاد التحصيلي</div>
+          <div class="body">نص الجسم: منصة عربية RTL لتأسيس المواد والتجميعات واختبارات التحصيلي.</div>
+          <div class="caption">تسمية صغيرة · 12px · نص مساعد</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>الشاشات حسب الجهاز</h2>
+        <div class="devices">
+          <a class="device-card" href="canva-mockups.html">
+            <div class="size">Laptop · 1440×1024</div>
+            <h3>سطح المكتب</h3>
+            <p>هيدر كامل + شبكة دروس + تقسيم اختبار واسع</p>
+          </a>
+          <a class="device-card" href="canva-mockups-tablet.html">
+            <div class="size">Tablet · 768×1024</div>
+            <h3>التابلت</h3>
+            <p>تنقل مضغوط + عمودين للمحتوى</p>
+          </a>
+          <a class="device-card" href="canva-mockups-mobile.html">
+            <div class="size">Phone · 375×812</div>
+            <h3>الجوال</h3>
+            <p>هيدر مختصر + شريط تنقل سفلي</p>
+          </a>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>صفحات الموقع (كل جهاز)</h2>
+        <div class="pages">
+          <div class="page-pill"><span>01</span>الرئيسية</div>
+          <div class="page-pill"><span>02</span>الدورات / المواد</div>
+          <div class="page-pill"><span>03</span>مسارات المادة</div>
+          <div class="page-pill"><span>04</span>تأسيس — قائمة الدروس</div>
+          <div class="page-pill"><span>05</span>درس التأسيس</div>
+          <div class="page-pill"><span>06</span>تجميعات</div>
+          <div class="page-pill"><span>07</span>اختبارات المادة</div>
+          <div class="page-pill"><span>08</span>المحاكي الشخصي</div>
+          <div class="page-pill"><span>09</span>اختبار المدرس</div>
+          <div class="page-pill"><span>10</span>شاشة الاختبار</div>
+          <div class="page-pill"><span>11</span>النتائج</div>
+          <div class="page-pill"><span>12</span>مراجعة اختبار</div>
+          <div class="page-pill"><span>13</span>جدول الحصص</div>
+          <div class="page-pill"><span>14</span>اشتراكي</div>
+          <div class="page-pill"><span>15</span>تسجيل الدخول</div>
+          <div class="page-pill"><span>16</span>إنشاء حساب</div>
+        </div>
+        <div class="note">
+          <strong>طريقة الاستيراد إلى Canva:</strong>
+          افتح الملف المناسب للجهاز في المتصفح على زووم 100% → التقط Screenshot لكل إطار → ارفع الصور إلى مشروع Canva جديد باسم «زاد التحصيلي — UI Kit» → رتّب الصفحات حسب الأرقام أعلاه في 3 صفحات (Laptop / Tablet / Phone).
+        </div>
+      </div>
+    </div>
+
+    <p class="footer-links">
+      <a href="canva-mockups.html">لابتوب</a>
+      <a href="canva-mockups-tablet.html">تابلت</a>
+      <a href="canva-mockups-mobile.html">جوال</a>
+      <a href="canva-subject-themes.html">ثيمات المواد</a>
+      <a href="MOCKUPS-DOCUMENTATION.md">التوثيق</a>
+    </p>
+  </div>
+</body>
+</html>

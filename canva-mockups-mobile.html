@@ -1,16 +1,23 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>منصة التعليم — نماذج الجوال (Canva)</title>
+  <title>زاد التحصيلي — نماذج الجوال (Canva)</title>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --primary: #2563EB; --primary-light: #DBEAFE; --bg: #F8FAFC; --surface: #FFF;
+    :root, .theme-brand {
+      --primary: #0045AD; --primary-dark: #003388; --primary-light: #E5EEFF;
+      --accent: #FFC400;
+      --accent-dark: #E6B000;
+      --accent-soft: #FFF6D6; --bg: #F8FAFC; --surface: #FFF;
       --border: #E2E8F0; --text: #0F172A; --text-muted: #64748B;
       --success: #16A34A; --error: #DC2626; --radius-sm: 8px; --font: 'Cairo', sans-serif;
     }
+    .theme-math { --primary: #5B8C2A; --primary-dark: #4A7422; --primary-light: #EEF5E4; --accent: #FFC400; --accent-dark: #E6B000; --accent-soft: #F5FBE8; }
+    .theme-physics { --primary: #7C3AED; --primary-dark: #6D28D9; --primary-light: #EDE9FE; --accent: #E8B84A; --accent-dark: #C9972E; --accent-soft: #FDF6E3; }
+    .theme-chem { --primary: #C41E3A; --primary-dark: #9B1B30; --primary-light: #FCE8EC; --accent: #D4AF37; --accent-dark: #B8941F; --accent-soft: #FBF5E0; }
+    .theme-bio { --primary: #E6A800; --primary-dark: #C88A00; --primary-light: #FFF8E1; --accent: #9A7400; --accent-dark: #7A5C00; --accent-soft: #FFF3CD; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: var(--font); background: #1e293b; padding: 32px 16px; line-height: 1.5; }
     .page-index { max-width: 600px; margin: 0 auto 40px; background: var(--surface); border-radius: 16px; padding: 24px; }
@@ -32,7 +39,17 @@
     }
     .m-header .title { font-size: 15px; font-weight: 700; }
     .menu-btn { width: 36px; height: 36px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; font-size: 18px; }
-    .logo-icon { width: 32px; height: 32px; background: var(--primary); border-radius: var(--radius-sm); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; }
+    .logo-icon, .logo-img {
+      height: 30px;
+      width: auto;
+      max-width: 110px;
+      object-fit: contain;
+      display: block;
+      background: transparent;
+      border-radius: 0;
+    }
+    .logo-text { display: none; }
+    .logo { gap: 8px; }
     .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
     .m-body { flex: 1; overflow: hidden; padding: 16px; }
     .m-bottom {
@@ -43,18 +60,20 @@
     .card { background: var(--surface); border-radius: var(--radius-sm); border: 1px solid var(--border); }
     .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 16px; border-radius: var(--radius-sm); font-family: var(--font); font-size: 14px; font-weight: 600; border: none; }
     .btn-primary { background: var(--primary); color: #fff; }
+    .btn-accent { background: var(--accent); color: #0F172A; }
     .btn-secondary { background: #fff; color: var(--primary); border: 1px solid var(--border); }
     .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-size: 12px; padding: 6px 10px; }
     .btn-block { width: 100%; }
     .chip { display: inline-flex; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; border: 1px solid var(--border); background: #fff; margin-left: 6px; margin-bottom: 6px; }
     .chip.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-    .hero { background: linear-gradient(135deg, #2563EB, #1D4ED8); color: #fff; border-radius: var(--radius-sm); padding: 16px; margin-bottom: 14px; }
+    .hero { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: #fff; border-radius: var(--radius-sm); padding: 16px; margin-bottom: 14px; }
+    .hero .btn-primary, .hero .btn { background: var(--accent) !important; color: #0F172A !important; }
     .hero .eyebrow { font-size: 11px; opacity: .85; margin-bottom: 4px; }
     .hero h2 { font-size: 20px; margin-bottom: 4px; }
     .hero .meta { font-size: 13px; opacity: .9; margin-bottom: 12px; }
     .section-title { font-size: 14px; font-weight: 700; margin: 14px 0 10px; }
     .lesson-card { margin-bottom: 10px; overflow: hidden; }
-    .lesson-thumb { height: 90px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; }
+    .lesson-thumb { height: 90px; background: linear-gradient(135deg, #1A5FD4, #003388); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; }
     .lesson-card-body { padding: 10px 12px; }
     .lesson-card-body h4 { font-size: 14px; margin-bottom: 2px; }
     .lesson-card-body p { font-size: 12px; color: var(--text-muted); }
@@ -102,6 +121,128 @@
     .video-hint { background: var(--primary-light); padding: 8px 10px; border-radius: var(--radius-sm); margin-bottom: 12px; font-size: 12px; }
     .timer { color: #F59E0B; font-weight: 700; }
     .form-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; }
+  
+    /* ===== Color richness: gold + subject palette ===== */
+    .header { border-bottom: 3px solid var(--accent); }
+    .header-auth-btn {
+      background: var(--accent) !important;
+      border-color: var(--accent) !important;
+      color: #0F172A !important;
+    }
+    .chip.active {
+      background: var(--accent) !important;
+      color: #0F172A !important;
+      border-color: var(--accent-dark) !important;
+    }
+    .chip.math { background: #E5EEFF; color: #0045AD; border-color: #0045AD; }
+    .chip.physics { background: #FFF6D6; color: #9A7400; border-color: #FFC400; }
+    .chip.chem { background: #D1FAE5; color: #047857; border-color: #10B981; }
+    .chip.bio { background: #FFE4E6; color: #BE123C; border-color: #FB7185; }
+    .chip.math.active, .chip.physics.active, .chip.chem.active, .chip.bio.active {
+      color: #0F172A !important;
+    }
+    .hero-next-class {
+      background:
+        radial-gradient(circle at 12% 20%, rgba(255,196,0,.35), transparent 40%),
+        radial-gradient(circle at 88% 80%, rgba(255,255,255,.12), transparent 35%),
+        linear-gradient(135deg, #0045AD 0%, #003388 55%, #0B2F6B 100%) !important;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 12px 28px rgba(0,69,173,.28);
+    }
+    .hero-next-class::after {
+      content: "";
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 8px;
+      background: var(--accent);
+    }
+    .quick-action {
+      background: linear-gradient(180deg, #FFF6D6, #fff) !important;
+      border: 2px solid var(--accent) !important;
+    }
+    .quick-action h3 { color: var(--primary); }
+    .level-tabs span.active {
+      background: var(--accent) !important;
+      color: #0F172A !important;
+    }
+    .lesson-thumb {
+      background: linear-gradient(135deg, #003388 0%, #0045AD 50%, #1A5FD4 100%) !important;
+    }
+    .lesson-thumb.gold {
+      background: linear-gradient(135deg, #E6B000 0%, #FFC400 55%, #FFE082 100%) !important;
+      color: #0F172A !important;
+    }
+    .lesson-thumb.teal {
+      background: linear-gradient(135deg, #0F766E 0%, #14B8A6 100%) !important;
+    }
+    .lesson-thumb.rose {
+      background: linear-gradient(135deg, #BE123C 0%, #FB7185 100%) !important;
+    }
+    .lesson-thumb .badge {
+      background: var(--accent) !important;
+      color: #0F172A !important;
+    }
+    .subject-tile {
+      border: none !important;
+      border-radius: 16px !important;
+      color: #fff !important;
+      font-weight: 700 !important;
+      box-shadow: 0 10px 24px rgba(0,0,0,.12);
+    }
+    .subject-tile.math { background: linear-gradient(145deg, #4A7422, #6B8E23) !important; }
+    .subject-tile.physics { background: linear-gradient(145deg, #6D28D9, #9333EA) !important; }
+    .subject-tile.chem { background: linear-gradient(145deg, #9B1B30, #C41E3A) !important; }
+    .subject-tile.bio { background: linear-gradient(145deg, #C88A00, #FFB800) !important; color: #0F172A !important; }
+    .path-card {
+      border-radius: 16px;
+      padding: 22px;
+      border: 1px solid var(--border);
+      background: #fff;
+      position: relative;
+      overflow: hidden;
+    }
+    .path-card::before {
+      content: "";
+      position: absolute;
+      top: 0; right: 0; left: 0;
+      height: 6px;
+    }
+    .path-card.taasees::before { background: #0045AD; }
+    .path-card.tagmeeat::before { background: #FFC400; }
+    .path-card.tests::before { background: #10B981; }
+    .btn-cta, .btn-accent {
+      background: var(--accent) !important;
+      color: #0F172A !important;
+      box-shadow: 0 6px 16px rgba(255,196,0,.35);
+    }
+    .section-title::after {
+      content: "";
+      display: inline-block;
+      width: 28px; height: 4px;
+      background: var(--accent);
+      margin-right: 10px;
+      border-radius: 4px;
+      vertical-align: middle;
+    }
+    .nav a.active {
+      color: #0F172A !important;
+      background: var(--accent) !important;
+    }
+    .score-ring {
+      border: 8px solid var(--accent) !important;
+      color: var(--primary) !important;
+    }
+    .live-badge { background: #16A34A !important; }
+    .m-bottom span.active, .mobile-bottom-nav span.active {
+      color: #9A7400 !important;
+    }
+    .frame-desktop, .frame-tablet, .frame-mobile {
+      background:
+        radial-gradient(ellipse at top right, rgba(255,196,0,.08), transparent 45%),
+        radial-gradient(ellipse at bottom left, rgba(0,69,173,.06), transparent 40%),
+        var(--bg) !important;
+    }
   </style>
 </head>
 <body>
@@ -143,7 +284,7 @@
           <button class="btn btn-secondary btn-block" style="background:rgba(255,255,255,.2);color:#fff;border:none">رابط Zoom</button>
         </div>
         <div class="section-title">تصفح حسب المادة</div>
-        <div><span class="chip active">رياضيات</span><span class="chip">فيزياء</span><span class="chip">كيمياء</span><span class="chip">أحياء</span></div>
+        <div><span class="chip physics active">رياضيات</span><span class="chip">فيزياء</span><span class="chip">كيمياء</span><span class="chip">أحياء</span></div>
         <div class="section-title">الدروس المقترحة</div>
         <div class="card lesson-card"><div class="lesson-thumb">▶</div><div class="lesson-card-body"><h4>مقدمة في التكامل</h4><p>12 دقيقة</p></div></div>
         <div class="card lesson-card"><div class="lesson-thumb">▶</div><div class="lesson-card-body"><h4>قواعد التفاضل</h4><p>18 دقيقة</p></div></div>
@@ -173,9 +314,9 @@
 
   <!-- 03 SUBJECT -->
   <div class="screen-wrapper" id="m-subject">
-    <div class="screen-label">03 — مسارات المادة (Mobile)</div>
-    <div class="frame-mobile">
-      <div class="m-header"><button class="menu-btn">☰</button><span class="title">رياضيات</span><div class="avatar">م</div></div>
+    <div class="screen-label">03 — مسارات المادة · رياضيات (Mobile · theme-math)</div>
+    <div class="frame-mobile theme-math">
+      <div class="m-header"><img class="logo-img" src="frontend/public/logo-math.png" alt="رياضيات" style="height:28px" /><span class="title">رياضيات</span><div class="avatar">م</div></div>
       <div class="m-body">
         <div class="breadcrumb">دورات &gt; <span>رياضيات</span></div>
         <span class="chip active">تأسيس</span><span class="chip">تجميع</span><span class="chip">اختبارات</span>
@@ -221,8 +362,8 @@
     <div class="frame-mobile">
       <div class="m-header"><button class="menu-btn">☰</button><span class="title">تجميعات</span><div class="avatar">م</div></div>
       <div class="m-body">
-        <span class="chip active">المعادلات</span><span class="chip">حل المعادلات</span>
-        <div style="margin-top:10px"><span class="chip">سهل</span><span class="chip active">متوسط</span><span class="chip">صعب</span></div>
+        <span class="chip physics active">المعادلات</span><span class="chip">حل المعادلات</span>
+        <div style="margin-top:10px"><span class="chip">سهل</span><span class="chip physics active">متوسط</span><span class="chip">صعب</span></div>
         <div class="card" style="padding:14px;margin-top:14px"><p class="muted" style="margin:0">3 أسئلة — مستوى متوسط</p></div>
       </div>
       <div class="m-bottom"><span>الرئيسية</span><span class="active">دورات</span><span>نتائج</span><span>جدول</span><span>اشتراكي</span></div>
@@ -254,8 +395,8 @@
           <div class="form-group"><label>المادة *</label><div class="form-control">رياضيات ▼</div></div>
           <div class="form-group"><label>الدروس *</label><div class="form-control">المعادلات الخطية، حل المعادلات ▼</div></div>
           <div class="form-group"><label>عدد الأسئلة *</label><div style="display:flex;gap:8px;align-items:center"><button class="btn btn-ghost">−</button><div class="form-control" style="flex:1;text-align:center">8</div><button class="btn btn-ghost">+</button></div></div>
-          <div class="form-group"><label>المستوى</label><span class="chip">سهل</span><span class="chip active">متوسط</span><span class="chip">صعب</span></div>
-          <div class="form-actions"><button class="btn btn-ghost">إلغاء</button><button class="btn btn-primary">ابدأ الاختبار</button></div>
+          <div class="form-group"><label>المستوى</label><span class="chip">سهل</span><span class="chip physics active">متوسط</span><span class="chip">صعب</span></div>
+          <div class="form-actions"><button class="btn btn-ghost">إلغاء</button><button class="btn btn-cta">ابدأ الاختبار</button></div>
         </div>
       </div>
       <div class="m-bottom"><span>الرئيسية</span><span class="active">دورات</span><span>نتائج</span><span>جدول</span><span>اشتراكي</span></div>
@@ -278,7 +419,7 @@
             <div class="card preset-card selected"><strong>متوسط</strong><div class="ratio">35·45·20</div></div>
             <div class="card preset-card"><strong>صعب</strong><div class="ratio">20·40·40</div></div>
           </div>
-          <div class="form-group"><label>المراجعة</label><span class="chip active">فورية</span><span class="chip">نهائية</span></div>
+          <div class="form-group"><label>المراجعة</label><span class="chip physics active">فورية</span><span class="chip">نهائية</span></div>
           <button class="btn btn-primary btn-block">ابدأ اختبار المدرس</button>
         </div>
       </div>
@@ -307,7 +448,7 @@
         <div class="runner-footer">
           <button class="btn btn-ghost">السابق</button>
           <button class="btn btn-ghost">تخطي</button>
-          <button class="btn btn-primary">التالي</button>
+          <button class="btn btn-cta">التالي</button>
         </div>
       </div>
     </div>
@@ -325,7 +466,7 @@
         </div>
         <div class="card" style="padding:12px;display:flex;justify-content:space-between;align-items:center">
           <div><strong style="font-size:14px">مدرس — حل المعادلات</strong><br><span class="muted" style="margin:0;font-size:12px">68% · 6 أخطاء</span></div>
-          <button class="btn btn-primary" style="font-size:12px;padding:6px 12px">مراجعة</button>
+          <button class="btn btn-cta" style="font-size:12px;padding:6px 12px">مراجعة</button>
         </div>
       </div>
       <div class="m-bottom"><span>الرئيسية</span><span>دورات</span><span class="active">نتائج</span><span>جدول</span><span>اشتراكي</span></div>
@@ -340,10 +481,10 @@
       <div class="m-body">
         <div class="breadcrumb">نتائج &gt; <span>مدرس — حل المعادلات</span></div>
         <p style="font-weight:700;margin-bottom:10px">68% · 14 صحيح · 6 خطأ</p>
-        <div style="margin-bottom:12px"><span class="chip active">الكل</span><span class="chip">الأخطاء فقط</span></div>
-        <div class="card review-item"><div class="status correct">سؤال 1 — صحيح · أ</div><span class="chip active" style="font-size:11px">تصحيح كتابي</span></div>
-        <div class="card review-item"><div class="status wrong">سؤال 2 — خطأ · ب · الصحيح: ج</div><span class="chip active" style="font-size:11px">تصحيح كتابي</span><p class="muted" style="margin:8px 0 0;font-size:12px">شرح الإجابة الصحيحة...</p></div>
-        <div class="card review-item"><div class="status wrong">سؤال 4 — خطأ · أ · الصحيح: ب</div><span class="chip active" style="font-size:11px">تصحيح فيديو</span></div>
+        <div style="margin-bottom:12px"><span class="chip physics active">الكل</span><span class="chip">الأخطاء فقط</span></div>
+        <div class="card review-item"><div class="status correct">سؤال 1 — صحيح · أ</div><span class="chip physics active" style="font-size:11px">تصحيح كتابي</span></div>
+        <div class="card review-item"><div class="status wrong">سؤال 2 — خطأ · ب · الصحيح: ج</div><span class="chip physics active" style="font-size:11px">تصحيح كتابي</span><p class="muted" style="margin:8px 0 0;font-size:12px">شرح الإجابة الصحيحة...</p></div>
+        <div class="card review-item"><div class="status wrong">سؤال 4 — خطأ · أ · الصحيح: ب</div><span class="chip physics active" style="font-size:11px">تصحيح فيديو</span></div>
       </div>
       <div class="m-bottom"><span>الرئيسية</span><span>دورات</span><span class="active">نتائج</span><span>جدول</span><span>اشتراكي</span></div>
     </div>
@@ -355,12 +496,12 @@
     <div class="frame-mobile">
       <div class="m-header"><button class="menu-btn">☰</button><span class="title">جدول الحصص</span><div class="avatar">م</div></div>
       <div class="m-body">
-        <div style="margin-bottom:12px"><span class="chip active">قائمة</span><span class="chip">تقويم</span></div>
+        <div style="margin-bottom:12px"><span class="chip physics active">قائمة</span><span class="chip">تقويم</span></div>
         <div class="section-title">اليوم</div>
         <div class="card session-card">
           <div class="session-time">6:00 م</div>
           <div class="session-info"><strong>الرياضيات <span class="live-badge">مباشر</span></strong><p>الأستاذ أحمد · 60 د</p></div>
-          <button class="btn btn-primary" style="font-size:11px;padding:6px 10px">Zoom</button>
+          <button class="btn btn-cta" style="font-size:11px;padding:6px 10px">Zoom</button>
         </div>
         <div class="section-title">غداً</div>
         <div class="card session-card">
@@ -405,7 +546,7 @@
   <div class="screen-wrapper" id="m-login">
     <div class="screen-label">15 — تسجيل الدخول (Mobile)</div>
     <div class="frame-mobile">
-      <div class="m-header"><button class="menu-btn">☰</button><span class="title">دخول</span><div class="logo-icon">ت</div></div>
+      <div class="m-header"><button class="menu-btn">☰</button><span class="title">دخول</span><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" style="height:28px;width:auto" /></div>
       <div class="m-body" style="padding-top:24px">
         <div class="card" style="padding:20px">
           <h2 style="text-align:center;font-size:18px;margin-bottom:20px">تسجيل الدخول</h2>
@@ -422,13 +563,13 @@
   <div class="screen-wrapper" id="m-register">
     <div class="screen-label">16 — إنشاء حساب (Mobile)</div>
     <div class="frame-mobile">
-      <div class="m-header"><button class="menu-btn">☰</button><span class="title">حساب جديد</span><div class="logo-icon">ت</div></div>
+      <div class="m-header"><button class="menu-btn">☰</button><span class="title">حساب جديد</span><img class="logo-img" src="frontend/public/logo-zad-altahsili.png" alt="زاد التحصيلي" style="height:28px;width:auto" /></div>
       <div class="m-body" style="padding-top:16px">
         <div class="card" style="padding:16px">
           <h2 style="text-align:center;font-size:17px;margin-bottom:16px">إنشاء حساب</h2>
           <div class="form-group"><label>الاسم</label><div class="form-control">الاسم الكامل</div></div>
           <div class="form-group"><label>رقم التليفون</label><div class="form-control">01xxxxxxxxx</div></div>
-          <div class="form-group"><label>الجنس</label><span class="chip active">ذكر</span><span class="chip">أنثى</span></div>
+          <div class="form-group"><label>الجنس</label><span class="chip physics active">ذكر</span><span class="chip">أنثى</span></div>
           <div class="form-group"><label>البريد الإلكتروني</label><div class="form-control">example@email.com</div></div>
           <div class="form-group"><label>كلمة المرور</label><div class="form-control">••••••••</div></div>
           <button class="btn btn-primary btn-block">إنشاء الحساب</button>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>زاد التحصيلي — ثيمات المواد (Canva)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Cairo', sans-serif; background: #0B1F44; padding: 40px 20px 80px; color: #0f172a; line-height: 1.5; }
+    .index { max-width: 900px; margin: 0 auto 40px; background: #fff; border-radius: 16px; padding: 28px; }
+    .index h1 { color: #0045AD; font-size: 26px; margin-bottom: 8px; }
+    .index p { color: #64748b; margin-bottom: 12px; }
+    .index a { color: #0045AD; font-weight: 700; }
+    .note { background: #FFF6D6; border-radius: 12px; padding: 14px 16px; color: #7a5c00; font-size: 14px; margin-top: 12px; }
+    .screen-wrapper { display: flex; flex-direction: column; align-items: center; margin-bottom: 56px; }
+    .screen-label { color: #fff; font-weight: 700; font-size: 16px; margin-bottom: 8px; }
+    .screen-meta { color: #94a3b8; font-size: 12px; margin-bottom: 12px; }
+    .frame {
+      width: 1440px; height: 900px; border-radius: 10px; overflow: hidden;
+      box-shadow: 0 12px 32px rgba(0,0,0,.35); display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .frame.math { --p:#6B9B2D; --pd:#4F7A1F; --pl:#E8F5D4; --a:#D4A017; --bg:#F7FAF2; }
+    .frame.physics { --p:#7B3FA0; --pd:#5B2D82; --pl:#F3E8FA; --a:#D4A84B; --bg:#FAF7FC; }
+    .frame.chem { --p:#C41E3A; --pd:#8B1528; --pl:#FDE8EC; --a:#D4A017; --bg:#FDF6F7; }
+    .frame.bio { --p:#E6B006; --pd:#C9920A; --pl:#FFF8D9; --a:#F5C518; --bg:#FFFDF5; }
+    .frame { background: var(--bg); }
+    .hdr {
+      height: 68px; background: #fff; border-bottom: 3px solid var(--a);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 28px;
+    }
+    .hdr img { height: 56px; width: auto; }
+    .nav { display: flex; gap: 6px; }
+    .nav span { padding: 8px 14px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #64748b; }
+    .nav span.on { background: var(--a); color: #0f172a; }
+    .avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--p), var(--a));
+      color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700;
+    }
+    .body { padding: 28px 32px; flex: 1; }
+    .hero {
+      background: radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--a) 45%, transparent), transparent 42%),
+        linear-gradient(135deg, var(--p), var(--pd));
+      color: #fff; border-radius: 16px; padding: 24px 28px; margin-bottom: 22px;
+      display: flex; justify-content: space-between; align-items: center; position: relative; overflow: hidden;
+    }
+    .hero::after { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 8px; background: var(--a); }
+    .hero h2 { font-size: 28px; margin: 4px 0; }
+    .hero .btn {
+      background: var(--a); color: #0f172a; border: none; padding: 12px 22px;
+      border-radius: 10px; font-family: inherit; font-weight: 700; font-size: 15px;
+    }
+    .logo-hero { text-align: center; margin-bottom: 18px; }
+    .logo-hero img { height: 130px; width: auto; }
+    .paths { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 22px; }
+    .path { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; border-top: 6px solid var(--p); }
+    .path:nth-child(2) { border-top-color: var(--a); }
+    .path:nth-child(3) { border-top-color: var(--pd); }
+    .path h3 { margin-bottom: 6px; color: var(--p); }
+    .path p { font-size: 13px; color: #64748b; }
+    .lessons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+    .thumb { height: 110px; background: linear-gradient(135deg, var(--pd), var(--p)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+    .thumb.a { background: linear-gradient(135deg, var(--a), #ffe082); color: #0f172a; }
+    .card-body { padding: 12px; }
+    .card-body h4 { font-size: 14px; margin-bottom: 4px; }
+    .card-body p { font-size: 12px; color: #64748b; }
+    .chip-row { display: flex; gap: 8px; margin-bottom: 14px; }
+    .chip { padding: 7px 14px; border-radius: 999px; font-size: 13px; font-weight: 700; background: var(--pl); color: var(--pd); border: 1px solid var(--p); }
+    .chip.on { background: var(--a); color: #0f172a; border-color: var(--a); }
+    .swatches { display: flex; gap: 8px; margin-top: 10px; }
+    .swatches i { width: 28px; height: 28px; border-radius: 8px; display: block; border: 1px solid rgba(0,0,0,.08); }
+    .phone-row { display: flex; gap: 28px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+    .phone {
+      width: 375px; height: 780px; border-radius: 28px; border: 8px solid #0f172a;
+      overflow: hidden; display: flex; flex-direction: column; flex-shrink: 0;
+    }
+    .phone.math { --p:#6B9B2D; --pd:#4F7A1F; --pl:#E8F5D4; --a:#D4A017; --bg:#F7FAF2; background: var(--bg); }
+    .phone.physics { --p:#7B3FA0; --pd:#5B2D82; --pl:#F3E8FA; --a:#D4A84B; --bg:#FAF7FC; background: var(--bg); }
+    .phone.chem { --p:#C41E3A; --pd:#8B1528; --pl:#FDE8EC; --a:#D4A017; --bg:#FDF6F7; background: var(--bg); }
+    .phone.bio { --p:#E6B006; --pd:#C9920A; --pl:#FFF8D9; --a:#F5C518; --bg:#FFFDF5; background: var(--bg); }
+    .ph-hdr {
+      height: 56px; background: #fff; border-bottom: 3px solid var(--a);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 14px;
+    }
+    .ph-hdr img { height: 36px; }
+    .ph-body { flex: 1; padding: 14px; overflow: hidden; }
+    .ph-bottom {
+      height: 58px; background: #fff; border-top: 1px solid #e2e8f0;
+      display: flex; justify-content: space-around; align-items: center; font-size: 10px; color: #64748b;
+    }
+    .ph-bottom .on { color: var(--pd); font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="index">
+    <h1>ثيمات المواد — ملف Canva</h1>
+    <p>
+      نفس الصفحات — بدون مواقع منفصلة. عند دخول المادة يتغيّر الشعار + متغيرات CSS فقط
+      (<code>html[data-subject="math|physics|chem|bio"]</code>).
+    </p>
+    <p>
+      <a href="brand-board.html">لوحة الهوية</a> ·
+      <a href="canva-mockups.html">لابتوب</a> ·
+      <a href="canva-mockups-tablet.html">تابلت</a> ·
+      <a href="canva-mockups-mobile.html">جوال</a>
+    </p>
+    <div class="note">
+      Screenshot كل إطار → ارفعه إلى Canva. لا حاجة لنسخ المشروع ٤ مرات.
+    </div>
+  </div>
+
+  <div class="screen-wrapper" id="math">
+    <div class="screen-label">رياضيات — أخضر + ذهبي (Desktop)</div>
+    <div class="screen-meta">data-subject="math" · #6B9B2D · #D4A017</div>
+    <div class="frame math">
+      <div class="hdr">
+        <img src="brand/subjects/math.png" alt="رياضيات" />
+        <div class="nav"><span>الرئيسية</span><span class="on">دورات</span><span>نتائج</span><span>جدول</span></div>
+        <div class="avatar">م</div>
+      </div>
+      <div class="body">
+        <div class="logo-hero"><img src="brand/subjects/math.png" alt="" /></div>
+        <div class="hero">
+          <div>
+            <div style="opacity:.85;font-size:13px">مسار المادة</div>
+            <h2>الرياضيات</h2>
+            <div style="opacity:.9">تأسيس · تجميع · اختبارات</div>
+          </div>
+          <button class="btn">ابدأ التأسيس</button>
+        </div>
+        <div class="chip-row"><span class="chip on">تأسيس</span><span class="chip">تجميع</span><span class="chip">اختبارات</span></div>
+        <div class="paths">
+          <div class="path"><h3>تأسيس</h3><p>دروس مرقمة بالأخضر الذهبي</p></div>
+          <div class="path"><h3>تجميع</h3><p>مستويات سهل / متوسط / صعب</p></div>
+          <div class="path"><h3>اختبارات</h3><p>محاكي أو اختبار مدرس</p></div>
+        </div>
+        <div class="lessons">
+          <div class="card"><div class="thumb">▶</div><div class="card-body"><h4>المعادلات</h4><p>١٢ دقيقة</p></div></div>
+          <div class="card"><div class="thumb a">▶</div><div class="card-body"><h4>التفاضل</h4><p>١٨ دقيقة</p></div></div>
+          <div class="card"><div class="thumb">▶</div><div class="card-body"><h4>التكامل</h4><p>٢٢ دقيقة</p></div></div>
+          <div class="card"><div class="thumb a">📄</div><div class="card-body"><h4>واجب</h4><p>PDF</p></div></div>
+        </div>
+        <div class="swatches"><i style="background:#6B9B2D"></i><i style="background:#4F7A1F"></i><i style="background:#D4A017"></i><i style="background:#E8F5D4"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-wrapper" id="physics">
+    <div class="screen-label">فيزياء — بنفسجي + ذهبي (Desktop)</div>
+    <div class="screen-meta">data-subject="physics" · #7B3FA0 · #D4A84B</div>
+    <div class="frame physics">
+      <div class="hdr">
+        <img src="brand/subjects/physics.png" alt="فيزياء" />
+        <div class="nav"><span>الرئيسية</span><span class="on">دورات</span><span>نتائج</span><span>جدول</span></div>
+        <div class="avatar">م</div>
+      </div>
+      <div class="body">
+        <div class="logo-hero"><img src="brand/subjects/physics.png" alt="" /></div>
+        <div class="hero">
+          <div>
+            <div style="opacity:.85;font-size:13px">مسار المادة</div>
+            <h2>الفيزياء</h2>
+            <div style="opacity:.9">تأسيس · تجميع · اختبارات</div>
+          </div>
+          <button class="btn">ابدأ التأسيس</button>
+        </div>
+        <div class="chip-row"><span class="chip on">تأسيس</span><span class="chip">تجميع</span><span class="chip">اختبارات</span></div>
+        <div class="paths">
+          <div class="path"><h3>تأسيس</h3><p>نفس الهيكل — ألوان بنفسجية</p></div>
+          <div class="path"><h3>تجميع</h3><p>ذهبي للتأكيد</p></div>
+          <div class="path"><h3>اختبارات</h3><p>محاكي أو مدرس</p></div>
+        </div>
+        <div class="lessons">
+          <div class="card"><div class="thumb">▶</div><div class="card-body"><h4>الحركة</h4><p>١٥ دقيقة</p></div></div>
+          <div class="card"><div class="thumb a">▶</div><div class="card-body"><h4>القوى</h4><p>٢٠ دقيقة</p></div></div>
+          <div class="card"><div class="thumb">▶</div><div class="card-body"><h4>الطاقة</h4><p>١٨ دقيقة</p></div></div>
+          <div class="card"><div class="thumb a">📄</div><div class="card-body"><h4>واجب</h4><p>PDF</p></div></div>
+        </div>
+        <div class="swatches"><i style="background:#7B3FA0"></i><i style="background:#5B2D82"></i><i style="background:#D4A84B"></i><i style="background:#F3E8FA"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-wrapper" id="chem">
+    <div class="screen-label">كيمياء — أحمر + ذهبي (Desktop)</div>
+    <div class="screen-meta">data-subject="chem" · #C41E3A · #D4A017</div>
+    <div class="frame chem">
+      <div class="hdr">
+        <img src="brand/subjects/chem.png" alt="كيمياء" />
+        <div class="nav"><span>الرئيسية</span><span class="on">دورات</span><span>نتائج</span><span>جدول</span></div>
+        <div class="avatar">م</div>
+      </div>
+      <div class="body">
+        <div class="logo-hero"><img src="brand/subjects/chem.png" alt="" /></div>
+        <div class="hero">
+          <div>
+            <div style="opacity:.85;font-size:13px">مسار المادة</div>
+            <h2>الكيمياء</h2>
+            <div style="opacity:.9">تأسيس · تجميع · اختبارات</div>
+          </div>
+          <button class="btn">ابدأ التأسيس</button>
+        </div>
+        <div class="chip-row"><span class="chip on">تأسيس</span><span class="chip">تجميع</span><span class="chip">اختبارات</span></div>
+        <div class="paths">
+          <div class="path"><h3>تأسيس</h3><p>واجهة حمراء ذهبية</p></div>
+          <div class="path"><h3>تجميع</h3><p>نفس الصفحات</p></div>
+          <div class="path"><h3>اختبارات</h3><p>نفس التدفق</p></div>
+        </div>
+        <div class="lessons">
+          <div class="card"><div class="thumb">▶</div><div class="card-body"><h4>الذرة</h4><p>١٤ دقيقة</p></div></div>
+          <div class="card"><div class="thumb a">▶</div><div class="card-body"><h4>التفاعلات</h4><p>١٩ دقيقة</p></div></div>
+          <div class="card"><div class="thumb">▶</div><div class="card-body"><h4>المحاليل</h4><p>١٦ دقيقة</p></div></div>
+          <div class="card"><div class="thumb a">📄</div><div class="card-body"><h4>واجب</h4><p>PDF</p></div></div>
+        </div>
+        <div class="swatches"><i style="background:#C41E3A"></i><i style="background:#8B1528"></i><i style="background:#D4A017"></i><i style="background:#FDE8EC"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-wrapper" id="bio">
+    <div class="screen-label">أحياء — ذهبي / أصفر (Desktop)</div>
+    <div class="screen-meta">data-subject="bio" · #E6B006 · #F5C518</div>
+    <div class="frame bio">
+      <div class="hdr">
+        <img src="brand/subjects/bio.png" alt="أحياء" />
+        <div class="nav"><span>الرئيسية</span><span class="on">دورات</span><span>نتائج</span><span>جدول</span></div>
+        <div class="avatar">م</div>
+      </div>
+      <div class="body">
+        <div class="logo-hero"><img src="brand/subjects/bio.png" alt="" /></div>
+        <div class="hero">
+          <div>
+            <div style="opacity:.85;font-size:13px">مسار المادة</div>
+            <h2>الأحياء</h2>
+            <div style="opacity:.9">تأسيس · تجميع · اختبارات</div>
+          </div>
+          <button class="btn">ابدأ التأسيس</button>
+        </div>
+        <div class="chip-row"><span class="chip on">تأسيس</span><span class="chip">تجميع</span><span class="chip">اختبارات</span></div>
+        <div class="paths">
+          <div class="path"><h3>تأسيس</h3><p>ثيم ذهبي دافئ</p></div>
+          <div class="path"><h3>تجميع</h3><p>نفس الهيكل</p></div>
+          <div class="path"><h3>اختبارات</h3><p>نفس التدفق</p></div>
+        </div>
+        <div class="lessons">
+          <div class="card"><div class="thumb">▶</div><div class="card-body"><h4>الخلية</h4><p>١٣ دقيقة</p></div></div>
+          <div class="card"><div class="thumb a">▶</div><div class="card-body"><h4>الوراثة</h4><p>٢١ دقيقة</p></div></div>
+          <div class="card"><div class="thumb">▶</div><div class="card-body"><h4>الجهاز</h4><p>١٧ دقيقة</p></div></div>
+          <div class="card"><div class="thumb a">📄</div><div class="card-body"><h4>واجب</h4><p>PDF</p></div></div>
+        </div>
+        <div class="swatches"><i style="background:#E6B006"></i><i style="background:#C9920A"></i><i style="background:#F5C518"></i><i style="background:#FFF8D9"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="screen-wrapper">
+    <div class="screen-label">نفس الثيمات على الجوال (لا مواقع منفصلة)</div>
+    <div class="screen-meta">Phone 375×780</div>
+    <div class="phone-row">
+      <div class="phone math">
+        <div class="ph-hdr"><img src="brand/subjects/math.png" alt="" /><strong>رياضيات</strong><div class="avatar" style="width:32px;height:32px;font-size:12px">م</div></div>
+        <div class="ph-body">
+          <div class="hero" style="padding:16px;flex-direction:column;align-items:flex-start;gap:12px">
+            <h2 style="font-size:20px">الرياضيات</h2>
+            <button class="btn" style="width:100%">ابدأ</button>
+          </div>
+          <div class="path" style="margin-bottom:10px"><h3>تأسيس</h3><p>أخضر + ذهبي</p></div>
+          <div class="path"><h3>تجميع</h3><p>نفس الصفحة</p></div>
+        </div>
+        <div class="ph-bottom"><span class="on">دورات</span><span>نتائج</span><span>جدول</span><span>اشتراكي</span></div>
+      </div>
+      <div class="phone physics">
+        <div class="ph-hdr"><img src="brand/subjects/physics.png" alt="" /><strong>فيزياء</strong><div class="avatar" style="width:32px;height:32px;font-size:12px">م</div></div>
+        <div class="ph-body">
+          <div class="hero" style="padding:16px;flex-direction:column;align-items:flex-start;gap:12px">
+            <h2 style="font-size:20px">الفيزياء</h2>
+            <button class="btn" style="width:100%">ابدأ</button>
+          </div>
+          <div class="path" style="margin-bottom:10px"><h3>تأسيس</h3><p>بنفسجي + ذهبي</p></div>
+          <div class="path"><h3>تجميع</h3><p>نفس الصفحة</p></div>
+        </div>
+        <div class="ph-bottom"><span class="on">دورات</span><span>نتائج</span><span>جدول</span><span>اشتراكي</span></div>
+      </div>
+      <div class="phone chem">
+        <div class="ph-hdr"><img src="brand/subjects/chem.png" alt="" /><strong>كيمياء</strong><div class="avatar" style="width:32px;height:32px;font-size:12px">م</div></div>
+        <div class="ph-body">
+          <div class="hero" style="padding:16px;flex-direction:column;align-items:flex-start;gap:12px">
+            <h2 style="font-size:20px">الكيمياء</h2>
+            <button class="btn" style="width:100%">ابدأ</button>
+          </div>
+          <div class="path" style="margin-bottom:10px"><h3>تأسيس</h3><p>أحمر + ذهبي</p></div>
+          <div class="path"><h3>تجميع</h3><p>نفس الصفحة</p></div>
+        </div>
+        <div class="ph-bottom"><span class="on">دورات</span><span>نتائج</span><span>جدول</span><span>اشتراكي</span></div>
+      </div>
+      <div class="phone bio">
+        <div class="ph-hdr"><img src="brand/subjects/bio.png" alt="" /><strong>أحياء</strong><div class="avatar" style="width:32px;height:32px;font-size:12px">م</div></div>
+        <div class="ph-body">
+          <div class="hero" style="padding:16px;flex-direction:column;align-items:flex-start;gap:12px">
+            <h2 style="font-size:20px">الأحياء</h2>
+            <button class="btn" style="width:100%">ابدأ</button>
+          </div>
+          <div class="path" style="margin-bottom:10px"><h3>تأسيس</h3><p>ذهبي دافئ</p></div>
+          <div class="path"><h3>تجميع</h3><p>نفس الصفحة</p></div>
+        </div>
+        <div class="ph-bottom"><span class="on">دورات</span><span>نتائج</span><span>جدول</span><span>اشتراكي</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

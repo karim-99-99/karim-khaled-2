@@ -1,9 +1,16 @@
-/* Design tokens mirrored from the Canva mockups */
+/* Design tokens: Zad Al-Tahsili — Royal Blue + Gold + subject accents */
 :root {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --primary-light: #dbeafe;
-  --bg: #f8fafc;
+  --primary: #0045ad;
+  --primary-dark: #003388;
+  --primary-light: #e5eeff;
+  --accent: #ffc400;
+  --accent-dark: #e6b000;
+  --accent-soft: #fff6d6;
+  --math: #0045ad;
+  --physics: #ffc400;
+  --chem: #10b981;
+  --bio: #fb7185;
+  --bg: #f7f9fc;
   --surface: #ffffff;
   --border: #e2e8f0;
   --text: #0f172a;
@@ -46,7 +53,7 @@ button {
 .app-header {
   height: 64px;
   background: var(--surface);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 3px solid var(--accent);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -62,6 +69,13 @@ button {
   font-weight: 700;
   font-size: 18px;
   color: var(--primary);
+}
+.logo-img {
+  height: 48px;
+  width: auto;
+  max-width: 170px;
+  object-fit: contain;
+  display: block;
 }
 .logo-icon {
   width: 36px;
@@ -87,8 +101,8 @@ button {
   border-radius: var(--radius-sm);
 }
 .nav a.active {
-  color: var(--primary);
-  background: var(--primary-light);
+  color: var(--text);
+  background: var(--accent);
 }
 .header-actions {
   display: flex;
@@ -99,7 +113,7 @@ button {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), #7c3aed);
+  background: linear-gradient(135deg, var(--primary), var(--accent));
   color: #fff;
   display: flex;
   align-items: center;
@@ -125,13 +139,18 @@ button {
   border: none;
 }
 .btn-primary {
-  background: var(--primary);
-  color: #fff;
+  background: var(--accent);
+  color: var(--text);
+  box-shadow: 0 6px 16px rgba(255, 196, 0, 0.35);
 }
 .btn-secondary {
   background: #fff;
   color: var(--primary);
   border: 1px solid var(--border);
+}
+.btn-blue {
+  background: var(--primary);
+  color: #fff;
 }
 .btn-ghost {
   background: transparent;
@@ -168,14 +187,28 @@ button {
   cursor: pointer;
 }
 .chip.active {
-  background: var(--primary);
-  color: #fff;
-  border-color: var(--primary);
+  background: var(--accent);
+  color: var(--text);
+  border-color: var(--accent-dark);
 }
+.chip.math { background: #eef5e4; color: #4a7422; border-color: #5b8c2a; }
+.chip.physics { background: #ede9fe; color: #6d28d9; border-color: #7c3aed; }
+.chip.chem { background: #fce8ec; color: #9b1b30; border-color: #c41e3a; }
+.chip.bio { background: #fff8e1; color: #9a7400; border-color: #e6a800; }
 .section-title {
   font-size: 20px;
   font-weight: 700;
   margin-bottom: 16px;
+}
+.section-title::after {
+  content: "";
+  display: inline-block;
+  width: 28px;
+  height: 4px;
+  background: var(--accent);
+  margin-right: 10px;
+  border-radius: 4px;
+  vertical-align: middle;
 }
 .breadcrumb {
   font-size: 13px;
@@ -193,7 +226,9 @@ button {
 }
 
 .hero {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  background:
+    radial-gradient(circle at 12% 20%, rgba(255, 196, 0, 0.35), transparent 40%),
+    linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 55%, #0b2f6b 100%);
   color: #fff;
   border-radius: var(--radius-lg);
   padding: 28px;
@@ -203,6 +238,18 @@ button {
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 28px rgba(0, 69, 173, 0.28);
+}
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  background: var(--accent);
 }
 .hero .eyebrow {
   font-size: 13px;
@@ -213,8 +260,89 @@ button {
   margin: 6px 0;
 }
 .hero .btn {
-  background: #fff;
-  color: var(--primary);
+  background: var(--accent);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.subject-tile {
+  border: none;
+  border-radius: var(--radius-lg);
+  color: #fff;
+  font-weight: 700;
+  min-height: 88px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+}
+.subject-tile.math { background: linear-gradient(145deg, #4a7422, #5b8c2a); }
+.subject-tile.physics { background: linear-gradient(145deg, #6d28d9, #7c3aed); }
+.subject-tile.chem { background: linear-gradient(145deg, #9b1b30, #c41e3a); }
+.subject-tile.bio { background: linear-gradient(145deg, #c88a00, #e6a800); color: #3d2e00; }
+
+/* Subject themes: same pages — only CSS variables + logo swap (matches Canva) */
+html[data-subject="math"] {
+  --primary: #5b8c2a;
+  --primary-dark: #4a7422;
+  --primary-light: #eef5e4;
+  --accent: #ffc400;
+  --accent-dark: #e6b000;
+  --accent-soft: #f5fbe8;
+  --bg: #f7faf2;
+}
+html[data-subject="physics"] {
+  --primary: #7c3aed;
+  --primary-dark: #6d28d9;
+  --primary-light: #ede9fe;
+  --accent: #e8b84a;
+  --accent-dark: #c9972e;
+  --accent-soft: #fdf6e3;
+  --bg: #faf7fc;
+}
+html[data-subject="chem"] {
+  --primary: #c41e3a;
+  --primary-dark: #9b1b30;
+  --primary-light: #fce8ec;
+  --accent: #d4af37;
+  --accent-dark: #b8941f;
+  --accent-soft: #fbf5e0;
+  --bg: #fdf6f7;
+}
+html[data-subject="bio"] {
+  --primary: #e6a800;
+  --primary-dark: #c88a00;
+  --primary-light: #fff8e1;
+  --accent: #9a7400;
+  --accent-dark: #7a5c00;
+  --accent-soft: #fff3cd;
+  --bg: #fffdf5;
+}
+
+html[data-subject] .hero {
+  background:
+    radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--accent) 40%, transparent), transparent 40%),
+    linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--primary) 30%, transparent);
+}
+html[data-subject] .app-header {
+  border-bottom-color: var(--accent);
+}
+html[data-subject] .logo-img {
+  height: 56px;
+  max-width: 200px;
+}
+html[data-subject] .lesson-thumb {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+}
+html[data-subject] .btn-primary {
+  background: var(--accent);
+  color: var(--text);
+}
+html[data-subject="bio"] .btn-primary {
+  background: var(--primary);
+  color: #3d2e00;
+}
+html[data-subject] body,
+html[data-subject] {
+  background: var(--bg);
 }
 
 .grid {
@@ -233,13 +361,23 @@ button {
 
 .lesson-thumb {
   height: 140px;
-  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  background: linear-gradient(135deg, #003388, #0045ad 50%, #1a5fd4);
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   font-size: 40px;
   border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+.lesson-thumb.gold {
+  background: linear-gradient(135deg, #e6b000, #ffc400 55%, #ffe082);
+  color: var(--text);
+}
+.lesson-thumb.teal {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+}
+.lesson-thumb.rose {
+  background: linear-gradient(135deg, #be123c, #fb7185);
 }
 .lesson-card-body {
   padding: 16px;
@@ -388,9 +526,9 @@ button {
   font-size: 14px;
 }
 .banner {
-  background: #fef3c7;
-  border: 1px solid var(--warning);
-  color: #92400e;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: #7a5c00;
   padding: 14px 18px;
   border-radius: var(--radius-sm);
   margin-bottom: 20px;
@@ -405,5 +543,13 @@ button {
   }
   .nav {
     display: none;
+  }
+  .logo-img {
+    height: 40px;
+    max-width: 140px;
+  }
+  html[data-subject] .logo-img {
+    height: 44px;
+    max-width: 150px;
   }
 }
