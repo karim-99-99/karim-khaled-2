@@ -80,11 +80,13 @@ class TeacherQuestionMixin:
 class HomeworkQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
     model = HomeworkQuestion
     serializer_class = HomeworkQuestionSerializer
+    pagination_class = None
 
 
 class CollectionQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
     model = CollectionQuestion
     serializer_class = CollectionQuestionSerializer
+    pagination_class = None
 
 
 class StudentHomeworkView(APIView):
@@ -96,9 +98,9 @@ class StudentHomeworkView(APIView):
         user = request.user
         group_ids = _student_group_ids(user)
         teacher_ids = list(
-            GroupTeacher.objects.filter(group_id__in=group_ids).values_list(
-                "teacher_id", flat=True
-            )
+            GroupTeacher.objects.filter(group_id__in=group_ids)
+            .values_list("teacher_id", flat=True)
+            .distinct()
         )
         qs = HomeworkQuestion.objects.filter(created_by__in=teacher_ids).filter(
             Q(group__isnull=True) | Q(group_id__in=group_ids)
@@ -128,16 +130,27 @@ def _student_group_ids(user):
 def _student_question_bank(user, subject_id):
     """
     Questions a student may receive for a subject: authored by any teacher who
-    teaches that subject in one of the student's groups. Group-less questions
-    reach every group; group-pinned questions only their own group.
-    Returns (queryset, group_ids).
+    is assigned to one of the student's groups (for this subject OR as their
+    taught subject). Group-less questions reach every group; group-pinned
+    questions only their own group.
     """
     group_ids = _student_group_ids(user)
     teacher_ids = list(
-        GroupTeacher.objects.filter(
-            group_id__in=group_ids, subject_id=subject_id
-        ).values_list("teacher_id", flat=True)
+        GroupTeacher.objects.filter(group_id__in=group_ids)
+        .filter(
+            Q(subject_id=subject_id) | Q(teacher__taught_subject_id=subject_id)
+        )
+        .values_list("teacher_id", flat=True)
+        .distinct()
     )
+    # Also include questions for this subject authored by teachers who teach
+    # ANY subject in the student's groups (covers subject-link mismatches).
+    any_group_teachers = list(
+        GroupTeacher.objects.filter(group_id__in=group_ids)
+        .values_list("teacher_id", flat=True)
+        .distinct()
+    )
+    teacher_ids = list(set(teacher_ids) | set(any_group_teachers))
     qs = CollectionQuestion.objects.filter(
         subject_id=subject_id, created_by__in=teacher_ids
     ).filter(Q(group__isnull=True) | Q(group_id__in=group_ids))
@@ -330,12 +343,16 @@ class AnswerView(APIView):
         payload = {"saved": True}
         # Immediate review reveals correctness right away.
         if exam.review_mode == Exam.ReviewMode.IMMEDIATE:
+            q = ans.question
             payload.update(
                 {
                     "is_correct": ans.is_correct,
-                    "correct_answer": ans.question.correct_answer,
-                    "written_correction": ans.question.written_correction,
-                    "video_bunny_id": ans.question.video_bunny_id,
+                    "correct_answer": q.correct_answer,
+                    "written_correction": getattr(q, "written_correction", None)
+                    or getattr(q, "explanation", "")
+                    or "",
+                    "explanation_image": getattr(q, "explanation_image", "") or "",
+                    "video_bunny_id": q.video_bunny_id,
                 }
             )
         return Response(payload)

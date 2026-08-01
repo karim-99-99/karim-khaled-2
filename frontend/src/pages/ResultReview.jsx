@@ -45,10 +45,24 @@ export default function ResultReview() {
           <div style={{ marginBottom: 10 }}>
             <MathText>{a.question_text}</MathText>
           </div>
+          {a.text_image && (
+            <img src={a.text_image} alt="" style={{ maxWidth: "100%", marginBottom: 10, borderRadius: 8 }} />
+          )}
+          {a.options?.map((o) => (
+            <div key={o.key} style={{ marginBottom: 6, fontSize: 14 }}>
+              <span>{o.key})</span> <MathText>{o.text}</MathText>
+              {o.image && (
+                <img src={o.image} alt="" style={{ display: "block", maxWidth: 160, marginTop: 4, borderRadius: 6 }} />
+              )}
+            </div>
+          ))}
           {a.written_correction && (
             <p style={{ fontSize: 14, color: "var(--text-muted)" }}>
               <MathText>{a.written_correction}</MathText>
             </p>
+          )}
+          {a.explanation_image && (
+            <img src={a.explanation_image} alt="" style={{ maxWidth: "100%", marginTop: 8, borderRadius: 8 }} />
           )}
           {a.video_bunny_id && (
             <div style={{ marginTop: 10 }}>

@@ -82,6 +82,9 @@ export default function TestRunner() {
           <h3 style={{ fontSize: 18, marginBottom: 20, lineHeight: 1.8 }}>
             <MathText>{q.text}</MathText>
           </h3>
+          {q.text_image && (
+            <img src={q.text_image} alt="" style={{ maxWidth: "100%", marginBottom: 16, borderRadius: 8 }} />
+          )}
 
           {q.options.map((o) => {
             let cls = "answer-option";
@@ -93,6 +96,9 @@ export default function TestRunner() {
             return (
               <div key={o.key} className={cls} onClick={() => !feedback && choose(o.key)}>
                 <span>{o.key})</span> <MathText>{o.text}</MathText>
+                {o.image && (
+                  <img src={o.image} alt="" style={{ display: "block", maxWidth: 180, marginTop: 8, borderRadius: 6 }} />
+                )}
               </div>
             );
           })}
@@ -103,10 +109,17 @@ export default function TestRunner() {
               <div style={{ fontWeight: 700, color: feedback.is_correct ? "var(--success)" : "var(--error)" }}>
                 {feedback.is_correct ? "إجابة صحيحة ✓" : "إجابة خاطئة ✗"}
               </div>
-              {feedback.written_correction && (
+              {(feedback.written_correction || feedback.explanation) && (
                 <p style={{ marginTop: 8, color: "var(--text-muted)" }}>
-                  <MathText>{feedback.written_correction}</MathText>
+                  <MathText>{feedback.written_correction || feedback.explanation}</MathText>
                 </p>
+              )}
+              {(feedback.explanation_image || feedback.text_image) && (
+                <img
+                  src={feedback.explanation_image || feedback.text_image}
+                  alt=""
+                  style={{ maxWidth: "100%", marginTop: 8, borderRadius: 8 }}
+                />
               )}
               {feedback.video_bunny_id && (
                 <div style={{ marginTop: 12 }}>

@@ -53,9 +53,15 @@ class QuestionBase(models.Model):
     )
 
     text = models.TextField(help_text="Question text; may contain $LaTeX$ fragments")
-    # options: [{"key": "أ", "text": "..."}, ...]
+    # Optional image shown under the question text (URL or data URL).
+    text_image = models.TextField(blank=True, default="")
+    # options: [{"key": "أ", "text": "...", "image": "...optional..."}, ...]
     options = models.JSONField(default=list)
     correct_answer = models.CharField(max_length=10, help_text="Option key, e.g. أ")
+
+    # Written explanation / correction (homework + collection).
+    explanation = models.TextField(blank=True, default="")
+    explanation_image = models.TextField(blank=True, default="")
 
     # Every question (homework + collection) has a difficulty. It is NEVER shown
     # to students; it is used only to filter questions per level.
