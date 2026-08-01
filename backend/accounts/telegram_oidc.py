@@ -252,7 +252,15 @@ def upsert_telegram_user_from_claims(claims: dict) -> User:
         is_active=True,
     )
     user.set_unusable_password()
-    user.save()
+    try:
+        user.save()
+    except Exception:
+        # Race on unique phone/email — retry without phone, or return existing.
+        existing = User.objects.filter(telegram_id=tg_id).first()
+        if existing:
+            return existing
+        user.phone = None
+        user.save()
     return user
 
 
