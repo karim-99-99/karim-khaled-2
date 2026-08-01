@@ -70,6 +70,18 @@ function AccountsTab() {
     }
   }
 
+  async function changeTeacherSubject(teacherId, subjectId) {
+    if (!subjectId) return;
+    try {
+      await client.patch(`/admin/users/${teacherId}/set-subject/`, {
+        taught_subject: Number(subjectId),
+      });
+      load();
+    } catch (e) {
+      window.alert(e.response?.data?.detail || "تعذّر تغيير المادة");
+    }
+  }
+
   if (!data) return <div className="spinner">جاري التحميل…</div>;
 
   const term = q.trim().toLowerCase();
@@ -225,9 +237,17 @@ function AccountsTab() {
                   <td>{contactLabel(t)}</td>
                   <td>{t.phone || "—"}</td>
                   <td>
-                    {t.subject_name
-                      ? <span className="badge" style={{ background: "#ede9fe", color: "#7c3aed" }}>{t.subject_name}</span>
-                      : <span style={{ color: "var(--text-muted)" }}>غير محددة</span>}
+                    <select
+                      className="form-control"
+                      style={{ minWidth: 140 }}
+                      value={t.subject_id || ""}
+                      onChange={(e) => changeTeacherSubject(t.id, e.target.value)}
+                    >
+                      <option value="">غير محددة</option>
+                      {subjects.map((s) => (
+                        <option key={s.id} value={s.id}>{s.name}</option>
+                      ))}
+                    </select>
                   </td>
                   <td><strong>{t.groups_count}</strong></td>
                   <td>

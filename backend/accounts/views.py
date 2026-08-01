@@ -174,6 +174,51 @@ def set_user_role(request, user_id):
 
 @api_view(["PATCH", "POST"])
 @permission_classes([IsAdmin])
+def set_teacher_subject(request, user_id):
+    """Admin changes a teacher's specialized subject (أي مادة → أخرى)."""
+    from catalog.models import Subject
+
+    user = User.objects.filter(id=user_id).first()
+    if not user:
+        return Response({"detail": "المستخدم غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+    if user.role != User.Role.TEACHER:
+        return Response(
+            {"detail": "هذا الحساب ليس مدرساً"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    subject_id = request.data.get("taught_subject")
+    if not subject_id:
+        return Response(
+            {"detail": "المادة مطلوبة"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    subject = Subject.objects.filter(id=subject_id).first()
+    if not subject:
+        return Response({"detail": "المادة غير موجودة"}, status=status.HTTP_404_NOT_FOUND)
+
+    user.taught_subject = subject
+    user.save(update_fields=["taught_subject"])
+
+    # Keep group assignments aligned with the teacher's subject.
+    for link in GroupTeacher.objects.filter(teacher=user).select_related("group"):
+        conflict = (
+            GroupTeacher.objects.filter(
+                group=link.group, teacher=user, subject=subject
+            )
+            .exclude(pk=link.pk)
+            .exists()
+        )
+        if conflict:
+            link.delete()
+        elif link.subject_id != subject.id:
+            link.subject = subject
+            link.save(update_fields=["subject"])
+
+    return Response(AdminUserSerializer(user).data)
+
+
+@api_view(["PATCH", "POST"])
+@permission_classes([IsAdmin])
 def set_user_password(request, user_id):
     """
     Admin sets a new password for a user.

@@ -11,6 +11,7 @@ from accounts.views import (
     admin_accounts,
     available_students,
     change_password,
+    set_teacher_subject,
     set_user_active,
     set_user_password,
     set_user_role,
@@ -78,6 +79,7 @@ api_patterns = [
     path("admin/teachers/", teacher_list),
     path("admin/users/<int:user_id>/set-active/", set_user_active),
     path("admin/users/<int:user_id>/set-role/", set_user_role),
+    path("admin/users/<int:user_id>/set-subject/", set_teacher_subject),
     path("admin/users/<int:user_id>/set-password/", set_user_password),
     path("admin/users/<int:user_id>/grant-subscription/", admin_grant_subscription),
     # Exams
