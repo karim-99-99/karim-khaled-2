@@ -11,12 +11,19 @@ export default function AdminPanel() {
     <div>
       <h1 style={{ fontSize: 28, marginBottom: 20 }}>لوحة المدير</h1>
       <div className="filter-row">
-        {[["accounts", "كل الحسابات"], ["groups", "المجموعات"], ["subs", "الاشتراكات"], ["payments", "المدفوعات"]].map(([v, t]) => (
+        {[
+          ["accounts", "كل الحسابات"],
+          ["groups", "المجموعات"],
+          ["schedule", "جدول الحصص"],
+          ["subs", "الاشتراكات"],
+          ["payments", "المدفوعات"],
+        ].map(([v, t]) => (
           <span key={v} className={`chip ${tab === v ? "active" : ""}`} onClick={() => setTab(v)}>{t}</span>
         ))}
       </div>
       {tab === "accounts" && <AccountsTab />}
       {tab === "groups" && <GroupsTab />}
+      {tab === "schedule" && <ScheduleTab />}
       {tab === "subs" && <SubsTab />}
       {tab === "payments" && <PaymentsTab />}
     </div>
@@ -598,6 +605,243 @@ function GroupsTab() {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function ScheduleTab() {
+  const EMPTY = {
+    group: "",
+    subject: "",
+    start_time: "",
+    duration_minutes: 60,
+    status: "scheduled",
+  };
+  const [groups, setGroups] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [form, setForm] = useState(EMPTY);
+  const [editingId, setEditingId] = useState(null);
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  function load() {
+    client.get("/admin/groups/").then((res) => setGroups(res.data.results || res.data));
+    client.get("/sessions/").then((res) => setSessions(res.data.results || res.data));
+  }
+  useEffect(() => {
+    load();
+  }, []);
+
+  const selectedGroup = groups.find((g) => String(g.id) === String(form.group));
+  const subjectOptions = selectedGroup?.teachers?.length
+    ? selectedGroup.teachers.map((t) => ({
+        id: t.subject,
+        name: t.subject_name,
+        teacher_name: t.full_name,
+      }))
+    : [];
+  // Dedupe subjects if multiple teachers somehow share names
+  const uniqueSubjects = [];
+  const seen = new Set();
+  subjectOptions.forEach((s) => {
+    if (!seen.has(s.id)) {
+      seen.add(s.id);
+      uniqueSubjects.push(s);
+    }
+  });
+  const pickedSubject = uniqueSubjects.find((s) => String(s.id) === String(form.subject));
+
+  function set(k, v) {
+    setForm((f) => {
+      const next = { ...f, [k]: v };
+      if (k === "group") next.subject = "";
+      return next;
+    });
+  }
+
+  function resetForm() {
+    setForm(EMPTY);
+    setEditingId(null);
+    setMsg("");
+  }
+
+  async function save() {
+    setMsg("");
+    if (!form.group || !form.subject || !form.start_time) {
+      setMsg("اختر المجموعة والمادة وموعد الحصة");
+      return;
+    }
+    setBusy(true);
+    const payload = {
+      group: Number(form.group),
+      subject: Number(form.subject),
+      start_time: form.start_time,
+      duration_minutes: Number(form.duration_minutes) || 60,
+      status: form.status,
+    };
+    try {
+      if (editingId) {
+        await client.patch(`/sessions/${editingId}/`, payload);
+      } else {
+        await client.post("/sessions/", payload);
+      }
+      resetForm();
+      load();
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر حفظ الحصة");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function editSession(s) {
+    setEditingId(s.id);
+    setMsg("");
+    setForm({
+      group: s.group ? String(s.group) : "",
+      subject: s.subject ? String(s.subject) : "",
+      start_time: s.start_time ? s.start_time.slice(0, 16) : "",
+      duration_minutes: s.duration_minutes,
+      status: s.status,
+    });
+  }
+
+  async function remove(id) {
+    if (!window.confirm("حذف هذه الحصة من الجدول؟")) return;
+    await client.delete(`/sessions/${id}/`);
+    if (editingId === id) resetForm();
+    load();
+  }
+
+  return (
+    <div>
+      <div className="banner" style={{ marginBottom: 16 }}>
+        أنت تضع جدول الحصص لكل المجموعات (اليوم / الوقت / المادة / المجموعة).
+        المدرس يضيف فقط رابط Zoom من لوحته.
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: "minmax(280px, 380px) 1fr", gap: 24 }}>
+        <div className="card" style={{ padding: 24, height: "fit-content" }}>
+          <h3 style={{ marginBottom: 16 }}>{editingId ? "تعديل حصة" : "إضافة حصة للجدول"}</h3>
+
+          <div className="form-group">
+            <label>المجموعة</label>
+            <select className="form-control" value={form.group} onChange={(e) => set("group", e.target.value)}>
+              <option value="">اختر…</option>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>المادة</label>
+            <select
+              className="form-control"
+              value={form.subject}
+              onChange={(e) => set("subject", e.target.value)}
+              disabled={!form.group}
+            >
+              <option value="">اختر…</option>
+              {uniqueSubjects.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}{s.teacher_name ? ` — ${s.teacher_name}` : ""}
+                </option>
+              ))}
+            </select>
+            {form.group && uniqueSubjects.length === 0 && (
+              <div className="error-text">لا يوجد مدرس مربوط بهذه المجموعة. أضف مدرساً من تبويب المجموعات أولاً.</div>
+            )}
+            {pickedSubject?.teacher_name && (
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
+                المدرس المعتمد: {pickedSubject.teacher_name}
+              </div>
+            )}
+          </div>
+
+          <div className="form-group">
+            <label>موعد الحصة</label>
+            <input
+              type="datetime-local"
+              className="form-control"
+              value={form.start_time}
+              onChange={(e) => set("start_time", e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>المدة (دقيقة)</label>
+            <input
+              type="number"
+              className="form-control"
+              style={{ width: 120 }}
+              value={form.duration_minutes}
+              min={15}
+              step={5}
+              onChange={(e) => set("duration_minutes", e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>الحالة</label>
+            <div className="filter-row">
+              {[["scheduled", "مجدولة"], ["live", "مباشر الآن"], ["done", "منتهية"]].map(([v, t]) => (
+                <span
+                  key={v}
+                  className={`chip ${form.status === v ? "active" : ""}`}
+                  onClick={() => set("status", v)}
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {msg && <div className="banner">{msg}</div>}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-primary" style={{ flex: 1 }} disabled={busy} onClick={save}>
+              {busy ? "…" : editingId ? "حفظ التعديل" : "إضافة الحصة"}
+            </button>
+            {editingId && (
+              <button className="btn btn-ghost" onClick={resetForm}>إلغاء</button>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div className="section-title">كل الحصص ({sessions.length})</div>
+          {sessions.length === 0 && (
+            <p style={{ color: "var(--text-muted)" }}>لا توجد حصص بعد. أضف أول حصة من النموذج.</p>
+          )}
+          {sessions.map((s) => (
+            <div
+              key={s.id}
+              className="card"
+              style={{ padding: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
+            >
+              <div style={{ minWidth: 150, fontWeight: 700, color: "var(--primary)" }}>
+                {new Date(s.start_time).toLocaleString("ar-EG", {
+                  weekday: "long",
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </div>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <strong>{s.subject_name}</strong>{" "}
+                {s.status === "live" && <span className="badge badge-live">مباشر</span>}
+                <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                  {s.group_name || "—"} · {s.teacher_name || "بدون مدرس"} · {s.duration_minutes} د
+                  {s.zoom_link ? " · Zoom ✓" : " · بانتظار رابط Zoom"}
+                </div>
+              </div>
+              <button className="btn btn-ghost btn-sm" onClick={() => editSession(s)}>تعديل</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => remove(s.id)}>حذف</button>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

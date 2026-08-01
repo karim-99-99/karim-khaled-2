@@ -2,197 +2,142 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import client from "../api/client";
 
-const EMPTY = {
-  assignment: "",
-  start_time: "",
-  duration_minutes: 60,
-  zoom_link: "",
-  status: "scheduled",
-};
-
+/**
+ * Teacher view: schedule is set by admin.
+ * Teacher only adds/updates the Zoom meeting link (and session status).
+ */
 export default function TeacherSchedule() {
-  const [assignments, setAssignments] = useState([]);
   const [sessions, setSessions] = useState([]);
-  const [form, setForm] = useState(EMPTY);
-  const [editingId, setEditingId] = useState(null);
+  const [drafts, setDrafts] = useState({});
   const [msg, setMsg] = useState("");
+  const [busyId, setBusyId] = useState(null);
 
   function loadSessions() {
-    client.get("/sessions/").then((res) => setSessions(res.data.results || res.data));
-  }
-  useEffect(() => {
-    client.get("/teacher/assignments/").then((res) => setAssignments(res.data));
-    loadSessions();
-  }, []);
-
-  function set(k, v) {
-    setForm((f) => ({ ...f, [k]: v }));
-  }
-
-  function resetForm() {
-    setForm(EMPTY);
-    setEditingId(null);
-    setMsg("");
-  }
-
-  function pickAssignment(idx) {
-    set("assignment", idx);
-  }
-
-  async function save() {
-    setMsg("");
-    const a = assignments[Number(form.assignment)];
-    if (!a) {
-      setMsg("اختر المجموعة والمادة");
-      return;
-    }
-    if (!form.start_time) {
-      setMsg("اختر موعد الحصة");
-      return;
-    }
-    const payload = {
-      group: a.group_id,
-      subject: a.subject_id,
-      start_time: form.start_time,
-      duration_minutes: Number(form.duration_minutes),
-      zoom_link: form.zoom_link,
-      status: form.status,
-    };
-    try {
-      if (editingId) {
-        await client.put(`/sessions/${editingId}/`, payload);
-      } else {
-        await client.post("/sessions/", payload);
-      }
-      resetForm();
-      loadSessions();
-    } catch (e) {
-      setMsg(e.response?.data?.detail || "تعذّر حفظ الحصة");
-    }
-  }
-
-  function editSession(s) {
-    const idx = assignments.findIndex(
-      (a) => a.group_id === s.group && a.subject_id === s.subject,
-    );
-    setEditingId(s.id);
-    setMsg("");
-    setForm({
-      assignment: idx >= 0 ? String(idx) : "",
-      // datetime-local wants "YYYY-MM-DDTHH:mm"
-      start_time: s.start_time ? s.start_time.slice(0, 16) : "",
-      duration_minutes: s.duration_minutes,
-      zoom_link: s.zoom_link || "",
-      status: s.status,
+    client.get("/sessions/").then((res) => {
+      const rows = res.data.results || res.data;
+      setSessions(rows);
+      const next = {};
+      rows.forEach((s) => {
+        next[s.id] = { zoom_link: s.zoom_link || "", status: s.status };
+      });
+      setDrafts(next);
     });
   }
 
-  async function remove(id) {
-    await client.delete(`/sessions/${id}/`);
+  useEffect(() => {
     loadSessions();
+  }, []);
+
+  function setDraft(id, key, value) {
+    setDrafts((d) => ({ ...d, [id]: { ...d[id], [key]: value } }));
+  }
+
+  async function saveZoom(session) {
+    setMsg("");
+    setBusyId(session.id);
+    const draft = drafts[session.id] || {};
+    try {
+      await client.patch(`/sessions/${session.id}/`, {
+        zoom_link: draft.zoom_link || "",
+        status: draft.status || session.status,
+      });
+      setMsg("تم حفظ رابط Zoom");
+      loadSessions();
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر حفظ الرابط");
+    } finally {
+      setBusyId(null);
+    }
   }
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 28 }}>جدول الحصص</h1>
         <Link to="/teacher" className="btn btn-ghost">رجوع للوحة المدرس</Link>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "380px 1fr", gap: 24 }}>
-        {/* Form */}
-        <div className="card" style={{ padding: 24, height: "fit-content" }}>
-          <h3 style={{ marginBottom: 16 }}>{editingId ? "تعديل حصة" : "إضافة حصة جديدة"}</h3>
+      <div className="banner" style={{ marginBottom: 16 }}>
+        المدير يضع مواعيد الحصص والمجموعات. مهمتك إضافة <strong>رابط Zoom</strong> لكل حصة.
+      </div>
 
-          <div className="form-group">
-            <label>المجموعة والمادة</label>
-            <select className="form-control" value={form.assignment}
-              onChange={(e) => pickAssignment(e.target.value)}>
-              <option value="">اختر…</option>
-              {assignments.map((a, i) => (
-                <option key={`${a.group_id}-${a.subject_id}`} value={i}>
-                  {a.group_name} — {a.subject_name}
-                </option>
-              ))}
-            </select>
-            {assignments.length === 0 && (
-              <div className="error-text">لم تُضف إلى أي مجموعة بعد. تواصل مع المدير.</div>
-            )}
-          </div>
+      {msg && <div className="banner" style={{ marginBottom: 12 }}>{msg}</div>}
 
-          <div className="form-group">
-            <label>موعد الحصة</label>
-            <input type="datetime-local" className="form-control" value={form.start_time}
-              onChange={(e) => set("start_time", e.target.value)} />
-          </div>
+      {sessions.length === 0 && (
+        <p style={{ color: "var(--text-muted)" }}>لا توجد حصص مجدولة لك بعد. انتظر وضع الجدول من المدير.</p>
+      )}
 
-          <div className="form-group">
-            <label>المدة (دقيقة)</label>
-            <input type="number" className="form-control" style={{ width: 120 }}
-              value={form.duration_minutes} min={15} step={5}
-              onChange={(e) => set("duration_minutes", e.target.value)} />
-          </div>
-
-          <div className="form-group">
-            <label>رابط Zoom Meeting</label>
-            <input className="form-control" value={form.zoom_link} placeholder="https://zoom.us/j/..."
-              onChange={(e) => set("zoom_link", e.target.value)} />
-          </div>
-
-          <div className="form-group">
-            <label>الحالة</label>
-            <div className="filter-row">
-              {[["scheduled", "مجدولة"], ["live", "مباشر الآن"], ["done", "منتهية"]].map(([v, t]) => (
-                <span key={v} className={`chip ${form.status === v ? "active" : ""}`}
-                  onClick={() => set("status", v)}>{t}</span>
-              ))}
-            </div>
-          </div>
-
-          {msg && <div className="banner">{msg}</div>}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-primary" style={{ flex: 1 }} onClick={save}>
-              {editingId ? "حفظ التعديل" : "إضافة الحصة"}
-            </button>
-            {editingId && (
-              <button className="btn btn-ghost" onClick={resetForm}>إلغاء</button>
-            )}
-          </div>
-        </div>
-
-        {/* List */}
-        <div>
-          <div className="section-title">حصصي ({sessions.length})</div>
-          {sessions.length === 0 && (
-            <p style={{ color: "var(--text-muted)" }}>لا توجد حصص مضافة بعد.</p>
-          )}
-          {sessions.map((s) => (
-            <div key={s.id} className="card"
-              style={{ padding: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ minWidth: 150, fontWeight: 700, color: "var(--primary)" }}>
+      {sessions.map((s) => {
+        const draft = drafts[s.id] || { zoom_link: "", status: s.status };
+        return (
+          <div
+            key={s.id}
+            className="card"
+            style={{ padding: 16, marginBottom: 12 }}
+          >
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-start" }}>
+              <div style={{ minWidth: 160, fontWeight: 700, color: "var(--primary)" }}>
                 {new Date(s.start_time).toLocaleString("ar-EG", {
-                  weekday: "short", day: "numeric", month: "short",
-                  hour: "2-digit", minute: "2-digit",
+                  weekday: "long",
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
                 })}
               </div>
-              <div style={{ flex: 1 }}>
-                <strong>{s.subject_name}</strong>{" "}
-                {s.status === "live" && <span className="badge badge-live">مباشر</span>}
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <strong>{s.subject_name}</strong>
+                {s.status === "live" && (
+                  <span className="badge badge-live" style={{ marginInlineStart: 8 }}>مباشر</span>
+                )}
                 <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                  {s.duration_minutes} دقيقة{s.zoom_link ? " · Zoom مضاف" : " · بدون رابط"}
+                  {s.group_name || "مجموعة"} · {s.duration_minutes} دقيقة
                 </div>
               </div>
-              {s.zoom_link && (
-                <a className="btn btn-secondary btn-sm" href={s.zoom_link} target="_blank" rel="noreferrer">
-                  Zoom ↗
+            </div>
+
+            <div className="form-group" style={{ marginTop: 12, marginBottom: 8 }}>
+              <label>رابط Zoom Meeting</label>
+              <input
+                className="form-control"
+                value={draft.zoom_link}
+                placeholder="https://zoom.us/j/..."
+                onChange={(e) => setDraft(s.id, "zoom_link", e.target.value)}
+              />
+            </div>
+
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label>الحالة</label>
+              <div className="filter-row">
+                {[["scheduled", "مجدولة"], ["live", "مباشر الآن"], ["done", "منتهية"]].map(([v, t]) => (
+                  <span
+                    key={v}
+                    className={`chip ${draft.status === v ? "active" : ""}`}
+                    onClick={() => setDraft(s.id, "status", v)}
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                className="btn btn-primary btn-sm"
+                disabled={busyId === s.id}
+                onClick={() => saveZoom(s)}
+              >
+                {busyId === s.id ? "…" : "حفظ الرابط"}
+              </button>
+              {draft.zoom_link && (
+                <a className="btn btn-secondary btn-sm" href={draft.zoom_link} target="_blank" rel="noreferrer">
+                  فتح Zoom ↗
                 </a>
               )}
-              <button className="btn btn-ghost btn-sm" onClick={() => editSession(s)}>تعديل</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => remove(s.id)}>حذف</button>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
