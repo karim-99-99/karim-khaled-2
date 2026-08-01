@@ -11,6 +11,7 @@ from accounts.views import (
     admin_accounts,
     available_students,
     change_password,
+    delete_user,
     set_teacher_subject,
     set_user_active,
     set_user_password,
@@ -81,6 +82,7 @@ api_patterns = [
     path("admin/users/<int:user_id>/set-role/", set_user_role),
     path("admin/users/<int:user_id>/set-subject/", set_teacher_subject),
     path("admin/users/<int:user_id>/set-password/", set_user_password),
+    path("admin/users/<int:user_id>/delete/", delete_user),
     path("admin/users/<int:user_id>/grant-subscription/", admin_grant_subscription),
     # Exams
     path("exams/simulator/", StartSimulatorView.as_view()),

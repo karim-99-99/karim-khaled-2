@@ -248,3 +248,43 @@ def set_user_password(request, user_id):
             "detail": "تم تعيين كلمة المرور بنجاح",
         }
     )
+
+
+@api_view(["DELETE", "POST"])
+@permission_classes([IsAdmin])
+def delete_user(request, user_id):
+    """Admin permanently deletes a student or teacher account."""
+    from core.models import AdminAuditLog
+
+    user = User.objects.filter(id=user_id).first()
+    if not user:
+        return Response({"detail": "المستخدم غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+    if user.id == request.user.id:
+        return Response(
+            {"detail": "لا يمكنك حذف حسابك أنت"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    if user.is_admin_role:
+        return Response(
+            {"detail": "لا يمكن حذف حساب مدير"},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    detail = {
+        "deleted_id": user.id,
+        "full_name": user.full_name,
+        "email": user.email,
+        "phone": user.phone,
+        "role": user.role,
+    }
+    # Clear group links first for a clean delete.
+    GroupStudent.objects.filter(student=user).delete()
+    GroupTeacher.objects.filter(teacher=user).delete()
+    user.delete()
+    AdminAuditLog.objects.create(
+        actor=request.user,
+        action="delete_user",
+        detail=detail,
+    )
+    return Response({"status": "deleted", **detail})
+

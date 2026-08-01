@@ -50,10 +50,36 @@ function AccountsTab() {
   }
 
   async function grantSubscription(userId) {
-    const days = window.prompt("عدد أيام الاشتراك التي تريد تفعيلها للطالب:", "30");
-    if (!days) return;
-    await client.post(`/admin/users/${userId}/grant-subscription/`, { days: Number(days) });
-    load();
+    const daysRaw = window.prompt(
+      "مدة تفعيل الاشتراك بالأيام (مثال: 30 أو 90 أو 180 أو 365):",
+      "30"
+    );
+    if (daysRaw === null) return;
+    const days = Number(daysRaw);
+    if (!Number.isFinite(days) || days <= 0) {
+      window.alert("أدخل عدداً صحيحاً من الأيام أكبر من صفر");
+      return;
+    }
+    try {
+      await client.post(`/admin/users/${userId}/grant-subscription/`, { days });
+      load();
+    } catch (e) {
+      window.alert(e.response?.data?.detail || "تعذّر منح الاشتراك");
+    }
+  }
+
+  async function deleteAccount(user) {
+    const label = user.full_name || user.email || `#${user.id}`;
+    const ok = window.confirm(
+      `هل تريد حذف حساب «${label}» نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`
+    );
+    if (!ok) return;
+    try {
+      await client.delete(`/admin/users/${user.id}/delete/`);
+      load();
+    } catch (e) {
+      window.alert(e.response?.data?.detail || "تعذّر حذف الحساب");
+    }
   }
 
   async function resetPassword(user) {
@@ -209,7 +235,11 @@ function AccountsTab() {
                       {s.is_active ? "مُفعّل (إيقاف)" : "موقوف (تفعيل)"}
                     </button>{" "}
                     <button className="btn btn-sm btn-secondary" onClick={() => grantSubscription(s.id)}>
-                      منح اشتراك
+                      مدة التفعيل
+                    </button>{" "}
+                    <button className="btn btn-sm btn-ghost" style={{ color: "var(--error)" }}
+                      onClick={() => deleteAccount(s)}>
+                      حذف
                     </button>
                   </td>
                 </tr>
@@ -270,10 +300,14 @@ function AccountsTab() {
                       تعيين كلمة مرور
                     </button>
                   </td>
-                  <td>
+                  <td style={{ whiteSpace: "nowrap" }}>
                     <button className={`btn btn-sm ${t.is_active ? "btn-ghost" : "btn-primary"}`}
                       onClick={() => toggleActive(t.id, t.is_active)}>
                       {t.is_active ? "مُفعّل (إيقاف)" : "موقوف (تفعيل)"}
+                    </button>{" "}
+                    <button className="btn btn-sm btn-ghost" style={{ color: "var(--error)" }}
+                      onClick={() => deleteAccount(t)}>
+                      حذف
                     </button>
                   </td>
                 </tr>
@@ -299,14 +333,16 @@ function PendingRow({ account, subjects, onDone }) {
       setErr("اختر المادة");
       return;
     }
+    if (role === "student" && !(Number(days) > 0)) {
+      setErr("حدد مدة التفعيل بالأيام");
+      return;
+    }
     setBusy(true);
     try {
-      // 1) Set the role (+ subject for teachers).
       await client.patch(`/admin/users/${account.id}/set-role/`, {
         role,
         taught_subject: role === "teacher" ? Number(subjectId) : null,
       });
-      // 2) Activate. For a student with a duration, grant a subscription too.
       if (role === "student" && Number(days) > 0) {
         await client.post(`/admin/users/${account.id}/grant-subscription/`, {
           days: Number(days),
@@ -317,6 +353,21 @@ function PendingRow({ account, subjects, onDone }) {
       onDone();
     } catch (e) {
       setErr(e.response?.data?.detail || "تعذّر التفعيل");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function removeAccount() {
+    const label = account.full_name || account.email || `#${account.id}`;
+    if (!window.confirm(`حذف حساب «${label}» نهائياً؟`)) return;
+    setBusy(true);
+    setErr("");
+    try {
+      await client.delete(`/admin/users/${account.id}/delete/`);
+      onDone();
+    } catch (e) {
+      setErr(e.response?.data?.detail || "تعذّر الحذف");
     } finally {
       setBusy(false);
     }
@@ -358,8 +409,33 @@ function PendingRow({ account, subjects, onDone }) {
       </td>
       <td>
         {role === "student" ? (
-          <input className="form-control" style={{ width: 90 }} type="number" min="0"
-            value={days} onChange={(e) => setDays(e.target.value)} placeholder="أيام" />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 140 }}>
+            <select
+              className="form-control"
+              value={["30", "90", "180", "365"].includes(String(days)) ? String(days) : "custom"}
+              onChange={(e) => {
+                if (e.target.value === "custom") setDays("");
+                else setDays(e.target.value);
+              }}
+            >
+              <option value="30">30 يوم</option>
+              <option value="90">90 يوم</option>
+              <option value="180">180 يوم</option>
+              <option value="365">365 يوم</option>
+              <option value="custom">مخصص…</option>
+            </select>
+            {!["30", "90", "180", "365"].includes(String(days)) && (
+              <input
+                className="form-control"
+                style={{ width: 110 }}
+                type="number"
+                min="1"
+                value={days}
+                onChange={(e) => setDays(e.target.value)}
+                placeholder="عدد الأيام"
+              />
+            )}
+          </div>
         ) : (
           <span style={{ color: "var(--text-muted)" }}>—</span>
         )}
@@ -367,6 +443,9 @@ function PendingRow({ account, subjects, onDone }) {
       <td style={{ whiteSpace: "nowrap" }}>
         <button className="btn btn-sm btn-primary" disabled={busy} onClick={activate}>
           {busy ? "…" : "تفعيل الحساب"}
+        </button>{" "}
+        <button className="btn btn-sm btn-ghost" style={{ color: "var(--error)" }} disabled={busy} onClick={removeAccount}>
+          حذف
         </button>
         {err && <div className="error-text" style={{ fontSize: 11 }}>{err}</div>}
       </td>
