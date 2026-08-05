@@ -28,3 +28,42 @@ def lesson_is_free_preview(lesson) -> bool:
 
 def free_question_limit() -> int:
     return int(getattr(settings, "FREE_TIER_QUESTION_LIMIT", 10))
+
+
+def teacher_subject_ids(user):
+    """Subjects a teacher may manage: GroupTeacher links + taught_subject."""
+    if user is None:
+        return set()
+    if getattr(user, "is_admin_role", False):
+        from catalog.models import Subject
+
+        return set(Subject.objects.values_list("id", flat=True))
+    from groups.models import GroupTeacher
+
+    ids = set(
+        GroupTeacher.objects.filter(teacher=user).values_list("subject_id", flat=True)
+    )
+    if getattr(user, "taught_subject_id", None):
+        ids.add(user.taught_subject_id)
+    return {i for i in ids if i is not None}
+
+
+def teacher_can_manage_subject(user, subject_id) -> bool:
+    if user is None:
+        return False
+    if getattr(user, "is_admin_role", False):
+        return True
+    if not getattr(user, "is_teacher", False):
+        return False
+    try:
+        sid = int(subject_id)
+    except (TypeError, ValueError):
+        return False
+    return sid in teacher_subject_ids(user)
+
+
+def assert_teacher_can_manage_subject(user, subject_id):
+    from rest_framework.exceptions import PermissionDenied
+
+    if not teacher_can_manage_subject(user, subject_id):
+        raise PermissionDenied("يمكنك إدارة دروس وأسئلتك في مادتك المخصصة فقط")

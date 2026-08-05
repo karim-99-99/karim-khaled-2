@@ -1,17 +1,27 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import client from "../api/client";
+import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
 import VideoPlayer from "../components/VideoPlayer";
+
+function formatRemain(sec) {
+  if (sec == null || sec < 0) return "—";
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
 
 export default function TestRunner() {
   const { examId } = useParams();
   const navigate = useNavigate();
   const [payload, setPayload] = useState(null);
   const [idx, setIdx] = useState(0);
-  const [answers, setAnswers] = useState({}); // answer_id -> selected
-  const [feedback, setFeedback] = useState(null); // immediate review
+  const [answers, setAnswers] = useState({});
+  const [feedback, setFeedback] = useState(null);
   const [showVideo, setShowVideo] = useState(false);
+  const [remainSec, setRemainSec] = useState(null);
+  const finishing = useRef(false);
 
   useEffect(() => {
     client.get(`/exams/${examId}/`).then((res) => {
@@ -24,11 +34,44 @@ export default function TestRunner() {
     });
   }, [examId]);
 
+  useEffect(() => {
+    const ends = payload?.exam?.ends_at;
+    if (!ends) {
+      setRemainSec(null);
+      return undefined;
+    }
+    const endMs = new Date(ends).getTime();
+    const tick = () => {
+      const left = Math.max(0, Math.floor((endMs - Date.now()) / 1000));
+      setRemainSec(left);
+      if (left <= 0) finish(true);
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payload?.exam?.id, payload?.exam?.ends_at]);
+
+  async function finish(timedOut = false) {
+    if (finishing.current) return;
+    finishing.current = true;
+    try {
+      const { data } = await client.post(`/exams/${examId}/finish/`, {
+        timed_out: timedOut,
+        auto: timedOut,
+      });
+      navigate(`/results/${examId}`, { state: { justFinished: data, timedOut } });
+    } catch {
+      finishing.current = false;
+    }
+  }
+
   if (!payload) return <div className="spinner">جاري التحميل…</div>;
 
   const { exam, questions } = payload;
   const q = questions[idx];
   const immediate = exam.review_mode === "immediate";
+  const timed = exam.time_limit_minutes > 0 && exam.ends_at;
 
   async function choose(optionKey) {
     setAnswers((a) => ({ ...a, [q.answer_id]: optionKey }));
@@ -45,34 +88,72 @@ export default function TestRunner() {
     setIdx(nextIdx);
   }
 
-  async function finish() {
-    const { data } = await client.post(`/exams/${examId}/finish/`);
-    navigate(`/results/${examId}`, { state: { justFinished: data } });
-  }
-
   const answeredCount = Object.keys(answers).length;
   const progress = Math.round((answeredCount / questions.length) * 100);
 
   return (
     <div>
-      <div className="card" style={{ padding: 16, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <BackToCourses subjectId={exam.subject} />
+      <div
+        className="card"
+        style={{
+          padding: 16,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 12,
+          gap: 8,
+          flexWrap: "wrap",
+        }}
+      >
         <span>{exam.title}</span>
         <span>سؤال {idx + 1} من {questions.length}</span>
-        <button className="btn btn-ghost btn-sm" onClick={finish}>إنهاء</button>
+        {timed && (
+          <span
+            style={{
+              fontWeight: 700,
+              color: remainSec != null && remainSec <= 60 ? "var(--error)" : "var(--primary)",
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            ⏱ {formatRemain(remainSec)}
+          </span>
+        )}
+        {!timed && (
+          <span style={{ color: "var(--text-muted)", fontSize: 13 }}>مدة مفتوحة</span>
+        )}
+        <div style={{ display: "flex", gap: 8 }}>
+          <Link to="/courses" className="btn btn-ghost btn-sm">
+            الخروج للدورات
+          </Link>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => finish(false)}>
+            إنهاء
+          </button>
+        </div>
       </div>
       <div style={{ height: 6, background: "var(--border)", borderRadius: 4, marginBottom: 20 }}>
-        <div style={{ height: "100%", width: `${progress}%`, background: "var(--primary)", borderRadius: 4 }} />
+        <div
+          style={{
+            height: "100%",
+            width: `${progress}%`,
+            background: "var(--primary)",
+            borderRadius: 4,
+          }}
+        />
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "1fr 260px", gap: 20 }}>
         <div className="card" style={{ padding: 28 }}>
-          {/* Per-question video BEFORE answering */}
           {q.video_bunny_id && q.video_before && (
             <div style={{ marginBottom: 16 }}>
               {showVideo ? (
                 <VideoPlayer bunnyId={q.video_bunny_id} />
               ) : (
-                <div className="banner" style={{ cursor: "pointer" }} onClick={() => setShowVideo(true)}>
+                <div
+                  className="banner"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => setShowVideo(true)}
+                >
                   🎬 فيديو توضيحي قبل الإجابة · <strong>مشاهدة</strong>
                 </div>
               )}
@@ -83,7 +164,11 @@ export default function TestRunner() {
             <MathText>{q.text}</MathText>
           </h3>
           {q.text_image && (
-            <img src={q.text_image} alt="" style={{ maxWidth: "100%", marginBottom: 16, borderRadius: 8 }} />
+            <img
+              src={q.text_image}
+              alt=""
+              style={{ maxWidth: "100%", marginBottom: 16, borderRadius: 8 }}
+            />
           )}
 
           {q.options.map((o) => {
@@ -97,16 +182,24 @@ export default function TestRunner() {
               <div key={o.key} className={cls} onClick={() => !feedback && choose(o.key)}>
                 <span>{o.key})</span> <MathText>{o.text}</MathText>
                 {o.image && (
-                  <img src={o.image} alt="" style={{ display: "block", maxWidth: 180, marginTop: 8, borderRadius: 6 }} />
+                  <img
+                    src={o.image}
+                    alt=""
+                    style={{ display: "block", maxWidth: 180, marginTop: 8, borderRadius: 6 }}
+                  />
                 )}
               </div>
             );
           })}
 
-          {/* Immediate feedback + AFTER video */}
           {feedback && (
             <div style={{ marginTop: 16 }}>
-              <div style={{ fontWeight: 700, color: feedback.is_correct ? "var(--success)" : "var(--error)" }}>
+              <div
+                style={{
+                  fontWeight: 700,
+                  color: feedback.is_correct ? "var(--success)" : "var(--error)",
+                }}
+              >
                 {feedback.is_correct ? "إجابة صحيحة ✓" : "إجابة خاطئة ✗"}
               </div>
               {(feedback.written_correction || feedback.explanation) && (
@@ -130,11 +223,22 @@ export default function TestRunner() {
           )}
 
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: 24 }}>
-            <button className="btn btn-ghost" disabled={idx === 0} onClick={() => go(idx - 1)}>← السابق</button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={idx === 0}
+              onClick={() => go(idx - 1)}
+            >
+              ← السابق
+            </button>
             {idx < questions.length - 1 ? (
-              <button className="btn btn-primary" onClick={() => go(idx + 1)}>التالي →</button>
+              <button type="button" className="btn btn-primary" onClick={() => go(idx + 1)}>
+                التالي →
+              </button>
             ) : (
-              <button className="btn btn-primary" onClick={finish}>إنهاء الاختبار</button>
+              <button type="button" className="btn btn-primary" onClick={() => finish(false)}>
+                إنهاء الاختبار
+              </button>
             )}
           </div>
         </div>
@@ -153,6 +257,15 @@ export default function TestRunner() {
               );
             })}
           </div>
+          {exam.review_mode === "immediate" ? (
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 12 }}>
+              مراجعة فورية بعد كل سؤال
+            </p>
+          ) : (
+            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 12 }}>
+              المراجعة في نهاية الاختبار
+            </p>
+          )}
         </div>
       </div>
     </div>

@@ -25,9 +25,9 @@ class QuestionBase(models.Model):
         HARD = "hard", "صعب"
 
     # Questions are owned by the teacher (created_by) + subject + lesson.
-    # `group` is optional: when null, the question reaches EVERY group the
-    # teacher is assigned to (now or in the future). When set, it is pinned to
-    # that single group only.
+    # Homework (تأسيس): when group is null, reaches groups where the teacher
+    # teaches this subject; when set, pinned to that group.
+    # Collection (تجميعات): group is always null — visible to ALL students.
     group = models.ForeignKey(
         "groups.StudyGroup",
         related_name="%(class)ss",
@@ -93,8 +93,8 @@ class HomeworkQuestion(QuestionBase):
 
 class CollectionQuestion(QuestionBase):
     """
-    Test-bank (تجميعات) question. Both the personal simulator and the teacher
-    test draw from these rows, filtered by the inherited `difficulty`.
+    بنك التجميعات — يظهر لكل طلاب المادة (ليس مقيداً بمجموعة المدرس).
+    المحاكي واختبار المدرس يسحبان من هذه الأسئلة مع فلتر difficulty.
     """
 
     written_correction = models.TextField(blank=True)
@@ -150,9 +150,24 @@ class Exam(models.Model):
         max_length=10, choices=ReviewMode.choices, default=ReviewMode.FINAL
     )
     question_count = models.PositiveIntegerField(default=0)
+    title_override = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="Custom name e.g. named teacher test",
+    )
+    teacher_test = models.ForeignKey(
+        "TeacherTest",
+        related_name="attempts",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     is_free_attempt = models.BooleanField(
         default=False, help_text="Capped free-tier attempt (max 10 questions)"
     )
+    # null / 0 = unlimited time; otherwise countdown from started_at
+    time_limit_minutes = models.PositiveIntegerField(null=True, blank=True)
     status = models.CharField(
         max_length=15, choices=Status.choices, default=Status.IN_PROGRESS
     )
@@ -167,8 +182,80 @@ class Exam(models.Model):
         return f"{self.get_exam_type_display()} - {self.student.full_name}"
 
     @property
+    def ends_at(self):
+        if not self.time_limit_minutes:
+            return None
+        from datetime import timedelta
+
+        return self.started_at + timedelta(minutes=self.time_limit_minutes)
+
+    @property
     def title(self):
+        if self.title_override:
+            return self.title_override
+        if self.teacher_test_id:
+            name = (
+                TeacherTest.objects.filter(id=self.teacher_test_id)
+                .values_list("name", flat=True)
+                .first()
+            )
+            if name:
+                return name
         return f"{self.get_exam_type_display()} — {self.subject.name}"
+
+
+class TeacherTest(models.Model):
+    """Named test composed by a teacher from collection (تجميعات) questions."""
+
+    name = models.CharField(max_length=200)
+    subject = models.ForeignKey(
+        "catalog.Subject", related_name="teacher_tests", on_delete=models.CASCADE
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="teacher_tests",
+        on_delete=models.SET_NULL,
+        null=True,
+    )
+    review_mode = models.CharField(
+        max_length=10,
+        choices=Exam.ReviewMode.choices,
+        default=Exam.ReviewMode.FINAL,
+    )
+    is_published = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def question_count(self):
+        return self.items.count()
+
+
+class TeacherTestLesson(models.Model):
+    teacher_test = models.ForeignKey(
+        TeacherTest, related_name="lesson_links", on_delete=models.CASCADE
+    )
+    lesson = models.ForeignKey("catalog.Lesson", on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ("teacher_test", "lesson")
+
+
+class TeacherTestQuestion(models.Model):
+    teacher_test = models.ForeignKey(
+        TeacherTest, related_name="items", on_delete=models.CASCADE
+    )
+    question = models.ForeignKey(CollectionQuestion, on_delete=models.CASCADE)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["order", "id"]
+        unique_together = ("teacher_test", "question")
 
 
 class ExamLesson(models.Model):

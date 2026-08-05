@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import client from "../api/client";
+import client, { warmApi } from "../api/client";
 
 function contactLabel(account) {
   return account.email || "—";
@@ -35,13 +35,33 @@ function AccountsTab() {
   const [subjects, setSubjects] = useState([]);
   const [view, setView] = useState("pending");
   const [q, setQ] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   function load() {
-    client.get("/admin/accounts/").then((res) => setData(res.data));
+    setLoading(true);
+    setError("");
+    warmApi();
+    Promise.all([
+      client.get("/admin/accounts/"),
+      client.get("/subjects/"),
+    ])
+      .then(([accountsRes, subjectsRes]) => {
+        setData(accountsRes.data);
+        setSubjects(subjectsRes.data.results || subjectsRes.data || []);
+      })
+      .catch((e) => {
+        setError(
+          e.response?.data?.detail ||
+            e.message ||
+            "تعذّر تحميل الحسابات — تحقق من اتصال الخادم",
+        );
+      })
+      .finally(() => setLoading(false));
   }
+
   useEffect(() => {
     load();
-    client.get("/subjects/").then((res) => setSubjects(res.data.results || res.data));
   }, []);
 
   async function toggleActive(userId, current) {
@@ -115,7 +135,29 @@ function AccountsTab() {
     }
   }
 
-  if (!data) return <div className="spinner">جاري التحميل…</div>;
+  if (loading && !data) {
+    return (
+      <div className="card" style={{ padding: 24, textAlign: "center" }}>
+        <div className="spinner">جاري تحميل الحسابات…</div>
+        <p style={{ color: "var(--text-muted)", marginTop: 12, fontSize: 13 }}>
+          إذا استغرق الأمر طويلاً، قد يكون الخادم في وضع الإسبات — انتظر قليلاً أو حدّث الصفحة.
+        </p>
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="card" style={{ padding: 24, textAlign: "center" }}>
+        <div className="banner" style={{ marginBottom: 16 }}>{error}</div>
+        <button type="button" className="btn btn-primary" onClick={load}>
+          إعادة المحاولة
+        </button>
+      </div>
+    );
+  }
+
+  if (!data) return null;
 
   const term = q.trim().toLowerCase();
   const filterFn = (p) =>
@@ -455,6 +497,8 @@ function PendingRow({ account, subjects, onDone }) {
 
 function GroupsTab() {
   const [groups, setGroups] = useState([]);
+  const [groupsLoading, setGroupsLoading] = useState(true);
+  const [pickersLoaded, setPickersLoaded] = useState(false);
   const [name, setName] = useState("");
   const [open, setOpen] = useState(null);
   const [students, setStudents] = useState([]);
@@ -467,16 +511,28 @@ function GroupsTab() {
   const [msg, setMsg] = useState("");
 
   function load() {
-    client.get("/admin/groups/").then((res) => setGroups(res.data.results || res.data));
+    setGroupsLoading(true);
+    client
+      .get("/admin/groups/")
+      .then((res) => setGroups(res.data.results || res.data || []))
+      .catch(() => setGroups([]))
+      .finally(() => setGroupsLoading(false));
   }
-  function loadPickers() {
+  function loadPickers(force = false) {
+    if (pickersLoaded && !force) return;
     client.get("/admin/available-students/").then((res) => setAvailableStudents(res.data));
     client.get("/admin/teachers/").then((res) => setTeachers(res.data));
+    setPickersLoaded(true);
   }
   useEffect(() => {
     load();
-    loadPickers();
-    client.get("/subjects/").then((res) => setSubjects(res.data.results || res.data));
+    // Subjects + pickers only when opening a group (not on every Groups tab mount).
+    try {
+      const raw = sessionStorage.getItem("zad_subjects_cache_v1");
+      if (raw) setSubjects(JSON.parse(raw));
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   async function create() {
@@ -492,6 +548,18 @@ function GroupsTab() {
     setStudentId("");
     setTeacherId("");
     setSubjectId("");
+    loadPickers();
+    if (!subjects.length) {
+      client.get("/subjects/").then((res) => {
+        const list = res.data.results || res.data || [];
+        setSubjects(list);
+        try {
+          sessionStorage.setItem("zad_subjects_cache_v1", JSON.stringify(list));
+        } catch {
+          /* ignore */
+        }
+      });
+    }
     client.get(`/admin/groups/${g.id}/students/`).then((res) => setStudents(res.data));
   }
 
@@ -503,7 +571,7 @@ function GroupsTab() {
       setStudentId("");
       openGroup(open);
       load();
-      loadPickers();
+      loadPickers(true);
     } catch (e) {
       setMsg(e.response?.data?.detail || "تعذّر إضافة الطالب");
     }
@@ -532,7 +600,7 @@ function GroupsTab() {
   async function toggleActive(userId, current) {
     await client.patch(`/admin/users/${userId}/set-active/`, { is_active: !current });
     openGroup(open);
-    loadPickers();
+    loadPickers(true);
   }
 
   // Combined member rows: teachers first, then students.
@@ -568,6 +636,8 @@ function GroupsTab() {
           onChange={(e) => setName(e.target.value)} />
         <button className="btn btn-primary" onClick={create}>إنشاء</button>
       </div>
+
+      {groupsLoading && <div className="spinner">جاري تحميل المجموعات…</div>}
 
       {groups.map((g) => (
         <div key={g.id} className="card" style={{ padding: 16, marginBottom: 12 }}>

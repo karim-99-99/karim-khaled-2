@@ -12,6 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
     taught_subject_name = serializers.CharField(
         source="taught_subject.name", read_only=True
     )
+    teachable_subject_ids = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -26,6 +27,7 @@ class UserSerializer(serializers.ModelSerializer):
             "role",
             "taught_subject",
             "taught_subject_name",
+            "teachable_subject_ids",
             "has_active_subscription",
             "created_at",
         ]
@@ -35,8 +37,20 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "telegram_id",
             "telegram_username",
+            "teachable_subject_ids",
             "created_at",
         ]
+
+    def get_teachable_subject_ids(self, obj):
+        from core.access import teacher_subject_ids
+
+        if getattr(obj, "is_admin_role", False):
+            from catalog.models import Subject
+
+            return list(Subject.objects.values_list("id", flat=True))
+        if not getattr(obj, "is_teacher", False):
+            return []
+        return sorted(teacher_subject_ids(obj))
 
 
 class ChangePasswordSerializer(serializers.Serializer):

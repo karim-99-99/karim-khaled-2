@@ -22,7 +22,9 @@ def _client_ip(request):
 def home_free_content(request):
     """Public: subjects + free-preview lessons shown to visitors on the home page."""
     subjects = Subject.objects.all()
-    free_lessons = Lesson.objects.filter(is_free_preview=True, is_archived=False)
+    free_lessons = Lesson.objects.filter(
+        is_free_preview=True, is_archived=False
+    ).select_related("subject")
     return Response(
         {
             "subjects": SubjectSerializer(subjects, many=True).data,
@@ -30,6 +32,13 @@ def home_free_content(request):
             "free_question_limit": settings.FREE_TIER_QUESTION_LIMIT,
         }
     )
+
+
+@api_view(["GET"])
+@permission_classes([permissions.AllowAny])
+def health(request):
+    """Lightweight keep-alive for free-tier hosts (Render) and Neon wake-ups."""
+    return Response({"ok": True})
 
 
 @api_view(["GET"])

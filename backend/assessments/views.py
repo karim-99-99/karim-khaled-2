@@ -1,6 +1,6 @@
 import random
 
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
@@ -9,7 +9,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from catalog.models import Lesson, Subject
-from core.access import free_question_limit, lesson_is_free_preview, user_has_full_content_access
+from core.access import (
+    assert_teacher_can_manage_subject,
+    free_question_limit,
+    lesson_is_free_preview,
+    user_has_full_content_access,
+)
 from core.permissions import IsTeacherOrAdmin
 from groups.models import GroupStudent, GroupTeacher
 from .models import (
@@ -18,6 +23,9 @@ from .models import (
     ExamAnswer,
     ExamLesson,
     HomeworkQuestion,
+    TeacherTest,
+    TeacherTestLesson,
+    TeacherTestQuestion,
 )
 from .serializers import (
     CollectionQuestionSerializer,
@@ -26,6 +34,8 @@ from .serializers import (
     HomeworkPublicSerializer,
     HomeworkQuestionSerializer,
     QuestionPublicSerializer,
+    TeacherTestSerializer,
+    TeacherTestWriteSerializer,
 )
 
 
@@ -62,50 +72,106 @@ class TeacherQuestionMixin:
 
     def perform_create(self, serializer):
         user = self.request.user
-        group = serializer.validated_data.get("group")
         subject = serializer.validated_data.get("subject")
-        # Group is optional. If a specific group is pinned, a teacher must
-        # actually teach that subject there. Group-less questions reach all of
-        # the teacher's groups automatically, so no group check is needed.
-        if not user.is_admin_role and group is not None:
-            if not GroupTeacher.objects.filter(
-                teacher=user, group=group, subject=subject
-            ).exists():
-                from rest_framework.exceptions import PermissionDenied
-
-                raise PermissionDenied("لا تُدرّس هذه المادة في هذه المجموعة")
+        subject_id = subject.pk if hasattr(subject, "pk") else subject
+        assert_teacher_can_manage_subject(user, subject_id)
         serializer.save(created_by=user)
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        subject = serializer.validated_data.get("subject", serializer.instance.subject_id)
+        subject_id = subject.pk if hasattr(subject, "pk") else subject
+        assert_teacher_can_manage_subject(user, serializer.instance.subject_id)
+        assert_teacher_can_manage_subject(user, subject_id)
+        serializer.save()
 
 
 class HomeworkQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
+    """تأسيس: أسئلة الواجب تظهر فقط لطلاب مجموعات المدرس."""
+
     model = HomeworkQuestion
     serializer_class = HomeworkQuestionSerializer
     pagination_class = None
 
+    def perform_create(self, serializer):
+        user = self.request.user
+        group = serializer.validated_data.get("group")
+        subject = serializer.validated_data.get("subject")
+        subject_id = subject.pk if hasattr(subject, "pk") else subject
+        assert_teacher_can_manage_subject(user, subject_id)
+        if not user.is_admin_role:
+            from rest_framework.exceptions import PermissionDenied
+
+            links = GroupTeacher.objects.filter(teacher=user, subject_id=subject_id)
+            if not links.exists():
+                raise PermissionDenied(
+                    "عيّنك الإدارة كمدرس لهذه المادة في مجموعة أولاً حتى تظهر أسئلتك لطلاب مجموعتك"
+                )
+            if group is not None and not links.filter(group=group).exists():
+                raise PermissionDenied("لا تُدرّس هذه المادة في هذه المجموعة")
+        serializer.save(created_by=user)
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        subject = serializer.validated_data.get("subject", serializer.instance.subject_id)
+        subject_id = subject.pk if hasattr(subject, "pk") else subject
+        assert_teacher_can_manage_subject(user, serializer.instance.subject_id)
+        assert_teacher_can_manage_subject(user, subject_id)
+        group = serializer.validated_data.get("group", serializer.instance.group)
+        if not user.is_admin_role and group is not None:
+            gid = group.pk if hasattr(group, "pk") else group
+            if not GroupTeacher.objects.filter(
+                teacher=user, group_id=gid, subject_id=subject_id
+            ).exists():
+                from rest_framework.exceptions import PermissionDenied
+
+                raise PermissionDenied("لا تُدرّس هذه المادة في هذه المجموعة")
+        serializer.save()
+
 
 class CollectionQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
+    """تجميعات: بنك عام يظهر لكل طلاب المادة."""
+
     model = CollectionQuestion
     serializer_class = CollectionQuestionSerializer
     pagination_class = None
 
+    def perform_create(self, serializer):
+        user = self.request.user
+        subject = serializer.validated_data.get("subject")
+        subject_id = subject.pk if hasattr(subject, "pk") else subject
+        assert_teacher_can_manage_subject(user, subject_id)
+        serializer.save(created_by=user, group=None)
+
+    def perform_update(self, serializer):
+        user = self.request.user
+        subject = serializer.validated_data.get("subject", serializer.instance.subject_id)
+        subject_id = subject.pk if hasattr(subject, "pk") else subject
+        assert_teacher_can_manage_subject(user, serializer.instance.subject_id)
+        assert_teacher_can_manage_subject(user, subject_id)
+        serializer.save(group=None)
 
 class StudentHomeworkView(APIView):
-    """Homework for a student: authored by the teachers of their group(s)."""
+    """Homework authored by teachers assigned to the student's groups for that subject."""
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
         group_ids = _student_group_ids(user)
-        teacher_ids = list(
-            GroupTeacher.objects.filter(group_id__in=group_ids)
-            .values_list("teacher_id", flat=True)
-            .distinct()
-        )
-        qs = HomeworkQuestion.objects.filter(created_by__in=teacher_ids).filter(
-            Q(group__isnull=True) | Q(group_id__in=group_ids)
-        )
         lesson_id = request.query_params.get("lesson")
+
+        # Only teachers who teach the question's subject in one of the student's groups.
+        qs = HomeworkQuestion.objects.filter(
+            Exists(
+                GroupTeacher.objects.filter(
+                    teacher_id=OuterRef("created_by_id"),
+                    subject_id=OuterRef("subject_id"),
+                    group_id__in=group_ids,
+                )
+            )
+        ).filter(Q(group__isnull=True) | Q(group_id__in=group_ids))
+
         if lesson_id:
             qs = qs.filter(lesson_id=lesson_id)
 
@@ -129,31 +195,11 @@ def _student_group_ids(user):
 
 def _student_question_bank(user, subject_id):
     """
-    Questions a student may receive for a subject: authored by any teacher who
-    is assigned to one of the student's groups (for this subject OR as their
-    taught subject). Group-less questions reach every group; group-pinned
-    questions only their own group.
+    تجميعات: بنك عام لكل طلاب المادة — أسئلة كل المدرسين تظهر للجميع.
+    (عكس تأسيس/الواجب المقيد بمجموعات المدرس.)
     """
     group_ids = _student_group_ids(user)
-    teacher_ids = list(
-        GroupTeacher.objects.filter(group_id__in=group_ids)
-        .filter(
-            Q(subject_id=subject_id) | Q(teacher__taught_subject_id=subject_id)
-        )
-        .values_list("teacher_id", flat=True)
-        .distinct()
-    )
-    # Also include questions for this subject authored by teachers who teach
-    # ANY subject in the student's groups (covers subject-link mismatches).
-    any_group_teachers = list(
-        GroupTeacher.objects.filter(group_id__in=group_ids)
-        .values_list("teacher_id", flat=True)
-        .distinct()
-    )
-    teacher_ids = list(set(teacher_ids) | set(any_group_teachers))
-    qs = CollectionQuestion.objects.filter(
-        subject_id=subject_id, created_by__in=teacher_ids
-    ).filter(Q(group__isnull=True) | Q(group_id__in=group_ids))
+    qs = CollectionQuestion.objects.filter(subject_id=subject_id)
     return qs, group_ids
 
 
@@ -163,24 +209,66 @@ def _pick(pool, n):
     return pool[:n]
 
 
+def _seen_question_ids(user, subject_id):
+    """Collection question IDs this student has faced before in this subject."""
+    return set(
+        ExamAnswer.objects.filter(
+            exam__student=user,
+            exam__subject_id=subject_id,
+        ).values_list("question_id", flat=True)
+    )
+
+
 class StartSimulatorView(APIView):
+    """
+    Personal simulator from تجميعات bank.
+
+    Body:
+      subject, lessons[], count, level (easy|medium|hard|all),
+      review_mode (immediate|final),
+      question_pool (any|new|seen),
+      time_limit_minutes (null/0 = open, else minutes)
+    """
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user = request.user
         subject_id = request.data.get("subject")
-        lesson_ids = request.data.get("lessons", [])
+        lesson_ids = request.data.get("lessons") or []
         count = int(request.data.get("count", 8))
         level = request.data.get("level", "medium")
+        review_mode = request.data.get("review_mode", Exam.ReviewMode.FINAL)
+        if review_mode not in (Exam.ReviewMode.IMMEDIATE, Exam.ReviewMode.FINAL):
+            review_mode = Exam.ReviewMode.FINAL
+        question_pool = request.data.get("question_pool", "any")
+        raw_limit = request.data.get("time_limit_minutes", None)
+        try:
+            time_limit = int(raw_limit) if raw_limit not in (None, "", 0, "0") else None
+        except (TypeError, ValueError):
+            time_limit = None
+        if time_limit is not None and time_limit < 1:
+            time_limit = None
+
+        if not lesson_ids:
+            return Response(
+                {"detail": "اختر درساً واحداً على الأقل"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         bank, group_ids = _student_question_bank(user, subject_id)
-        bank = bank.filter(difficulty=level)
-        if lesson_ids:
-            bank = bank.filter(lesson_id__in=lesson_ids)
+        if level and level != "all":
+            bank = bank.filter(difficulty=level)
+        bank = bank.filter(lesson_id__in=lesson_ids)
+
+        seen_ids = _seen_question_ids(user, subject_id)
+        if question_pool == "new":
+            bank = bank.exclude(id__in=seen_ids)
+        elif question_pool == "seen":
+            bank = bank.filter(id__in=seen_ids)
 
         free = not user_has_full_content_access(user)
         if free:
-            # Only the first lesson of the subject is open for free preview.
             first = (
                 Lesson.objects.filter(subject_id=subject_id, is_archived=False)
                 .order_by("order_number", "id")
@@ -188,9 +276,11 @@ class StartSimulatorView(APIView):
             )
             if first:
                 bank = bank.filter(lesson_id=first.id)
-            if lesson_ids and first and any(int(x) != first.id for x in lesson_ids):
+            if first and any(int(x) != first.id for x in lesson_ids):
                 return Response(
-                    {"detail": "المعاينة المجانية متاحة لأول درس فقط. تواصل مع الإدارة للتفعيل."},
+                    {
+                        "detail": "المعاينة المجانية متاحة لأول درس فقط. تواصل مع الإدارة للتفعيل."
+                    },
                     status=status.HTTP_403_FORBIDDEN,
                 )
             count = min(count, free_question_limit())
@@ -200,20 +290,24 @@ class StartSimulatorView(APIView):
             questions = _pick(bank, count)
 
         if not questions:
-            return Response(
-                {"detail": "لا توجد أسئلة متاحة بهذه الإعدادات"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            if question_pool == "new":
+                detail = "لا توجد أسئلة جديدة لم ترَها من قبل بهذه الإعدادات"
+            elif question_pool == "seen":
+                detail = "لا توجد أسئلة سابقة (مكررة) بهذه الإعدادات — جرّب «أسئلة جديدة» أو «الكل»"
+            else:
+                detail = "لا توجد أسئلة متاحة بهذه الإعدادات في بنك التجميعات"
+            return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
 
         exam = Exam.objects.create(
             student=user,
             subject_id=subject_id,
             group_id=group_ids[0] if group_ids else None,
             exam_type=Exam.Type.SIMULATOR,
-            difficulty_preset=level,
-            review_mode=Exam.ReviewMode.FINAL,
+            difficulty_preset="" if level == "all" else level,
+            review_mode=review_mode,
             question_count=len(questions),
             is_free_attempt=free,
+            time_limit_minutes=time_limit,
         )
         for lid in lesson_ids:
             ExamLesson.objects.get_or_create(exam=exam, lesson_id=lid)
@@ -224,10 +318,67 @@ class StartSimulatorView(APIView):
 
 
 class StartTeacherTestView(APIView):
+    """
+    Start a student attempt of a named teacher test (from تجميعات questions).
+
+    Body: { "teacher_test": <id> }
+    Legacy random mode still accepted: subject + count + preset + optional lesson.
+    """
+
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
         user = request.user
+        teacher_test_id = request.data.get("teacher_test")
+
+        if teacher_test_id:
+            return self._start_named(request, user, teacher_test_id)
+        return self._start_legacy_random(request, user)
+
+    def _start_named(self, request, user, teacher_test_id):
+        tt = (
+            TeacherTest.objects.filter(id=teacher_test_id, is_published=True)
+            .prefetch_related("items__question", "lesson_links")
+            .first()
+        )
+        if not tt:
+            return Response(
+                {"detail": "الاختبار غير موجود أو غير منشور"},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        items = list(tt.items.select_related("question").order_by("order"))
+        questions = [it.question for it in items]
+        if not questions:
+            return Response(
+                {"detail": "لا توجد أسئلة في هذا الاختبار"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        free = not user_has_full_content_access(user)
+        if free:
+            questions = questions[: free_question_limit()]
+
+        group_ids = _student_group_ids(user)
+        exam = Exam.objects.create(
+            student=user,
+            subject_id=tt.subject_id,
+            group_id=group_ids[0] if group_ids else None,
+            exam_type=Exam.Type.TEACHER,
+            review_mode=tt.review_mode,
+            question_count=len(questions),
+            is_free_attempt=free,
+            title_override=tt.name,
+            teacher_test=tt,
+        )
+        for link in tt.lesson_links.all():
+            ExamLesson.objects.get_or_create(exam=exam, lesson_id=link.lesson_id)
+        for i, q in enumerate(questions):
+            ExamAnswer.objects.create(exam=exam, question=q, order=i)
+
+        return Response(_exam_payload(exam), status=201)
+
+    def _start_legacy_random(self, request, user):
         subject_id = request.data.get("subject")
         lesson_id = request.data.get("lesson")
         count = int(request.data.get("count", 20))
@@ -262,7 +413,6 @@ class StartTeacherTestView(APIView):
         for level, ratio in zip(buckets, ratios):
             n = round(count * ratio)
             chosen += _pick(base.filter(difficulty=level), n)
-        # Top up if rounding left us short.
         if len(chosen) < count:
             remaining = base.exclude(id__in=[q.id for q in chosen])
             chosen += _pick(remaining, count - len(chosen))
@@ -291,6 +441,158 @@ class StartTeacherTestView(APIView):
             ExamAnswer.objects.create(exam=exam, question=q, order=i)
 
         return Response(_exam_payload(exam), status=201)
+
+
+class TeacherTestViewSet(viewsets.ViewSet):
+    """
+    Named teacher tests built from the global تجميعات bank.
+
+    Teachers/admins: create, list own, delete, browse full question bank.
+    Students: list published tests for a subject.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        subject_id = request.query_params.get("subject")
+        if not subject_id:
+            return Response(
+                {"detail": "subject مطلوب"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        user = request.user
+        qs = TeacherTest.objects.filter(subject_id=subject_id).select_related(
+            "created_by", "subject"
+        )
+        if user.is_admin_role:
+            pass
+        elif user.is_teacher:
+            # Own tests + published ones (to preview what students see)
+            qs = qs.filter(Q(created_by=user) | Q(is_published=True))
+        else:
+            qs = qs.filter(is_published=True)
+        return Response(TeacherTestSerializer(qs, many=True).data)
+
+    def create(self, request):
+        from core.access import assert_teacher_can_manage_subject
+        from core.permissions import IsTeacherOrAdmin
+
+        if not IsTeacherOrAdmin().has_permission(request, self):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        ser = TeacherTestWriteSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        user = request.user
+        subject_id = data["subject"]
+        assert_teacher_can_manage_subject(user, subject_id)
+
+        lesson_ids = list(dict.fromkeys(data["lesson_ids"]))
+        question_ids = list(dict.fromkeys(data["question_ids"]))
+
+        lessons_ok = set(
+            Lesson.objects.filter(subject_id=subject_id, id__in=lesson_ids).values_list(
+                "id", flat=True
+            )
+        )
+        if set(lesson_ids) - lessons_ok:
+            return Response(
+                {"detail": "بعض الدروس لا تنتمي لهذه المادة"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        questions = list(
+            CollectionQuestion.objects.filter(
+                subject_id=subject_id, id__in=question_ids
+            )
+        )
+        by_id = {q.id: q for q in questions}
+        if len(by_id) != len(question_ids):
+            return Response(
+                {"detail": "بعض الأسئلة غير موجودة في بنك التجميعات لهذه المادة"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        # Prefer questions that belong to selected lessons
+        for qid in question_ids:
+            q = by_id[qid]
+            if q.lesson_id not in lessons_ok:
+                return Response(
+                    {"detail": f"السؤال {qid} لا ينتمي للدروس المحددة"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        tt = TeacherTest.objects.create(
+            name=data["name"].strip(),
+            subject_id=subject_id,
+            created_by=user,
+            review_mode=data.get("review_mode") or Exam.ReviewMode.FINAL,
+            is_published=data.get("is_published", True),
+        )
+        for lid in lesson_ids:
+            TeacherTestLesson.objects.create(teacher_test=tt, lesson_id=lid)
+        for i, qid in enumerate(question_ids):
+            TeacherTestQuestion.objects.create(
+                teacher_test=tt, question_id=qid, order=i
+            )
+
+        tt = TeacherTest.objects.prefetch_related(
+            "lesson_links__lesson", "items", "created_by"
+        ).get(id=tt.id)
+        return Response(TeacherTestSerializer(tt).data, status=201)
+
+    def destroy(self, request, pk=None):
+        from core.permissions import IsTeacherOrAdmin
+
+        if not IsTeacherOrAdmin().has_permission(request, self):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        tt = TeacherTest.objects.filter(id=pk).first()
+        if not tt:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        user = request.user
+        if not user.is_admin_role and tt.created_by_id != user.id:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        tt.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def question_bank(self, request):
+        """All collection questions for selected lessons (any teacher) — for building a test."""
+        from core.access import assert_teacher_can_manage_subject
+        from core.permissions import IsTeacherOrAdmin
+
+        if not IsTeacherOrAdmin().has_permission(request, self):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
+        subject_id = request.query_params.get("subject")
+        if not subject_id:
+            return Response(
+                {"detail": "subject مطلوب"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        assert_teacher_can_manage_subject(request.user, subject_id)
+
+        raw = request.query_params.get("lessons") or ""
+        lesson_ids = [int(x) for x in raw.split(",") if x.strip().isdigit()]
+        qs = CollectionQuestion.objects.filter(subject_id=subject_id).select_related(
+            "lesson"
+        )
+        if lesson_ids:
+            qs = qs.filter(lesson_id__in=lesson_ids)
+        qs = qs.order_by("lesson__order_number", "difficulty", "id")
+
+        rows = []
+        for q in qs:
+            rows.append(
+                {
+                    "id": q.id,
+                    "lesson": q.lesson_id,
+                    "lesson_title": q.lesson.title if q.lesson_id else "",
+                    "difficulty": q.difficulty,
+                    "text": q.text,
+                    "text_image": q.text_image,
+                    "options": q.options,
+                    "correct_answer": q.correct_answer,
+                    "video_bunny_id": q.video_bunny_id,
+                }
+            )
+        return Response(rows)
 
 
 def _exam_payload(exam):
@@ -365,10 +667,13 @@ class FinishView(APIView):
         exam = Exam.objects.filter(id=exam_id, student=request.user).first()
         if not exam:
             return Response(status=status.HTTP_404_NOT_FOUND)
+        if exam.status in (Exam.Status.FINISHED, Exam.Status.AUTO_SUBMITTED):
+            return Response(ExamSerializer(exam).data)
         total = exam.answers.count()
         correct = exam.answers.filter(is_correct=True).count()
         exam.score_percent = round((correct / total) * 100, 1) if total else 0
-        exam.status = Exam.Status.FINISHED
+        auto = bool(request.data.get("auto") or request.data.get("timed_out"))
+        exam.status = Exam.Status.AUTO_SUBMITTED if auto else Exam.Status.FINISHED
         exam.finished_at = timezone.now()
         exam.save()
         return Response(ExamSerializer(exam).data)
@@ -378,8 +683,21 @@ class MyResultsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        exams = Exam.objects.filter(
-            student=request.user, status__in=["finished", "auto_submitted"]
+        from django.db.models import Count, Q
+
+        exams = (
+            Exam.objects.filter(
+                student=request.user, status__in=["finished", "auto_submitted"]
+            )
+            .select_related("subject")
+            .annotate(
+                _ann_correct=Count("answers", filter=Q(answers__is_correct=True)),
+                _ann_wrong=Count(
+                    "answers",
+                    filter=Q(answers__is_correct=False, answers__skipped=False),
+                ),
+            )
+            .order_by("-finished_at", "-id")
         )
         return Response(ExamSerializer(exams, many=True).data)
 

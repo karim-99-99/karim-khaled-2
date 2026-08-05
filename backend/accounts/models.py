@@ -84,12 +84,31 @@ class User(AbstractUser):
     def is_student(self):
         return self.role == self.Role.STUDENT
 
+    def _cached_active_subs(self):
+        """Use prefetch `to_attr='_active_subs'` or prefetched subscriptions cache."""
+        cached = getattr(self, "_active_subs", None)
+        if cached is not None:
+            return cached
+        cache = getattr(self, "_prefetched_objects_cache", None)
+        if cache is not None and "subscriptions" in cache:
+            today = timezone.now().date()
+            active = [s for s in self.subscriptions.all() if s.end_date >= today]
+            active.sort(key=lambda s: s.end_date, reverse=True)
+            return active
+        return None
+
     @property
     def has_active_subscription(self):
+        cached = self._cached_active_subs()
+        if cached is not None:
+            return bool(cached)
         return self.subscriptions.filter(end_date__gte=timezone.now().date()).exists()
 
     @property
     def active_subscription(self):
+        cached = self._cached_active_subs()
+        if cached is not None:
+            return cached[0] if cached else None
         return (
             self.subscriptions.filter(end_date__gte=timezone.now().date())
             .order_by("-end_date")

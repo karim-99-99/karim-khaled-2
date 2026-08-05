@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from accounts.models import User
 from core.permissions import IsAdmin, IsTeacherOrAdmin
 from .models import GroupStudent, GroupTeacher, StudyGroup
+from .prefetch import group_student_links_queryset, study_group_queryset
 from .serializers import (
     GroupStudentSerializer,
     GroupTeacherSerializer,
@@ -16,11 +17,11 @@ from .serializers import (
 class AdminGroupViewSet(viewsets.ModelViewSet):
     """Admin-only group management."""
 
-    queryset = StudyGroup.objects.all().prefetch_related(
-        "student_links__student", "teacher_links__teacher", "teacher_links__subject"
-    )
     serializer_class = StudyGroupSerializer
     permission_classes = [IsAdmin]
+
+    def get_queryset(self):
+        return study_group_queryset()
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -40,7 +41,7 @@ class AdminGroupViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             return Response(GroupStudentSerializer(link).data, status=201)
-        links = group.student_links.select_related("student")
+        links = group_student_links_queryset(group)
         return Response(GroupStudentSerializer(links, many=True).data)
 
     @action(detail=True, methods=["delete"], url_path="students/(?P<student_id>[^/.]+)")
@@ -59,8 +60,6 @@ class AdminGroupViewSet(viewsets.ModelViewSet):
             link, created = GroupTeacher.objects.get_or_create(
                 group=group, teacher=teacher, subject_id=subject_id
             )
-            # Keep the teacher's default subject in sync so they can author
-            # lessons/questions without picking a group.
             if subject_id and not teacher.taught_subject_id:
                 teacher.taught_subject_id = subject_id
                 teacher.save(update_fields=["taught_subject"])
@@ -83,18 +82,16 @@ class TeacherGroupViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.is_admin_role:
-            return StudyGroup.objects.all().prefetch_related("student_links__student")
+            return study_group_queryset()
         group_ids = GroupTeacher.objects.filter(teacher=user).values_list(
             "group_id", flat=True
         )
-        return StudyGroup.objects.filter(id__in=group_ids).prefetch_related(
-            "student_links__student"
-        )
+        return study_group_queryset(StudyGroup.objects.filter(id__in=group_ids))
 
     @action(detail=True, methods=["get"])
     def students(self, request, pk=None):
         group = self.get_object()
-        links = group.student_links.select_related("student")
+        links = group_student_links_queryset(group)
         status_filter = request.query_params.get("status")
         data = GroupStudentSerializer(links, many=True).data
         if status_filter in ("active", "expired"):

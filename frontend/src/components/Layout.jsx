@@ -10,6 +10,27 @@ import {
   resolveSubjectKey,
 } from "../theme/subjects";
 
+const SUBJECTS_CACHE_KEY = "zad_subjects_cache_v1";
+
+function readCachedSubjects() {
+  try {
+    const raw = sessionStorage.getItem(SUBJECTS_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeCachedSubjects(list) {
+  try {
+    sessionStorage.setItem(SUBJECTS_CACHE_KEY, JSON.stringify(list));
+  } catch {
+    /* ignore quota */
+  }
+}
+
 function readSubjectId(pathname) {
   const patterns = [
     "/courses/:subjectId/*",
@@ -24,66 +45,37 @@ function readSubjectId(pathname) {
   return null;
 }
 
-function readLessonId(pathname) {
-  const m = matchPath({ path: "/lessons/:lessonId", end: true }, pathname);
-  return m?.params?.lessonId || null;
-}
-
-function readExamId(pathname) {
-  const patterns = ["/exam/:examId", "/results/:examId"];
-  for (const pattern of patterns) {
-    const m = matchPath({ path: pattern, end: true }, pathname);
-    if (m?.params?.examId) return m.params.examId;
-  }
-  return null;
-}
-
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [subjects, setSubjects] = useState([]);
-  const [fetchedSubjectName, setFetchedSubjectName] = useState("");
+  const [subjects, setSubjects] = useState(readCachedSubjects);
 
   const initial = user?.full_name?.trim()?.[0] || "؟";
   const subjectId = useMemo(() => readSubjectId(location.pathname), [location.pathname]);
-  const lessonId = useMemo(() => readLessonId(location.pathname), [location.pathname]);
-  const examId = useMemo(() => readExamId(location.pathname), [location.pathname]);
 
+  // Theme only for subject routes — avoid extra lesson/exam API calls on every visit.
   useEffect(() => {
-    client
-      .get("/subjects/")
-      .then((res) => setSubjects(res.data.results || res.data || []))
-      .catch(() => setSubjects([]));
-  }, []);
-
-  useEffect(() => {
-    setFetchedSubjectName("");
-    if (!lessonId && !examId) return undefined;
+    if (!subjectId) return undefined;
+    if (subjects.some((s) => String(s.id) === String(subjectId))) return undefined;
 
     let cancelled = false;
-    const url = lessonId ? `/lessons/${lessonId}/` : `/exams/${examId}/`;
     client
-      .get(url)
+      .get("/subjects/")
       .then((res) => {
         if (cancelled) return;
-        const name = res.data.subject_name || res.data.exam?.subject_name || "";
-        setFetchedSubjectName(name);
+        const list = res.data.results || res.data || [];
+        setSubjects(list);
+        writeCachedSubjects(list);
       })
-      .catch(() => {
-        if (!cancelled) setFetchedSubjectName("");
-      });
-
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [lessonId, examId]);
+  }, [subjectId]); // intentionally not depending on subjects identity
 
   const subjectFromRoute = subjects.find((s) => String(s.id) === String(subjectId));
-  const themeKey =
-    resolveSubjectKey(subjectFromRoute?.name) ||
-    resolveSubjectKey(fetchedSubjectName) ||
-    null;
+  const themeKey = resolveSubjectKey(subjectFromRoute?.name) || null;
   const theme = getSubjectTheme(themeKey);
   const logoSrc = theme?.logo || DEFAULT_LOGO;
   const logoAlt = theme ? `زاد ${theme.label}` : "زاد التحصيلي";
@@ -102,7 +94,15 @@ export default function Layout() {
     <>
       <header className="app-header">
         <NavLink to="/" className="logo" onClick={() => clearSubjectTheme()}>
-          <img className="logo-img" src={logoSrc} alt={logoAlt} />
+          <img
+            className="logo-img"
+            src={logoSrc}
+            alt={logoAlt}
+            width={170}
+            height={48}
+            decoding="async"
+            fetchPriority="high"
+          />
         </NavLink>
         <nav className="nav">
           <NavLink to="/" end>

@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import client from "../api/client";
-import VideoPlayer from "../components/VideoPlayer";
+import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
+import TeacherQuestionForm from "../components/TeacherQuestionForm";
+import VideoPlayer from "../components/VideoPlayer";
 import { useAuth } from "../auth/AuthContext";
+import { canEditSubject } from "../auth/teacherScope";
 
 export default function LessonDetail() {
   const { lessonId } = useParams();
@@ -12,29 +15,102 @@ export default function LessonDetail() {
   const [lesson, setLesson] = useState(null);
   const [tab, setTab] = useState("video");
   const [homework, setHomework] = useState([]);
+  const [teacherQs, setTeacherQs] = useState([]);
   const [hwIndex, setHwIndex] = useState(0);
   const [answers, setAnswers] = useState({});
+  const [showAddQ, setShowAddQ] = useState(false);
+  const [editingQ, setEditingQ] = useState(null);
+  const [editVideo, setEditVideo] = useState("");
+  const [editPdf, setEditPdf] = useState("");
+  const [editTitle, setEditTitle] = useState("");
+  const [msg, setMsg] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const canEdit = canEditSubject(user, lesson?.subject);
   const freeTier = user?.role === "student" && !user?.has_active_subscription;
 
-  useEffect(() => {
-    client.get(`/lessons/${lessonId}/`).then((res) => setLesson(res.data));
-    client
+  function loadLesson() {
+    return client.get(`/lessons/${lessonId}/`).then((res) => {
+      setLesson(res.data);
+      setEditVideo(res.data.bunny_video_id || "");
+      setEditPdf(res.data.pdf_url || "");
+      setEditTitle(res.data.title || "");
+      return res.data;
+    });
+  }
+
+  function loadHomework(asEditor) {
+    if (asEditor) {
+      return client
+        .get(`/homework-questions/?lesson=${lessonId}`)
+        .then((res) => {
+          const rows = res.data.results || res.data || [];
+          setTeacherQs(rows);
+          setHomework(rows);
+        })
+        .catch(() => {
+          setTeacherQs([]);
+          setHomework([]);
+        });
+    }
+    return client
       .get(`/my-homework/?lesson=${lessonId}`)
       .then((res) => setHomework(res.data.results || res.data || []))
       .catch(() => setHomework([]));
+  }
+
+  useEffect(() => {
+    let cancelled = false;
     setHwIndex(0);
     setAnswers({});
-  }, [lessonId]);
+    setShowAddQ(false);
+    setEditingQ(null);
+    setMsg("");
+    loadLesson()
+      .then((data) => {
+        if (cancelled) return;
+        const editor = canEditSubject(user, data.subject);
+        return loadHomework(editor);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [lessonId, user]);
+
+  async function saveLessonPatch(patch, okMsg) {
+    setBusy(true);
+    setMsg("");
+    try {
+      const { data } = await client.patch(`/lessons/${lessonId}/`, patch);
+      setLesson(data);
+      setMsg(okMsg || "تم الحفظ ✓");
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر الحفظ");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteQuestion(id) {
+    if (!confirm("حذف هذا السؤال؟")) return;
+    try {
+      await client.delete(`/homework-questions/${id}/`);
+      setMsg("تم حذف السؤال");
+      loadHomework(canEdit);
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر الحذف");
+    }
+  }
 
   if (!lesson) return <div className="spinner">جاري التحميل…</div>;
 
-  const lessonsUrl = lesson.subject
-    ? `/courses/${lesson.subject}/lessons`
-    : "/courses";
+  const lessonsUrl = lesson.subject ? `/courses/${lesson.subject}/lessons` : "/courses";
 
-  if (lesson.is_locked) {
+  if (lesson.is_locked && !canEdit) {
     return (
       <div>
+        <BackToCourses subjectId={lesson.subject} />
         <button type="button" className="btn btn-ghost btn-sm" style={{ marginBottom: 12 }} onClick={() => navigate(lessonsUrl)}>
           ← العودة للدروس
         </button>
@@ -59,6 +135,7 @@ export default function LessonDetail() {
 
   return (
     <div>
+      <BackToCourses subjectId={lesson.subject} />
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
         <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate(lessonsUrl)}>
           ← العودة للدروس
@@ -71,7 +148,35 @@ export default function LessonDetail() {
       <div className="breadcrumb">
         تأسيس &gt; <span>{lesson.title}</span>
       </div>
-      <h1 style={{ fontSize: 28, marginBottom: 16 }}>{lesson.title}</h1>
+
+      {canEdit ? (
+        <div className="card" style={{ padding: 16, marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            className="form-control"
+            style={{ flex: 1, minWidth: 200, fontSize: 20, fontWeight: 700 }}
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={busy}
+            onClick={() => saveLessonPatch({ title: editTitle.trim() }, "تم تعديل العنوان ✓")}
+          >
+            حفظ الاسم
+          </button>
+        </div>
+      ) : (
+        <h1 style={{ fontSize: 28, marginBottom: 16 }}>{lesson.title}</h1>
+      )}
+
+      {canEdit && (
+        <div className="banner" style={{ marginBottom: 16 }}>
+          وضع المدرس: عدّل الفيديو وملف PDF وأضف أسئلة الواجب من التبويبات أدناه.
+        </div>
+      )}
+
+      {msg && <div className="banner" style={{ marginBottom: 12 }}>{msg}</div>}
 
       {freeTier && (
         <div className="banner" style={{ marginBottom: 16 }}>
@@ -92,13 +197,41 @@ export default function LessonDetail() {
       </div>
 
       {tab === "video" && (
-        lesson.bunny_video_id ? (
-          <VideoPlayer bunnyId={lesson.bunny_video_id} />
-        ) : (
-          <div className="card" style={{ padding: 24 }}>
-            <p style={{ color: "var(--text-muted)" }}>لا يوجد فيديو لهذا الدرس بعد.</p>
-          </div>
-        )
+        <div>
+          {lesson.bunny_video_id ? (
+            <VideoPlayer bunnyId={lesson.bunny_video_id} />
+          ) : (
+            <div className="card" style={{ padding: 24 }}>
+              <p style={{ color: "var(--text-muted)" }}>لا يوجد فيديو لهذا الدرس بعد.</p>
+            </div>
+          )}
+          {canEdit && (
+            <div className="card" style={{ padding: 16, marginTop: 12 }}>
+              <label style={{ fontWeight: 600, display: "block", marginBottom: 8 }}>
+                Bunny Video ID
+              </label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input
+                  className="form-control"
+                  style={{ flex: 1, minWidth: 220 }}
+                  value={editVideo}
+                  onChange={(e) => setEditVideo(e.target.value)}
+                  placeholder="الصق GUID الفيديو من Bunny Stream"
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={busy}
+                  onClick={() =>
+                    saveLessonPatch({ bunny_video_id: editVideo.trim() }, "تم حفظ الفيديو ✓")
+                  }
+                >
+                  حفظ الفيديو
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {tab === "pdf" && (
@@ -108,24 +241,121 @@ export default function LessonDetail() {
               فتح ملف PDF
             </a>
           ) : (
-            <p style={{ color: "var(--text-muted)" }}>لا يوجد ملف PDF لهذا الدرس بعد.</p>
+            <p style={{ color: "var(--text-muted)", marginBottom: canEdit ? 12 : 0 }}>
+              لا يوجد ملف PDF لهذا الدرس بعد.
+            </p>
+          )}
+          {canEdit && (
+            <div style={{ marginTop: 16 }}>
+              <label style={{ fontWeight: 600, display: "block", marginBottom: 8 }}>رابط PDF</label>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <input
+                  className="form-control"
+                  style={{ flex: 1, minWidth: 220 }}
+                  value={editPdf}
+                  onChange={(e) => setEditPdf(e.target.value)}
+                  placeholder="https://..."
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={busy}
+                  onClick={() => saveLessonPatch({ pdf_url: editPdf.trim() }, "تم حفظ PDF ✓")}
+                >
+                  حفظ PDF
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}
 
       {tab === "homework" && (
         <div>
-          {freeTier && homework.length > 0 && (
+          {canEdit && (
+            <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => {
+                  setEditingQ(null);
+                  setShowAddQ((v) => !v);
+                }}
+              >
+                {showAddQ && !editingQ ? "إخفاء النموذج" : "+ إضافة سؤال واجب"}
+              </button>
+              <span style={{ color: "var(--text-muted)", alignSelf: "center", fontSize: 14 }}>
+                أسئلتك في هذا الدرس: {teacherQs.length}
+              </span>
+            </div>
+          )}
+
+          {canEdit && (showAddQ || editingQ) && (
+            <TeacherQuestionForm
+              subjectId={lesson.subject}
+              lessonId={lesson.id}
+              kind="homework"
+              initialQuestion={editingQ}
+              onCancel={() => {
+                setEditingQ(null);
+                setShowAddQ(false);
+              }}
+              onSaved={() => {
+                loadHomework(canEdit);
+                setShowAddQ(false);
+                setEditingQ(null);
+                setMsg(editingQ ? "تم تعديل السؤال ✓" : "تم إضافة السؤال ✓");
+              }}
+            />
+          )}
+
+          {canEdit && teacherQs.length > 0 && (
+            <div style={{ marginTop: 16, marginBottom: 20 }}>
+              <div className="section-title">أسئلة الواجب (تحرير)</div>
+              {teacherQs.map((item, i) => (
+                <div key={item.id} className="card" style={{ padding: 14, marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                    <div style={{ flex: 1 }}>
+                      <strong>س{i + 1}:</strong> <MathText>{item.text}</MathText>
+                      <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
+                        الإجابة الصحيحة: {item.correct_answer}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        onClick={() => {
+                          setShowAddQ(false);
+                          setEditingQ(item);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                      >
+                        تعديل
+                      </button>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => deleteQuestion(item.id)}>
+                        حذف
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {freeTier && homework.length > 0 && !canEdit && (
             <p style={{ color: "var(--text-muted)", marginBottom: 12, fontSize: 14 }}>
               تظهر لك أول ١٠ أسئلة فقط في المعاينة المجانية.
             </p>
           )}
 
           {homework.length === 0 && (
-            <p style={{ color: "var(--text-muted)" }}>لا يوجد واجب متاح لمجموعتك.</p>
+            <p style={{ color: "var(--text-muted)" }}>
+              {canEdit ? "لا توجد أسئلة واجب بعد — أضف سؤالاً أعلاه." : "لا يوجد واجب متاح لمجموعتك."}
+            </p>
           )}
 
-          {homework.length > 0 && q && (
+          {homework.length > 0 && q && !canEdit && (
             <>
               <div
                 className="card"

@@ -29,6 +29,7 @@ from assessments.views import (
     StartSimulatorView,
     StartTeacherTestView,
     StudentHomeworkView,
+    TeacherTestViewSet,
 )
 from billing.views import (
     AdminPaymentViewSet,
@@ -39,6 +40,7 @@ from billing.views import (
 )
 from catalog.views import LessonViewSet, SubjectViewSet
 from core.views import (
+    health,
     home_free_content,
     next_session,
     teacher_assignments,
@@ -71,6 +73,7 @@ api_patterns = [
     path("auth/telegram/callback/", telegram_complete),
     path("auth/telegram/complete/", telegram_complete),
     # Public / video
+    path("health/", health),
     path("home/free-content/", home_free_content),
     path("home/next-session/", next_session),
     path("videos/<str:bunny_id>/token/", video_token),
@@ -87,6 +90,15 @@ api_patterns = [
     # Exams
     path("exams/simulator/", StartSimulatorView.as_view()),
     path("exams/teacher/", StartTeacherTestView.as_view()),
+    path(
+        "teacher-tests/question-bank/",
+        TeacherTestViewSet.as_view({"get": "question_bank"}),
+    ),
+    path("teacher-tests/", TeacherTestViewSet.as_view({"get": "list", "post": "create"})),
+    path(
+        "teacher-tests/<int:pk>/",
+        TeacherTestViewSet.as_view({"delete": "destroy"}),
+    ),
     path("exams/<int:exam_id>/", ExamDetailView.as_view()),
     path("exams/<int:exam_id>/answer/", AnswerView.as_view()),
     path("exams/<int:exam_id>/finish/", FinishView.as_view()),

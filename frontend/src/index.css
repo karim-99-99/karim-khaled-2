@@ -34,14 +34,20 @@
 
 body {
   font-family: var(--font);
-  background: var(--bg);
+  background:
+    radial-gradient(ellipse at top right, color-mix(in srgb, var(--primary) 8%, transparent), transparent 42%),
+    radial-gradient(ellipse at bottom left, color-mix(in srgb, var(--accent) 12%, transparent), transparent 40%),
+    var(--bg);
+  background-attachment: fixed;
   color: var(--text);
   line-height: 1.5;
+  min-height: 100vh;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+  transition: color 0.2s ease;
 }
 
 button {
@@ -52,7 +58,8 @@ button {
 /* Layout */
 .app-header {
   height: 64px;
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  backdrop-filter: blur(10px);
   border-bottom: 3px solid var(--accent);
   display: flex;
   align-items: center;
@@ -61,6 +68,7 @@ button {
   position: sticky;
   top: 0;
   z-index: 20;
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--primary) 8%, transparent);
 }
 .logo {
   display: flex;
@@ -69,6 +77,10 @@ button {
   font-weight: 700;
   font-size: 18px;
   color: var(--primary);
+  transition: transform 0.2s ease;
+}
+.logo:hover {
+  transform: scale(1.04);
 }
 .logo-img {
   height: 48px;
@@ -76,6 +88,7 @@ button {
   max-width: 170px;
   object-fit: contain;
   display: block;
+  background: transparent;
 }
 .logo-icon {
   width: 36px;
@@ -99,10 +112,25 @@ button {
   font-size: 15px;
   font-weight: 600;
   border-radius: var(--radius-sm);
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+.nav a:hover {
+  color: var(--primary);
+  background: var(--primary-light);
+  transform: translateY(-1px);
+}
+.nav a:active {
+  transform: translateY(1px) scale(0.97);
+  background: color-mix(in srgb, var(--primary) 22%, white);
 }
 .nav a.active {
   color: var(--text);
   background: var(--accent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 45%, transparent);
+}
+.nav a.active:hover {
+  background: var(--accent-dark);
+  color: #fff;
 }
 .header-actions {
   display: flex;
@@ -119,11 +147,23 @@ button {
   align-items: center;
   justify-content: center;
   font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.avatar:hover {
+  transform: scale(1.08) rotate(-3deg);
 }
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 24px;
+}
+
+.page-title {
+  font-size: 32px;
+  margin-bottom: 16px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 /* Components */
@@ -137,25 +177,73 @@ button {
   font-size: 15px;
   font-weight: 600;
   border: none;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.15s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease,
+    filter 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.97);
+  filter: brightness(0.95);
 }
 .btn-primary {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: var(--text);
-  box-shadow: 0 6px 16px rgba(255, 196, 0, 0.35);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.btn-primary:active:not(:disabled) {
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 .btn-secondary {
   background: #fff;
   color: var(--primary);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--primary) 25%, var(--border));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 8%, transparent);
 }
-.btn-blue {
+.btn-secondary:hover:not(:disabled) {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+.btn-secondary:active:not(:disabled) {
   background: var(--primary);
   color: #fff;
+}
+.btn-blue {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.btn-blue:hover:not(:disabled) {
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--primary) 45%, transparent);
 }
 .btn-ghost {
   background: transparent;
   color: var(--text-muted);
   border: 1px solid var(--border);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: color-mix(in srgb, var(--primary) 30%, var(--border));
+}
+.btn-ghost:active:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  border-color: var(--accent);
 }
 .btn-block {
   width: 100%;
@@ -167,6 +255,8 @@ button {
 .btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none !important;
+  filter: none !important;
 }
 
 .card {
@@ -174,6 +264,13 @@ button {
   border-radius: var(--radius-md);
   box-shadow: var(--shadow);
   border: 1px solid var(--border);
+  transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+}
+a.card:hover,
+.card.interactive:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--primary) 16%, transparent);
+  border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
 }
 .chip {
   display: inline-flex;
@@ -185,16 +282,35 @@ button {
   background: #fff;
   color: var(--text);
   cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--primary) 14%, transparent);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.chip:active {
+  transform: scale(0.96);
 }
 .chip.active {
   background: var(--accent);
   color: var(--text);
   border-color: var(--accent-dark);
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.chip.active:hover {
+  background: var(--accent-dark);
+  color: #fff;
 }
 .chip.math { background: #eef5e4; color: #4a7422; border-color: #5b8c2a; }
 .chip.physics { background: #ede9fe; color: #6d28d9; border-color: #7c3aed; }
 .chip.chem { background: #fce8ec; color: #9b1b30; border-color: #c41e3a; }
 .chip.bio { background: #fff8e1; color: #9a7400; border-color: #e6a800; }
+.chip.math:hover { background: #5b8c2a; color: #fff; }
+.chip.physics:hover { background: #7c3aed; color: #fff; }
+.chip.chem:hover { background: #c41e3a; color: #fff; }
+.chip.bio:hover { background: #e6a800; color: #3d2e00; }
 .section-title {
   font-size: 20px;
   font-weight: 700;
@@ -260,9 +376,38 @@ button {
   margin: 6px 0;
 }
 .hero .btn {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
   color: var(--text);
   font-weight: 700;
+}
+.hero .btn:hover {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+}
+.answer-option {
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+.answer-option:hover {
+  transform: translateX(-3px);
+  border-color: var(--primary) !important;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--primary) 12%, transparent);
+}
+.answer-option.selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 35%, transparent);
+}
+.banner {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  color: #7a5c00;
+  padding: 14px 18px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 20px;
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.table tr {
+  transition: background 0.15s ease;
+}
+.table tbody tr:hover {
+  background: var(--primary-light);
 }
 
 .subject-tile {
@@ -272,11 +417,89 @@ button {
   font-weight: 700;
   min-height: 88px;
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
+  transition: transform 0.2s ease, box-shadow 0.25s ease, filter 0.2s ease;
 }
-.subject-tile.math { background: linear-gradient(145deg, #4a7422, #5b8c2a); }
-.subject-tile.physics { background: linear-gradient(145deg, #6d28d9, #7c3aed); }
-.subject-tile.chem { background: linear-gradient(145deg, #9b1b30, #c41e3a); }
-.subject-tile.bio { background: linear-gradient(145deg, #c88a00, #e6a800); color: #3d2e00; }
+.subject-tile:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.18);
+  filter: brightness(1.08);
+}
+.subject-tile:active {
+  transform: translateY(1px) scale(0.98);
+}
+.subject-tile.math { background: linear-gradient(145deg, #4a7422, #5b8c2a 55%, #8bc34a); }
+.subject-tile.physics { background: linear-gradient(145deg, #6d28d9, #7c3aed 55%, #a78bfa); }
+.subject-tile.chem { background: linear-gradient(145deg, #9b1b30, #c41e3a 55%, #f87171); }
+.subject-tile.bio { background: linear-gradient(145deg, #c88a00, #e6a800 55%, #fde047); color: #3d2e00; }
+
+/* Subject hub path cards */
+.path-card {
+  display: block;
+  padding: 28px 24px;
+  text-align: center;
+  border-top: 6px solid var(--primary);
+  position: relative;
+  overflow: hidden;
+}
+.path-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at top, color-mix(in srgb, var(--primary) 12%, transparent), transparent 55%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.path-card:hover::before {
+  opacity: 1;
+}
+.path-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 36px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+.path-card:active {
+  transform: translateY(-1px) scale(0.98);
+}
+.path-card.path-accent {
+  border-top-color: var(--accent);
+}
+.path-card.path-accent h3 { color: var(--accent-dark); }
+.path-card.path-dark {
+  border-top-color: var(--primary-dark);
+}
+.path-card.path-dark h3 { color: var(--primary-dark); }
+.path-card.path-primary h3 { color: var(--primary); }
+.path-card h3 {
+  font-size: 22px;
+  margin: 10px 0 8px;
+}
+.path-card p {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin: 0;
+}
+.path-icon {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 22px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 30%, transparent);
+  transition: transform 0.25s ease;
+}
+.path-card.path-accent .path-icon {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: var(--text);
+}
+.path-card:hover .path-icon {
+  transform: scale(1.1) rotate(-4deg);
+}
 
 /* Subject themes: same pages — only CSS variables + logo swap (matches Canva) */
 html[data-subject="math"] {
@@ -525,13 +748,14 @@ html[data-subject] {
   border-bottom: 1px solid var(--border);
   font-size: 14px;
 }
-.banner {
-  background: var(--accent-soft);
-  border: 1px solid var(--accent);
-  color: #7a5c00;
-  padding: 14px 18px;
-  border-radius: var(--radius-sm);
-  margin-bottom: 20px;
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
 }
 
 @media (max-width: 768px) {

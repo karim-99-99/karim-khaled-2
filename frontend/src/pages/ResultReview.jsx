@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import client from "../api/client";
+import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
 import VideoPlayer from "../components/VideoPlayer";
 
@@ -21,7 +22,8 @@ export default function ResultReview() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+      <BackToCourses subjectId={exam.subject} />
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 12, flexWrap: "wrap" }}>
         <div>
           <div className="breadcrumb">نتائج &gt; <span>{exam.title}</span></div>
           <h1 style={{ fontSize: 24, marginTop: 8 }}>

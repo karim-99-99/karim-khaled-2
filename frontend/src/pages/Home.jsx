@@ -10,13 +10,26 @@ export default function Home() {
   const [next, setNext] = useState(null);
 
   useEffect(() => {
-    client.get("/home/free-content/").then((res) => setContent(res.data));
-    if (user) {
-      client
-        .get("/home/next-session/")
-        .then((res) => setNext(res.data))
-        .catch(() => setNext(null));
-    }
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const free = await client.get("/home/free-content/");
+        if (!cancelled) setContent(free.data);
+      } catch {
+        if (!cancelled) setContent({ subjects: [], free_lessons: [] });
+      }
+      if (!user || cancelled) return;
+      try {
+        const nextRes = await client.get("/home/next-session/");
+        if (!cancelled) setNext(nextRes.data);
+      } catch {
+        if (!cancelled) setNext(null);
+      }
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, [user]);
 
   const session = next?.session;
@@ -88,7 +101,14 @@ export default function Home() {
       </div>
 
       <div className="section-title">الدروس المتاحة مجاناً</div>
-      {!content && <div className="spinner">جاري التحميل…</div>}
+      {!content && (
+        <div className="spinner">
+          جاري التحميل…
+          <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 8, fontWeight: 400 }}>
+            إذا كان السيرفر نائماً قد يستغرق حتى دقيقة في أول مرة
+          </div>
+        </div>
+      )}
       <div className="grid grid-4">
         {content?.free_lessons?.map((l, i) => {
           const thumb = ["", "gold", "teal", "rose"][i % 4];

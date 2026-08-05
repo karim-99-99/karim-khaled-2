@@ -31,7 +31,12 @@ class MeView(generics.RetrieveUpdateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self):
-        return self.request.user
+        return (
+            User.objects.select_related("taught_subject")
+            .filter(pk=self.request.user.pk)
+            .first()
+            or self.request.user
+        )
 
 
 @api_view(["POST"])
@@ -51,8 +56,14 @@ def change_password(request):
 @permission_classes([IsAdmin])
 def available_students(request):
     """Students who are NOT yet a member of ANY group (for the add-student picker)."""
+    from groups.prefetch import active_subs_prefetch
+
     in_group_ids = GroupStudent.objects.values_list("student_id", flat=True)
-    qs = User.objects.filter(role=User.Role.STUDENT).exclude(id__in=in_group_ids)
+    qs = (
+        User.objects.filter(role=User.Role.STUDENT)
+        .exclude(id__in=in_group_ids)
+        .prefetch_related(active_subs_prefetch())
+    )
     search = request.query_params.get("search")
     if search:
         qs = qs.filter(full_name__icontains=search) | qs.filter(phone__icontains=search)
@@ -63,7 +74,13 @@ def available_students(request):
 @permission_classes([IsAdmin])
 def teacher_list(request):
     """All teachers (a teacher can be assigned to several groups/subjects)."""
-    qs = User.objects.filter(role=User.Role.TEACHER).order_by("full_name")
+    from groups.prefetch import active_subs_prefetch
+
+    qs = (
+        User.objects.filter(role=User.Role.TEACHER)
+        .prefetch_related(active_subs_prefetch())
+        .order_by("full_name")
+    )
     return Response(AdminUserSerializer(qs, many=True).data)
 
 
@@ -71,14 +88,33 @@ def teacher_list(request):
 @permission_classes([IsAdmin])
 def admin_accounts(request):
     """
-    Directory of all accounts, split into students and teachers, with full
-    per-person details for the admin.
+    Directory of all accounts. Prefetched in bulk (no per-user N+1 queries).
     """
+    from django.db.models import Prefetch
+    from django.utils import timezone
+
+    from billing.models import Subscription
+
+    today = timezone.now().date()
+    active_subs = Prefetch(
+        "subscriptions",
+        queryset=Subscription.objects.filter(end_date__gte=today).order_by("-end_date"),
+        to_attr="_active_subs",
+    )
+
     students = []
-    for u in User.objects.filter(role=User.Role.STUDENT).order_by("-created_at"):
-        groups = list(
-            GroupStudent.objects.filter(student=u).values_list("group__name", flat=True)
+    for u in (
+        User.objects.filter(role=User.Role.STUDENT)
+        .prefetch_related(
+            Prefetch(
+                "group_memberships",
+                queryset=GroupStudent.objects.select_related("group"),
+            ),
+            active_subs,
         )
+        .order_by("-created_at")
+    ):
+        groups = [m.group.name for m in u.group_memberships.all()]
         students.append(
             {
                 "id": u.id,
@@ -90,16 +126,26 @@ def admin_accounts(request):
                 "is_active": u.is_active,
                 "has_usable_password": u.has_usable_password(),
                 "created_at": u.created_at,
-                "subscription": _subscription_info(u),
+                "subscription": _subscription_payload(u),
                 "groups": groups,
                 "groups_count": len(groups),
             }
         )
 
     teachers = []
-    for u in User.objects.filter(role=User.Role.TEACHER).order_by("-created_at"):
-        links = GroupTeacher.objects.filter(teacher=u).select_related("group", "subject")
-        group_names = sorted({l.group.name for l in links})
+    for u in (
+        User.objects.filter(role=User.Role.TEACHER)
+        .select_related("taught_subject")
+        .prefetch_related(
+            Prefetch(
+                "teaching_assignments",
+                queryset=GroupTeacher.objects.select_related("group", "subject"),
+            )
+        )
+        .order_by("-created_at")
+    ):
+        links = list(u.teaching_assignments.all())
+        group_names = sorted({link.group.name for link in links})
         subject_name = None
         if u.taught_subject_id:
             subject_name = u.taught_subject.name
@@ -129,6 +175,31 @@ def admin_accounts(request):
             "totals": {"students": len(students), "teachers": len(teachers)},
         }
     )
+
+
+def _subscription_payload(user):
+    """Use prefetched `_active_subs` when present to avoid extra DB hits."""
+    cached = getattr(user, "_active_subs", None)
+    if cached is not None:
+        if not cached:
+            return {
+                "subscription_status": "expired",
+                "subscription_plan": None,
+                "subscription_plan_label": None,
+                "subscription_start": None,
+                "subscription_end": None,
+                "subscription_days_remaining": 0,
+            }
+        sub = cached[0]
+        return {
+            "subscription_status": "active",
+            "subscription_plan": sub.plan,
+            "subscription_plan_label": sub.get_plan_display(),
+            "subscription_start": sub.start_date,
+            "subscription_end": sub.end_date,
+            "subscription_days_remaining": sub.days_remaining,
+        }
+    return _subscription_info(user)
 
 
 @api_view(["PATCH", "POST"])

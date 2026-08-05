@@ -1,197 +1,223 @@
 import { useEffect, useState } from "react";
-
-import { Link, useNavigate, useParams } from "react-router-dom";
-
+import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-
+import { canEditSubject } from "../auth/teacherScope";
 import client from "../api/client";
+import BackToCourses from "../components/BackToCourses";
 
-
-
-const LEVELS = [
-
-  { id: "easy", label: "سهل" },
-
-  { id: "medium", label: "متوسط" },
-
-  { id: "hard", label: "صعب" },
-
-];
-
-
-
+/**
+ * تجميعات — قائمة دروس (مثل التأسيس في الشكل).
+ * الأسئلة داخل كل درس تظهر لكل الطلاب، وليس لمجموعات المدرس فقط.
+ */
 export default function Collections() {
-
   const { subjectId } = useParams();
-
-  const navigate = useNavigate();
-
   const { user } = useAuth();
-
   const [lessons, setLessons] = useState([]);
+  const [msg, setMsg] = useState("");
+  const [newTitle, setNewTitle] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+  const [renameId, setRenameId] = useState(null);
+  const [renameTitle, setRenameTitle] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const [busy, setBusy] = useState(null);
-
-  const [error, setError] = useState("");
-
+  const canEdit = canEditSubject(user, subjectId);
   const freeTier = user?.role === "student" && !user?.has_active_subscription;
 
-
-
-  useEffect(() => {
-
-    client.get(`/subjects/${subjectId}/lessons/`).then((res) => setLessons(res.data));
-
-  }, [subjectId]);
-
-
-
-  async function start(lessonId, level) {
-
-    setError("");
-
-    setBusy(`${lessonId}-${level}`);
-
-    try {
-
-      const { data } = await client.post("/exams/simulator/", {
-
-        subject: Number(subjectId),
-
-        lessons: [lessonId],
-
-        count: 10,
-
-        level,
-
-      });
-
-      navigate(`/exam/${data.exam.id}`);
-
-    } catch (e) {
-
-      setError(e.response?.data?.detail || "لا توجد أسئلة بهذا المستوى في هذا الدرس");
-
-      setBusy(null);
-
-    }
-
+  function load() {
+    client.get(`/subjects/${subjectId}/lessons/`).then((res) => {
+      setLessons(res.data.results || res.data || []);
+    });
   }
 
+  useEffect(load, [subjectId]);
 
+  async function createLesson() {
+    if (!newTitle.trim()) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await client.post("/lessons/", {
+        subject: Number(subjectId),
+        title: newTitle.trim(),
+        order_number: lessons.length + 1,
+      });
+      setNewTitle("");
+      setShowAdd(false);
+      setMsg("تم إنشاء الدرس ✓ — ادخل إليه لإضافة الأسئلة والفيديو والصور");
+      load();
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر إنشاء الدرس");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveRename(id) {
+    if (!renameTitle.trim()) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await client.patch(`/lessons/${id}/`, { title: renameTitle.trim() });
+      setRenameId(null);
+      setMsg("تم تعديل اسم الدرس ✓");
+      load();
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر التعديل");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
-
     <div>
-
+      <BackToCourses subjectId={subjectId} />
       <div className="breadcrumb">دورات &gt; <span>تجميع</span></div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+          marginBottom: 12,
+        }}
+      >
+        <h1 style={{ fontSize: 28, margin: 0 }}>التجميعات — الدروس</h1>
+        {canEdit && (
+          <button type="button" className="btn btn-primary" onClick={() => setShowAdd((v) => !v)}>
+            {showAdd ? "إلغاء" : "+ درس جديد"}
+          </button>
+        )}
+      </div>
 
-      <h1 style={{ fontSize: 28, marginBottom: 8 }}>التجميعات — اختر الدرس والمستوى</h1>
-
-      <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>
-
-        اختر الدرس ثم مستوى الأسئلة: سهل / متوسط / صعب
-
-      </p>
+      <div className="banner" style={{ marginBottom: 16 }}>
+        {canEdit
+          ? "أسئلة التجميع تظهر لكل طلاب المادة (ليس لمجموعتك فقط). أضف اسماً للدرس ثم ادخل لإضافة السؤال والفيديو والصور والمستوى."
+          : "اختر درساً ثم مستوى الأسئلة. أسئلة التجميع من كل المدرسين متاحة لجميع الطلاب."}
+      </div>
 
       {freeTier && (
-
         <div className="banner" style={{ marginBottom: 16 }}>
-
-          المعاينة المجانية: اختبار أول درس فقط بحد أقصى ١٠ أسئلة —
-
-          <Link to="/subscription"> اشترك الآن</Link> أو تواصل مع الإدارة للتفعيل.
-
+          المعاينة المجانية: أول درس فقط بحد أقصى ١٠ أسئلة —
+          <Link to="/subscription"> اشترك الآن</Link>
         </div>
-
       )}
 
+      {msg && (
+        <div className="banner" style={{ marginBottom: 12 }}>
+          {msg}
+        </div>
+      )}
 
-
-      {error && <div className="banner">{error}</div>}
-
-
+      {canEdit && showAdd && (
+        <div className="card" style={{ padding: 16, marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input
+            className="form-control"
+            style={{ flex: 1, minWidth: 200 }}
+            placeholder="اسم الدرس الجديد"
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+          />
+          <button type="button" className="btn btn-primary" disabled={busy} onClick={createLesson}>
+            حفظ الدرس
+          </button>
+        </div>
+      )}
 
       {lessons.map((l) => {
-
-        const locked = l.is_locked;
+        const locked = l.is_locked && !canEdit;
+        const renaming = renameId === l.id;
 
         return (
-
           <div
-
             key={l.id}
-
             className="card"
-
             style={{
-
-              padding: 16,
-
-              marginBottom: 12,
-
               display: "flex",
-
               alignItems: "center",
-
-              gap: 16,
-
+              gap: 12,
+              padding: 16,
+              marginBottom: 12,
               flexWrap: "wrap",
-
               opacity: locked ? 0.65 : 1,
-
             }}
-
           >
+            <span style={{ fontWeight: 700, width: 32 }}>{l.order_number}</span>
 
-            <span style={{ fontWeight: 700, width: 28 }}>{l.order_number}</span>
-
-            <span style={{ flex: 1, fontWeight: 600, minWidth: 160 }}>{l.title}</span>
-
-            {locked ? (
-
-              <span className="badge badge-expired">يتطلب تفعيل</span>
-
+            {renaming ? (
+              <>
+                <input
+                  className="form-control"
+                  style={{ flex: 1, minWidth: 180 }}
+                  value={renameTitle}
+                  onChange={(e) => setRenameTitle(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm"
+                  disabled={busy}
+                  onClick={() => saveRename(l.id)}
+                >
+                  حفظ
+                </button>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRenameId(null)}>
+                  إلغاء
+                </button>
+              </>
             ) : (
-
-              <div style={{ display: "flex", gap: 8 }}>
-
-                {LEVELS.map((lv) => (
-
-                  <button
-
-                    key={lv.id}
-
-                    className="btn btn-secondary btn-sm"
-
-                    disabled={busy === `${l.id}-${lv.id}`}
-
-                    onClick={() => start(l.id, lv.id)}
-
+              <>
+                {locked ? (
+                  <span style={{ flex: 1, fontWeight: 600 }}>{l.title}</span>
+                ) : (
+                  <Link
+                    to={`/courses/${subjectId}/collections/${l.id}`}
+                    style={{ flex: 1, fontWeight: 600 }}
                   >
+                    {l.title}
+                  </Link>
+                )}
 
-                    {busy === `${l.id}-${lv.id}` ? "…" : lv.label}
+                {l.is_free_preview || l.order_number === 1 ? (
+                  <span className="badge badge-active">مجاني</span>
+                ) : locked ? (
+                  <span className="badge badge-expired">يتطلب تفعيل</span>
+                ) : null}
 
-                  </button>
+                <span style={{ color: "var(--text-muted)", fontSize: 13 }}>
+                  {locked ? "مقفل" : "أسئلة · فيديو · صور · سهل/متوسط/صعب"}
+                </span>
 
-                ))}
-
-              </div>
-
+                {canEdit && (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => {
+                        setRenameId(l.id);
+                        setRenameTitle(l.title);
+                      }}
+                    >
+                      تعديل الاسم
+                    </button>
+                    <Link
+                      to={`/courses/${subjectId}/collections/${l.id}`}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      فتح وتحرير
+                    </Link>
+                  </>
+                )}
+              </>
             )}
-
           </div>
-
         );
-
       })}
 
-      {lessons.length === 0 && <p style={{ color: "var(--text-muted)" }}>لا توجد دروس.</p>}
-
+      {lessons.length === 0 && (
+        <p style={{ color: "var(--text-muted)" }}>
+          لا توجد دروس.{canEdit ? " اضغط «درس جديد» للبدء." : ""}
+        </p>
+      )}
     </div>
-
   );
-
 }
-
-

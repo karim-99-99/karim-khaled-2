@@ -5,6 +5,7 @@ from .models import (
     Exam,
     ExamAnswer,
     HomeworkQuestion,
+    TeacherTest,
 )
 
 
@@ -150,18 +151,22 @@ class ExamSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source="subject.name", read_only=True)
     correct_count = serializers.SerializerMethodField()
     wrong_count = serializers.SerializerMethodField()
+    ends_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
         model = Exam
         fields = [
             "id",
             "title",
+            "subject",
             "subject_name",
             "exam_type",
             "difficulty_preset",
             "review_mode",
             "question_count",
             "is_free_attempt",
+            "time_limit_minutes",
+            "ends_at",
             "status",
             "score_percent",
             "correct_count",
@@ -171,7 +176,68 @@ class ExamSerializer(serializers.ModelSerializer):
         ]
 
     def get_correct_count(self, obj):
+        if hasattr(obj, "_ann_correct"):
+            return obj._ann_correct
         return obj.answers.filter(is_correct=True).count()
 
     def get_wrong_count(self, obj):
+        if hasattr(obj, "_ann_wrong"):
+            return obj._ann_wrong
         return obj.answers.filter(is_correct=False, skipped=False).count()
+
+
+class TeacherTestSerializer(serializers.ModelSerializer):
+    question_count = serializers.SerializerMethodField()
+    lesson_ids = serializers.SerializerMethodField()
+    lesson_titles = serializers.SerializerMethodField()
+    question_ids = serializers.SerializerMethodField()
+    created_by_name = serializers.CharField(
+        source="created_by.full_name", read_only=True, default=""
+    )
+
+    class Meta:
+        model = TeacherTest
+        fields = [
+            "id",
+            "name",
+            "subject",
+            "review_mode",
+            "is_published",
+            "question_count",
+            "lesson_ids",
+            "lesson_titles",
+            "question_ids",
+            "created_by",
+            "created_by_name",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_by", "created_at"]
+
+    def get_question_count(self, obj):
+        return obj.items.count()
+
+    def get_lesson_ids(self, obj):
+        return list(obj.lesson_links.values_list("lesson_id", flat=True))
+
+    def get_lesson_titles(self, obj):
+        return list(
+            obj.lesson_links.select_related("lesson").values_list("lesson__title", flat=True)
+        )
+
+    def get_question_ids(self, obj):
+        return list(obj.items.order_by("order").values_list("question_id", flat=True))
+
+
+class TeacherTestWriteSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=200)
+    subject = serializers.IntegerField()
+    lesson_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False
+    )
+    question_ids = serializers.ListField(
+        child=serializers.IntegerField(), allow_empty=False
+    )
+    review_mode = serializers.ChoiceField(
+        choices=["immediate", "final"], default="final"
+    )
+    is_published = serializers.BooleanField(default=True)

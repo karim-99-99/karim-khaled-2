@@ -1,12 +1,11 @@
 from rest_framework import serializers
 
 from accounts.models import User
-from catalog.models import Subject
 from .models import GroupStudent, GroupTeacher, StudyGroup
 
 
 def _subscription_info(user):
-    """Shared subscription summary used by both students and teachers columns."""
+    """Shared subscription summary — uses prefetched `_active_subs` when present."""
     sub = user.active_subscription
     if not sub:
         return {
@@ -35,7 +34,6 @@ class GroupStudentSerializer(serializers.ModelSerializer):
     role = serializers.CharField(default="student", read_only=True)
     account_active = serializers.BooleanField(source="student.is_active", read_only=True)
     subscription = serializers.SerializerMethodField()
-    # kept for backward compatibility with existing filters
     subscription_status = serializers.SerializerMethodField()
 
     class Meta:
@@ -54,10 +52,16 @@ class GroupStudentSerializer(serializers.ModelSerializer):
         ]
 
     def get_subscription(self, obj):
-        return _subscription_info(obj.student)
+        info = _subscription_info(obj.student)
+        obj._sub_cache = info
+        return info
 
     def get_subscription_status(self, obj):
-        return "active" if obj.student.has_active_subscription else "expired"
+        info = getattr(obj, "_sub_cache", None)
+        if info is None:
+            info = _subscription_info(obj.student)
+            obj._sub_cache = info
+        return info["subscription_status"]
 
 
 class GroupTeacherSerializer(serializers.ModelSerializer):
@@ -104,19 +108,22 @@ class StudyGroupSerializer(serializers.ModelSerializer):
         ]
 
     def get_student_count(self, obj):
-        return obj.student_links.count()
+        if hasattr(obj, "_student_count_ann"):
+            return obj._student_count_ann
+        # Prefetched: len() hits cache; .count() would hit DB again.
+        return len(obj.student_links.all())
 
     def get_active_count(self, obj):
+        if hasattr(obj, "_active_count_ann"):
+            return obj._active_count_ann
         return sum(
             1 for link in obj.student_links.all() if link.student.has_active_subscription
         )
 
     def get_expired_count(self, obj):
-        return sum(
-            1
-            for link in obj.student_links.all()
-            if not link.student.has_active_subscription
-        )
+        total = self.get_student_count(obj)
+        active = self.get_active_count(obj)
+        return max(total - active, 0)
 
 
 class AdminUserSerializer(serializers.ModelSerializer):
