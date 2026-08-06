@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import client from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { resolveSubjectKey } from "../theme/subjects";
+import { formatSessionWhen, sessionDisplayTitle } from "../utils/sessionDate";
 
 export default function Home() {
   const { user } = useAuth();
@@ -33,14 +34,11 @@ export default function Home() {
   }, [user]);
 
   const session = next?.session;
-  const sessionTime = session
-    ? new Date(session.start_time).toLocaleString("ar-EG", {
-        weekday: "long",
-        hour: "2-digit",
-        minute: "2-digit",
-        day: "numeric",
-        month: "short",
-      })
+  const when = session ? formatSessionWhen(session.start_time) : null;
+  const sessionTime = when
+    ? when.hijri
+      ? `${when.gregorian} · ${when.hijri} هـ · ${when.time}`
+      : `${when.gregorian} · ${when.time}`
     : null;
 
   return (
@@ -64,7 +62,7 @@ export default function Home() {
           <div className="eyebrow">الحصة القادمة</div>
           {session ? (
             <>
-              <h2>{session.subject_name}</h2>
+              <h2>{sessionDisplayTitle(session)}</h2>
               <div className="meta">
                 {sessionTime}
                 {session.teacher_name ? ` · ${session.teacher_name}` : ""}

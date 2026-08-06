@@ -38,7 +38,7 @@ from billing.views import (
     checkout,
     my_subscription,
 )
-from catalog.views import LessonViewSet, SubjectViewSet
+from catalog.views import LessonSectionViewSet, LessonViewSet, SubjectViewSet
 from core.views import (
     health,
     home_free_content,
@@ -53,6 +53,7 @@ from scheduling.views import SessionViewSet
 router = DefaultRouter()
 router.register("subjects", SubjectViewSet, basename="subject")
 router.register("lessons", LessonViewSet, basename="lesson")
+router.register("lesson-sections", LessonSectionViewSet, basename="lesson-section")
 router.register("sessions", SessionViewSet, basename="session")
 router.register("homework-questions", HomeworkQuestionViewSet, basename="homework")
 router.register("collection-questions", CollectionQuestionViewSet, basename="collection")

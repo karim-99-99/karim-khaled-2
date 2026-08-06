@@ -22,9 +22,9 @@ class Subject(models.Model):
 
 class Lesson(models.Model):
     """
-    A تأسيس (foundation) lesson. Per the hybrid scoping decision, lessons and
-    their videos are a SHARED library per subject (same for every group).
-    Homework and question banks (in the assessments app) are group-scoped.
+    عنوان رئيسي في التأسيس أو التجميعات.
+    في التأسيس فقط: تحته عناوين فرعية (LessonSection) فيها الفيديو والواجب وPDF.
+    التجميعات تبقى على مستوى الدرس الرئيسي بدون عناوين فرعية.
     """
 
     subject = models.ForeignKey(
@@ -39,10 +39,10 @@ class Lesson(models.Model):
     )
     order_number = models.PositiveIntegerField(default=1)
     title = models.CharField(max_length=200)
-    # Bunny Stream video GUID (never a public URL).
+    # Legacy fields — content moved to LessonSection for تأسيس.
+    # Kept for older clients / collections lesson-level media if any.
     bunny_video_id = models.CharField(max_length=100, blank=True)
     pdf_url = models.URLField(blank=True)
-    # Visible on the public home page to visitors / non-subscribers.
     is_free_preview = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -52,3 +52,25 @@ class Lesson(models.Model):
 
     def __str__(self):
         return f"{self.subject.name} - {self.order_number}. {self.title}"
+
+
+class LessonSection(models.Model):
+    """
+    عنوان فرعي تحت درس التأسيس (مثل: السرعة، التسارع).
+    يحتوي الفيديو وزر الواجب وPDF — التجميعات لا تستخدم هذا النموذج.
+    """
+
+    lesson = models.ForeignKey(
+        Lesson, related_name="sections", on_delete=models.CASCADE
+    )
+    order_number = models.PositiveIntegerField(default=1)
+    title = models.CharField(max_length=200)
+    bunny_video_id = models.CharField(max_length=100, blank=True)
+    pdf_url = models.URLField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["lesson", "order_number", "id"]
+
+    def __str__(self):
+        return f"{self.lesson.title} › {self.title}"

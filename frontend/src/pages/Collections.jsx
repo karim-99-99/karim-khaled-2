@@ -25,7 +25,10 @@ export default function Collections() {
 
   function load() {
     client.get(`/subjects/${subjectId}/lessons/`).then((res) => {
-      setLessons(res.data.results || res.data || []);
+      const rows = res.data.results || res.data || [];
+      setLessons(
+        [...rows].sort((a, b) => (a.order_number || 0) - (b.order_number || 0) || a.id - b.id)
+      );
     });
   }
 
@@ -142,7 +145,9 @@ export default function Collections() {
               opacity: locked ? 0.65 : 1,
             }}
           >
-            <span style={{ fontWeight: 700, width: 32 }}>{l.order_number}</span>
+            <span className="lesson-num" aria-hidden="true">
+              {l.order_number}
+            </span>
 
             {renaming ? (
               <>

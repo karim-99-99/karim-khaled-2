@@ -32,7 +32,7 @@ export default function SubjectHub() {
       </h1>
       {canEdit && (
         <div className="banner" style={{ marginBottom: 20 }}>
-          <strong>تأسيس</strong>: واجب لمجموعاتك فقط · <strong>تجميع</strong>: أسئلة لكل طلاب المادة · ثم اختبارات.
+          <strong>تأسيس</strong>: درس ← عناوين فرعية ← واجب لمجموعاتك · <strong>تجميع</strong>: دروس رئيسية فقط لكل الطلاب · ثم اختبارات.
         </div>
       )}
       <div className="grid grid-3">
@@ -42,7 +42,7 @@ export default function SubjectHub() {
         >
           <div className="path-icon">ت</div>
           <h3>تأسيس</h3>
-          <p>{canEdit ? "دروس + فيديو + واجب لمجموعتك فقط" : "دروس — فيديو، PDF، واجب مجموعتك"}</p>
+          <p>{canEdit ? "دروس ← عناوين فرعية ← فيديو وواجب لمجموعتك" : "دروس وعناوين فرعية — فيديو وواجب"}</p>
         </Link>
         <Link
           to={`/courses/${subjectId}/collections`}

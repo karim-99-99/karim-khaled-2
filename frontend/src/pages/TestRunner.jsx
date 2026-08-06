@@ -4,6 +4,7 @@ import client from "../api/client";
 import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
 import VideoPlayer from "../components/VideoPlayer";
+import { applySubjectTheme, lockSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 
 function formatRemain(sec) {
   if (sec == null || sec < 0) return "—";
@@ -33,6 +34,15 @@ export default function TestRunner() {
       setAnswers(restored);
     });
   }, [examId]);
+
+  useEffect(() => {
+    const name = payload?.exam?.subject_name;
+    if (!name) return undefined;
+    const key = resolveSubjectKey(name);
+    lockSubjectTheme(key);
+    applySubjectTheme(key);
+    return undefined;
+  }, [payload?.exam?.subject_name]);
 
   useEffect(() => {
     const ends = payload?.exam?.ends_at;
@@ -92,7 +102,7 @@ export default function TestRunner() {
   const progress = Math.round((answeredCount / questions.length) * 100);
 
   return (
-    <div>
+    <div className="exam-shell">
       <BackToCourses subjectId={exam.subject} />
       <div
         className="card"

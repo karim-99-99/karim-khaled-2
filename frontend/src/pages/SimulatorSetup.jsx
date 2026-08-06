@@ -4,7 +4,6 @@ import client from "../api/client";
 import BackToCourses from "../components/BackToCourses";
 
 const LEVELS = [
-  { id: "all", label: "كل المستويات" },
   { id: "easy", label: "سهل" },
   { id: "medium", label: "متوسط" },
   { id: "hard", label: "صعب" },
@@ -46,7 +45,7 @@ export default function SimulatorSetup() {
   const [lessons, setLessons] = useState([]);
   const [selected, setSelected] = useState([]);
   const [count, setCount] = useState(8);
-  const [level, setLevel] = useState("all");
+  const [selectedLevels, setSelectedLevels] = useState(["easy", "medium", "hard"]);
   const [reviewMode, setReviewMode] = useState("final");
   const [questionPool, setQuestionPool] = useState("any");
   const [timePreset, setTimePreset] = useState("open");
@@ -63,6 +62,16 @@ export default function SimulatorSetup() {
 
   function toggle(id) {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  }
+
+  function toggleLevel(id) {
+    setSelectedLevels((prev) => {
+      if (prev.includes(id)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((x) => x !== id);
+      }
+      return [...prev, id];
+    });
   }
 
   function selectAllLessons() {
@@ -84,13 +93,17 @@ export default function SimulatorSetup() {
       setError("اختر درساً واحداً على الأقل");
       return;
     }
+    if (selectedLevels.length === 0) {
+      setError("اختر مستوى واحداً على الأقل");
+      return;
+    }
     setBusy(true);
     try {
       const { data } = await client.post("/exams/simulator/", {
         subject: Number(subjectId),
         lessons: selected,
         count,
-        level,
+        levels: selectedLevels,
         review_mode: reviewMode,
         question_pool: questionPool,
         time_limit_minutes: resolveTimeLimit(),
@@ -169,13 +182,13 @@ export default function SimulatorSetup() {
         </div>
 
         <div className="form-group">
-          <label>مستوى الصعوبة</label>
+          <label>مستوى الصعوبة (يمكن اختيار أكثر من واحد)</label>
           <div className="filter-row">
             {LEVELS.map((lv) => (
               <span
                 key={lv.id}
-                className={`chip ${level === lv.id ? "active" : ""}`}
-                onClick={() => setLevel(lv.id)}
+                className={`chip ${selectedLevels.includes(lv.id) ? "active" : ""}`}
+                onClick={() => toggleLevel(lv.id)}
                 role="button"
                 tabIndex={0}
               >

@@ -64,7 +64,7 @@ class TeacherQuestionMixin:
         # A teacher manages the questions THEY authored (not group-bound).
         if not user.is_admin_role:
             qs = qs.filter(created_by=user)
-        for field in ("group", "subject", "lesson", "difficulty"):
+        for field in ("group", "subject", "lesson", "section", "difficulty"):
             val = self.request.query_params.get(field)
             if val and field in [f.name for f in self.model._meta.get_fields()]:
                 qs = qs.filter(**{field: val})
@@ -160,6 +160,7 @@ class StudentHomeworkView(APIView):
         user = request.user
         group_ids = _student_group_ids(user)
         lesson_id = request.query_params.get("lesson")
+        section_id = request.query_params.get("section")
 
         # Only teachers who teach the question's subject in one of the student's groups.
         qs = HomeworkQuestion.objects.filter(
@@ -172,13 +173,28 @@ class StudentHomeworkView(APIView):
             )
         ).filter(Q(group__isnull=True) | Q(group_id__in=group_ids))
 
-        if lesson_id:
+        if section_id:
+            qs = qs.filter(section_id=section_id)
+        elif lesson_id:
             qs = qs.filter(lesson_id=lesson_id)
 
         # Non-activated / non-subscribed: only first lesson + first 10 questions.
         if not user_has_full_content_access(user):
-            if lesson_id:
-                lesson = Lesson.objects.filter(id=lesson_id).first()
+            check_lesson_id = None
+            if section_id:
+                from catalog.models import LessonSection
+
+                sec = (
+                    LessonSection.objects.filter(id=section_id)
+                    .select_related("lesson")
+                    .first()
+                )
+                if sec:
+                    check_lesson_id = sec.lesson_id
+            elif lesson_id:
+                check_lesson_id = lesson_id
+            if check_lesson_id:
+                lesson = Lesson.objects.filter(id=check_lesson_id).first()
                 if lesson and not lesson_is_free_preview(lesson):
                     return Response([])
             qs = qs.order_by("id")[: free_question_limit()]
@@ -224,7 +240,8 @@ class StartSimulatorView(APIView):
     Personal simulator from تجميعات bank.
 
     Body:
-      subject, lessons[], count, level (easy|medium|hard|all),
+      subject, lessons[], count,
+      level (easy|medium|hard|all) OR levels[] (one or more of easy/medium/hard),
       review_mode (immediate|final),
       question_pool (any|new|seen),
       time_limit_minutes (null/0 = open, else minutes)
@@ -238,6 +255,12 @@ class StartSimulatorView(APIView):
         lesson_ids = request.data.get("lessons") or []
         count = int(request.data.get("count", 8))
         level = request.data.get("level", "medium")
+        raw_levels = request.data.get("levels")
+        levels = None
+        if isinstance(raw_levels, list):
+            levels = [x for x in raw_levels if x in ("easy", "medium", "hard")]
+            if not levels:
+                levels = None
         review_mode = request.data.get("review_mode", Exam.ReviewMode.FINAL)
         if review_mode not in (Exam.ReviewMode.IMMEDIATE, Exam.ReviewMode.FINAL):
             review_mode = Exam.ReviewMode.FINAL
@@ -257,8 +280,15 @@ class StartSimulatorView(APIView):
             )
 
         bank, group_ids = _student_question_bank(user, subject_id)
-        if level and level != "all":
+        if levels:
+            bank = bank.filter(difficulty__in=levels)
+            # blank when multi-level (choices only allow easy/medium/hard)
+            preset = levels[0] if len(levels) == 1 else ""
+        elif level and level != "all":
             bank = bank.filter(difficulty=level)
+            preset = level
+        else:
+            preset = ""
         bank = bank.filter(lesson_id__in=lesson_ids)
 
         seen_ids = _seen_question_ids(user, subject_id)
@@ -303,7 +333,7 @@ class StartSimulatorView(APIView):
             subject_id=subject_id,
             group_id=group_ids[0] if group_ids else None,
             exam_type=Exam.Type.SIMULATOR,
-            difficulty_preset="" if level == "all" else level,
+            difficulty_preset=preset if preset in ("easy", "medium", "hard", "") else "",
             review_mode=review_mode,
             question_count=len(questions),
             is_free_attempt=free,

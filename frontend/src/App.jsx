@@ -10,6 +10,7 @@ const Courses = lazy(() => import("./pages/Courses"));
 const SubjectHub = lazy(() => import("./pages/SubjectHub"));
 const Lessons = lazy(() => import("./pages/Lessons"));
 const LessonDetail = lazy(() => import("./pages/LessonDetail"));
+const SectionDetail = lazy(() => import("./pages/SectionDetail"));
 const Collections = lazy(() => import("./pages/Collections"));
 const CollectionLessonDetail = lazy(() => import("./pages/CollectionLessonDetail"));
 const TestsHub = lazy(() => import("./pages/TestsHub"));
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/courses/:subjectId/collections" element={<RequireAuth><Collections /></RequireAuth>} />
           <Route path="/courses/:subjectId/collections/:lessonId" element={<RequireAuth><CollectionLessonDetail /></RequireAuth>} />
           <Route path="/lessons/:lessonId" element={<RequireAuth><LessonDetail /></RequireAuth>} />
+          <Route path="/sections/:sectionId" element={<RequireAuth><SectionDetail /></RequireAuth>} />
 
           <Route path="/courses/:subjectId/tests" element={<RequireAuth><TestsHub /></RequireAuth>} />
           <Route path="/tests/simulator/:subjectId" element={<RequireAuth><SimulatorSetup /></RequireAuth>} />

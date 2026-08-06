@@ -53,6 +53,7 @@ function formFromQuestion(q, defaultDifficulty) {
 export default function TeacherQuestionForm({
   subjectId,
   lessonId,
+  sectionId = null,
   kind = "homework", // homework | collection
   defaultDifficulty = "medium",
   initialQuestion = null, // when set → edit mode (PATCH)
@@ -63,12 +64,12 @@ export default function TeacherQuestionForm({
   const [form, setForm] = useState(() => formFromQuestion(initialQuestion, defaultDifficulty));
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const radioName = `correct-${kind}-${initialQuestion?.id || "new"}-${lessonId}`;
+  const radioName = `correct-${kind}-${initialQuestion?.id || "new"}-${lessonId}-${sectionId || "x"}`;
 
   useEffect(() => {
     setForm(formFromQuestion(initialQuestion, defaultDifficulty));
     setMsg("");
-  }, [initialQuestion, defaultDifficulty, lessonId, kind]);
+  }, [initialQuestion, defaultDifficulty, lessonId, sectionId, kind]);
 
   function setOption(i, patch) {
     setForm((f) => {
@@ -107,6 +108,9 @@ export default function TeacherQuestionForm({
     // تجميعات = بنك عام لكل الطلاب (بدون تقييد مجموعة)
     if (kind === "collection") {
       payload.group = null;
+    }
+    if (kind === "homework" && sectionId) {
+      payload.section = Number(sectionId);
     }
     try {
       if (editing) {

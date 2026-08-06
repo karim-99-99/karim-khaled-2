@@ -2,12 +2,15 @@
 
 export const DEFAULT_LOGO = "/logo-zad-altahsili.png";
 
+const LOCK_KEY = "zad_locked_subject_theme";
+export const SUBJECT_THEME_EVENT = "zad-subject-theme";
+
 export const SUBJECT_THEMES = {
   math: {
     key: "math",
     label: "رياضيات",
     logo: "/logo-math.png",
-    match: ["رياضيات"],
+    match: ["رياضيات", "رياضة"],
   },
   physics: {
     key: "physics",
@@ -28,6 +31,14 @@ export const SUBJECT_THEMES = {
     match: ["أحياء"],
   },
 };
+
+function notifyThemeChange(key) {
+  try {
+    window.dispatchEvent(new CustomEvent(SUBJECT_THEME_EVENT, { detail: { key } }));
+  } catch {
+    /* ignore */
+  }
+}
 
 export function resolveSubjectKey(name = "") {
   const n = String(name);
@@ -52,4 +63,37 @@ export function applySubjectTheme(key) {
 
 export function clearSubjectTheme() {
   delete document.documentElement.dataset.subject;
+}
+
+/** Keep subject skin across /exam and /results (Layout has no subjectId in URL). */
+export function lockSubjectTheme(key) {
+  if (key && SUBJECT_THEMES[key]) {
+    try {
+      sessionStorage.setItem(LOCK_KEY, key);
+    } catch {
+      /* ignore */
+    }
+    applySubjectTheme(key);
+    notifyThemeChange(key);
+  } else {
+    unlockSubjectTheme();
+  }
+}
+
+export function unlockSubjectTheme() {
+  try {
+    sessionStorage.removeItem(LOCK_KEY);
+  } catch {
+    /* ignore */
+  }
+  notifyThemeChange(null);
+}
+
+export function peekLockedTheme() {
+  try {
+    const key = sessionStorage.getItem(LOCK_KEY);
+    return key && SUBJECT_THEMES[key] ? key : null;
+  } catch {
+    return null;
+  }
 }

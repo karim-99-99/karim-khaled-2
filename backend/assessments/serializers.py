@@ -17,6 +17,7 @@ class HomeworkQuestionSerializer(serializers.ModelSerializer):
             "group",
             "subject",
             "lesson",
+            "section",
             "difficulty",
             "text",
             "text_image",
@@ -91,6 +92,7 @@ class HomeworkPublicSerializer(serializers.ModelSerializer):
     """Homework question shown to a student (no correct answer leaked)."""
 
     lesson_title = serializers.CharField(source="lesson.title", read_only=True)
+    section_title = serializers.SerializerMethodField()
 
     class Meta:
         model = HomeworkQuestion
@@ -98,6 +100,8 @@ class HomeworkPublicSerializer(serializers.ModelSerializer):
             "id",
             "lesson",
             "lesson_title",
+            "section",
+            "section_title",
             "text",
             "text_image",
             "options",
@@ -106,6 +110,9 @@ class HomeworkPublicSerializer(serializers.ModelSerializer):
             "video_bunny_id",
             "video_timing",
         ]
+
+    def get_section_title(self, obj):
+        return obj.section.title if obj.section_id else ""
 
 
 class ExamAnswerReviewSerializer(serializers.ModelSerializer):

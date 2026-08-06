@@ -33,7 +33,9 @@ export default function CollectionLessonDetail() {
   const [editPdf, setEditPdf] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
-  const [startBusy, setStartBusy] = useState(null);
+  const [startBusy, setStartBusy] = useState(false);
+  const [selectedLevels, setSelectedLevels] = useState(["medium"]);
+  const [questionCount, setQuestionCount] = useState(10);
 
   const canEdit = canEditSubject(user, subjectId || lesson?.subject);
   const listUrl = `/courses/${subjectId || lesson?.subject}/collections`;
@@ -99,20 +101,34 @@ export default function CollectionLessonDetail() {
     }
   }
 
-  async function startLevel(level) {
+  function toggleLevel(id) {
+    setSelectedLevels((prev) => {
+      if (prev.includes(id)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((x) => x !== id);
+      }
+      return [...prev, id];
+    });
+  }
+
+  async function startExam() {
     setMsg("");
-    setStartBusy(level);
+    if (selectedLevels.length === 0) {
+      setMsg("اختر مستوى واحداً على الأقل");
+      return;
+    }
+    setStartBusy(true);
     try {
       const { data } = await client.post("/exams/simulator/", {
         subject: Number(subjectId || lesson.subject),
         lessons: [Number(lessonId)],
-        count: 10,
-        level,
+        count: questionCount,
+        levels: selectedLevels,
       });
       navigate(`/exam/${data.exam.id}`);
     } catch (e) {
-      setMsg(e.response?.data?.detail || "لا توجد أسئلة كافية بهذا المستوى");
-      setStartBusy(null);
+      setMsg(e.response?.data?.detail || "لا توجد أسئلة كافية بهذه الإعدادات");
+      setStartBusy(false);
     }
   }
 
@@ -294,19 +310,65 @@ export default function CollectionLessonDetail() {
 
       {tab === "questions" && (
         <>
-          <div className="section-title">ابدأ بالتدريب حسب المستوى</div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 20 }}>
-            {LEVELS.map((lv) => (
-              <button
-                key={lv.id}
-                type="button"
-                className="btn btn-primary"
-                disabled={!!startBusy}
-                onClick={() => startLevel(lv.id)}
-              >
-                {startBusy === lv.id ? "…" : `اختبار ${lv.label}`}
-              </button>
-            ))}
+          <div className="card" style={{ padding: 16, marginBottom: 20 }}>
+            <div className="section-title" style={{ marginTop: 0 }}>
+              ابدأ بالتدريب
+            </div>
+            <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 12 }}>
+              اختر مستوى أو أكثر (سهل / متوسط / صعب) ثم عدد الأسئلة.
+            </p>
+            <div className="form-group" style={{ marginBottom: 14 }}>
+              <label>المستوى</label>
+              <div className="filter-row">
+                {LEVELS.map((lv) => (
+                  <span
+                    key={lv.id}
+                    className={`chip ${selectedLevels.includes(lv.id) ? "active" : ""}`}
+                    onClick={() => toggleLevel(lv.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleLevel(lv.id);
+                      }
+                    }}
+                  >
+                    {lv.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label>عدد الأسئلة</label>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setQuestionCount((c) => Math.max(1, c - 1))}
+                >
+                  −
+                </button>
+                <div className="form-control" style={{ width: 80, textAlign: "center" }}>
+                  {questionCount}
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setQuestionCount((c) => Math.min(50, c + 1))}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={startBusy || selectedLevels.length === 0}
+              onClick={startExam}
+            >
+              {startBusy ? "جاري البدء…" : "ابدأ الاختبار"}
+            </button>
           </div>
 
           {canEdit && (

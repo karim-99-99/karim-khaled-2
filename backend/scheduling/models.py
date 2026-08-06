@@ -10,6 +10,12 @@ class Session(models.Model):
         LIVE = "live", "مباشر الآن"
         DONE = "done", "منتهية"
 
+    title = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="اسم اختياري للحصة (مثال: مراجعة الباب الأول)",
+    )
     subject = models.ForeignKey(
         "catalog.Subject", related_name="sessions", on_delete=models.CASCADE
     )
@@ -39,4 +45,9 @@ class Session(models.Model):
         ordering = ["start_time"]
 
     def __str__(self):
-        return f"{self.subject.name} @ {self.start_time:%Y-%m-%d %H:%M}"
+        label = self.title or self.subject.name
+        return f"{label} @ {self.start_time:%Y-%m-%d %H:%M}"
+
+    @property
+    def display_title(self):
+        return (self.title or "").strip() or self.subject.name

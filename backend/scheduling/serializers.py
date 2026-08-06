@@ -6,11 +6,14 @@ from .models import Session
 class SessionSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source="subject.name", read_only=True)
     group_name = serializers.CharField(source="group.name", read_only=True, default="")
+    display_title = serializers.CharField(read_only=True)
 
     class Meta:
         model = Session
         fields = [
             "id",
+            "title",
+            "display_title",
             "subject",
             "subject_name",
             "group",
@@ -22,7 +25,13 @@ class SessionSerializer(serializers.ModelSerializer):
             "zoom_link",
             "status",
         ]
-        read_only_fields = ["id", "subject_name", "group_name", "teacher_name"]
+        read_only_fields = [
+            "id",
+            "display_title",
+            "subject_name",
+            "group_name",
+            "teacher_name",
+        ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -33,6 +42,7 @@ class SessionSerializer(serializers.ModelSerializer):
         # Teachers may only write Zoom (+ status); schedule fields stay read-only.
         if user.is_teacher and not user.is_admin_role:
             for name in (
+                "title",
                 "subject",
                 "group",
                 "teacher",

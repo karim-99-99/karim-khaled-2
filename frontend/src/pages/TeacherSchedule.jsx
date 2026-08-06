@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import client from "../api/client";
+import { formatSessionWhen, sessionDisplayTitle } from "../utils/sessionDate";
 
 /**
  * Teacher view: schedule is set by admin.
@@ -69,6 +70,7 @@ export default function TeacherSchedule() {
 
       {sessions.map((s) => {
         const draft = drafts[s.id] || { zoom_link: "", status: s.status };
+        const when = formatSessionWhen(s.start_time);
         return (
           <div
             key={s.id}
@@ -76,22 +78,22 @@ export default function TeacherSchedule() {
             style={{ padding: 16, marginBottom: 12 }}
           >
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-start" }}>
-              <div style={{ minWidth: 160, fontWeight: 700, color: "var(--primary)" }}>
-                {new Date(s.start_time).toLocaleString("ar-EG", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+              <div style={{ minWidth: 160 }}>
+                <div style={{ fontWeight: 700, color: "var(--primary)", fontSize: 18 }}>{when.time}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, marginTop: 4 }}>{when.gregorian}</div>
+                {when.hijri && (
+                  <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
+                    {when.hijri} هـ
+                  </div>
+                )}
               </div>
               <div style={{ flex: 1, minWidth: 180 }}>
-                <strong>{s.subject_name}</strong>
+                <strong>{sessionDisplayTitle(s)}</strong>
                 {s.status === "live" && (
                   <span className="badge badge-live" style={{ marginInlineStart: 8 }}>مباشر</span>
                 )}
                 <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                  {s.group_name || "مجموعة"} · {s.duration_minutes} دقيقة
+                  {s.subject_name} · {s.group_name || "مجموعة"} · {s.duration_minutes} دقيقة
                 </div>
               </div>
             </div>

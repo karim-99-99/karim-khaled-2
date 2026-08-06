@@ -82,10 +82,18 @@ class QuestionBase(models.Model):
 
 
 class HomeworkQuestion(QuestionBase):
-    """MCQ homework attached to a lesson, group-scoped."""
+    """واجب تأسيس مرتبط بعنوان فرعي (حصة) داخل الدرس."""
+
+    section = models.ForeignKey(
+        "catalog.LessonSection",
+        related_name="homework_questions",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
 
     class Meta:
-        ordering = ["lesson", "id"]
+        ordering = ["lesson", "section", "id"]
 
     def __str__(self):
         return f"Homework Q{self.id} - {self.lesson.title}"

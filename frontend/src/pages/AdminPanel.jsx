@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import client, { warmApi } from "../api/client";
+import { formatSessionWhen, sessionDisplayTitle } from "../utils/sessionDate";
 
 function contactLabel(account) {
   return account.email || "—";
@@ -760,6 +761,7 @@ function GroupsTab() {
 
 function ScheduleTab() {
   const EMPTY = {
+    title: "",
     group: "",
     subject: "",
     start_time: "",
@@ -822,6 +824,7 @@ function ScheduleTab() {
     }
     setBusy(true);
     const payload = {
+      title: (form.title || "").trim(),
       group: Number(form.group),
       subject: Number(form.subject),
       start_time: form.start_time,
@@ -847,6 +850,7 @@ function ScheduleTab() {
     setEditingId(s.id);
     setMsg("");
     setForm({
+      title: s.title || "",
       group: s.group ? String(s.group) : "",
       subject: s.subject ? String(s.subject) : "",
       start_time: s.start_time ? s.start_time.slice(0, 16) : "",
@@ -865,13 +869,26 @@ function ScheduleTab() {
   return (
     <div>
       <div className="banner" style={{ marginBottom: 16 }}>
-        أنت تضع جدول الحصص لكل المجموعات (اليوم / الوقت / المادة / المجموعة).
+        أنت تضع جدول الحصص لكل المجموعات (اسم الحصة / اليوم ميلادي وهجري / الوقت / المادة / المجموعة).
         المدرس يضيف فقط رابط Zoom من لوحته.
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "minmax(280px, 380px) 1fr", gap: 24 }}>
         <div className="card" style={{ padding: 24, height: "fit-content" }}>
           <h3 style={{ marginBottom: 16 }}>{editingId ? "تعديل حصة" : "إضافة حصة للجدول"}</h3>
+
+          <div className="form-group">
+            <label>اسم الحصة</label>
+            <input
+              className="form-control"
+              value={form.title}
+              onChange={(e) => set("title", e.target.value)}
+              placeholder="مثال: مراجعة الباب الأول — أو أي اسم براحتك"
+            />
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
+              اختياري. لو فاضي يظهر اسم المادة.
+            </div>
+          </div>
 
           <div className="form-group">
             <label>المجموعة</label>
@@ -962,33 +979,34 @@ function ScheduleTab() {
           {sessions.length === 0 && (
             <p style={{ color: "var(--text-muted)" }}>لا توجد حصص بعد. أضف أول حصة من النموذج.</p>
           )}
-          {sessions.map((s) => (
-            <div
-              key={s.id}
-              className="card"
-              style={{ padding: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
-            >
-              <div style={{ minWidth: 150, fontWeight: 700, color: "var(--primary)" }}>
-                {new Date(s.start_time).toLocaleString("ar-EG", {
-                  weekday: "long",
-                  day: "numeric",
-                  month: "short",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </div>
-              <div style={{ flex: 1, minWidth: 160 }}>
-                <strong>{s.subject_name}</strong>{" "}
-                {s.status === "live" && <span className="badge badge-live">مباشر</span>}
-                <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                  {s.group_name || "—"} · {s.teacher_name || "بدون مدرس"} · {s.duration_minutes} د
-                  {s.zoom_link ? " · Zoom ✓" : " · بانتظار رابط Zoom"}
+          {sessions.map((s) => {
+            const when = formatSessionWhen(s.start_time);
+            return (
+              <div
+                key={s.id}
+                className="card"
+                style={{ padding: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
+              >
+                <div style={{ minWidth: 160 }}>
+                  <div style={{ fontWeight: 700, color: "var(--primary)", fontSize: 17 }}>{when.time}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>{when.gregorian}</div>
+                  {when.hijri && (
+                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{when.hijri} هـ</div>
+                  )}
                 </div>
+                <div style={{ flex: 1, minWidth: 160 }}>
+                  <strong>{sessionDisplayTitle(s)}</strong>{" "}
+                  {s.status === "live" && <span className="badge badge-live">مباشر</span>}
+                  <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                    {s.subject_name} · {s.group_name || "—"} · {s.teacher_name || "بدون مدرس"} · {s.duration_minutes} د
+                    {s.zoom_link ? " · Zoom ✓" : " · بانتظار رابط Zoom"}
+                  </div>
+                </div>
+                <button className="btn btn-ghost btn-sm" onClick={() => editSession(s)}>تعديل</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => remove(s.id)}>حذف</button>
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={() => editSession(s)}>تعديل</button>
-              <button className="btn btn-ghost btn-sm" onClick={() => remove(s.id)}>حذف</button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

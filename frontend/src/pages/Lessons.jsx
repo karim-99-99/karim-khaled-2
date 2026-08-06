@@ -21,7 +21,10 @@ export default function Lessons() {
 
   function load() {
     client.get(`/subjects/${subjectId}/lessons/`).then((res) => {
-      setLessons(res.data.results || res.data || []);
+      const rows = res.data.results || res.data || [];
+      setLessons(
+        [...rows].sort((a, b) => (a.order_number || 0) - (b.order_number || 0) || a.id - b.id)
+      );
     });
   }
 
@@ -39,7 +42,7 @@ export default function Lessons() {
       });
       setNewTitle("");
       setShowAdd(false);
-      setMsg("تم إنشاء الدرس ✓ — ادخل إليه لإضافة فيديو أو أسئلة");
+      setMsg("تم إنشاء الدرس ✓ — ادخل لإضافة عناوين فرعية (حصص)");
       load();
     } catch (e) {
       setMsg(e.response?.data?.detail || "تعذّر إنشاء الدرس");
@@ -79,7 +82,7 @@ export default function Lessons() {
 
       {canEdit && (
         <div className="banner" style={{ marginBottom: 16 }}>
-          تأسيس: أضف درساً ثم فيديو وأسئلة واجب — تظهر فقط لطلاب مجموعاتك في هذه المادة.
+          تأسيس: درس رئيسي ← عناوين فرعية ← فيديو وواجب وPDF.
         </div>
       )}
 
@@ -125,7 +128,9 @@ export default function Lessons() {
               opacity: locked ? 0.65 : 1,
             }}
           >
-            <span style={{ fontWeight: 700, width: 32 }}>{l.order_number}</span>
+            <span className="lesson-num" aria-hidden="true">
+              {l.order_number}
+            </span>
 
             {renaming ? (
               <>
@@ -159,7 +164,7 @@ export default function Lessons() {
                 ) : null}
 
                 <span style={{ color: "var(--text-muted)", fontSize: 13 }}>
-                  {locked ? "مقفل" : "فيديو · PDF · واجب"}
+                  {locked ? "مقفل" : "عناوين فرعية · فيديو · واجب"}
                 </span>
 
                 {canEdit && (

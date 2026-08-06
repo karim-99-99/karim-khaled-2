@@ -4,10 +4,13 @@ import { useAuth } from "../auth/AuthContext";
 import client from "../api/client";
 import {
   DEFAULT_LOGO,
+  SUBJECT_THEME_EVENT,
   applySubjectTheme,
   clearSubjectTheme,
   getSubjectTheme,
+  peekLockedTheme,
   resolveSubjectKey,
+  unlockSubjectTheme,
 } from "../theme/subjects";
 
 const SUBJECTS_CACHE_KEY = "zad_subjects_cache_v1";
@@ -45,14 +48,25 @@ function readSubjectId(pathname) {
   return null;
 }
 
+function isExamSurface(pathname) {
+  return Boolean(
+    matchPath({ path: "/exam/:examId", end: true }, pathname) ||
+      matchPath({ path: "/results/:examId", end: true }, pathname)
+  );
+}
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [subjects, setSubjects] = useState(readCachedSubjects);
+  const [lockedThemeKey, setLockedThemeKey] = useState(() =>
+    isExamSurface(location.pathname) ? peekLockedTheme() : null
+  );
 
   const initial = user?.full_name?.trim()?.[0] || "؟";
   const subjectId = useMemo(() => readSubjectId(location.pathname), [location.pathname]);
+  const examSurface = useMemo(() => isExamSurface(location.pathname), [location.pathname]);
 
   // Theme only for subject routes — avoid extra lesson/exam API calls on every visit.
   useEffect(() => {
@@ -75,15 +89,37 @@ export default function Layout() {
   }, [subjectId]); // intentionally not depending on subjects identity
 
   const subjectFromRoute = subjects.find((s) => String(s.id) === String(subjectId));
-  const themeKey = resolveSubjectKey(subjectFromRoute?.name) || null;
+  const routeThemeKey = resolveSubjectKey(subjectFromRoute?.name) || null;
+  const themeKey = (examSurface && lockedThemeKey) || routeThemeKey;
   const theme = getSubjectTheme(themeKey);
   const logoSrc = theme?.logo || DEFAULT_LOGO;
   const logoAlt = theme ? `زاد ${theme.label}` : "زاد التحصيلي";
 
   useEffect(() => {
-    applySubjectTheme(themeKey);
+    if (examSurface) {
+      const locked = peekLockedTheme();
+      if (locked) {
+        setLockedThemeKey(locked);
+        applySubjectTheme(locked);
+      }
+      return undefined;
+    }
+    setLockedThemeKey(null);
+    unlockSubjectTheme();
+    applySubjectTheme(routeThemeKey);
     return () => clearSubjectTheme();
-  }, [themeKey]);
+  }, [routeThemeKey, examSurface, location.pathname]);
+
+  useEffect(() => {
+    if (!examSurface) return undefined;
+    const onTheme = (e) => {
+      const key = e.detail?.key || peekLockedTheme();
+      setLockedThemeKey(key);
+      if (key) applySubjectTheme(key);
+    };
+    window.addEventListener(SUBJECT_THEME_EVENT, onTheme);
+    return () => window.removeEventListener(SUBJECT_THEME_EVENT, onTheme);
+  }, [examSurface]);
 
   function handleLogout() {
     logout();

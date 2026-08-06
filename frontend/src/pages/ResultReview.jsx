@@ -4,6 +4,7 @@ import client from "../api/client";
 import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
 import VideoPlayer from "../components/VideoPlayer";
+import { applySubjectTheme, lockSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 
 export default function ResultReview() {
   const { examId } = useParams();
@@ -16,12 +17,21 @@ export default function ResultReview() {
     client.get(`/exams/${examId}/review/${q}`).then((res) => setData(res.data));
   }, [examId, filter]);
 
+  useEffect(() => {
+    const name = data?.exam?.subject_name;
+    if (!name) return undefined;
+    const key = resolveSubjectKey(name);
+    lockSubjectTheme(key);
+    applySubjectTheme(key);
+    return undefined;
+  }, [data?.exam?.subject_name]);
+
   if (!data) return <div className="spinner">جاري التحميل…</div>;
 
   const { exam, answers } = data;
 
   return (
-    <div>
+    <div className="exam-shell">
       <BackToCourses subjectId={exam.subject} />
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20, gap: 12, flexWrap: "wrap" }}>
         <div>
