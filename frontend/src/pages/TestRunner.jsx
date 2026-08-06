@@ -22,10 +22,9 @@ export default function TestRunner() {
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState({});
   const [feedback, setFeedback] = useState(null);
-  const [pendingCheck, setPendingCheck] = useState(null);
-  const [verifyBusy, setVerifyBusy] = useState(false);
+  const [checkByAnswer, setCheckByAnswer] = useState({});
+  const [answerBusy, setAnswerBusy] = useState(false);
   const [verdict, setVerdict] = useState(null);
-  const [lastResult, setLastResult] = useState({});
   const [showVideo, setShowVideo] = useState(false);
   const [showExplainVideo, setShowExplainVideo] = useState(false);
   const [remainSec, setRemainSec] = useState(null);
@@ -86,16 +85,20 @@ export default function TestRunner() {
     }, 1500);
   }
 
+  function clearQuestionUi() {
+    setFeedback(null);
+    setShowVideo(false);
+    setShowExplainVideo(false);
+  }
+
   async function finish(timedOut = false) {
     if (finishing.current || verdict) return;
-    // On manual finish from last question, require تحقق then flash.
-    if (!timedOut && payload) {
+    const isTeacherExam = payload?.exam?.exam_type === "teacher";
+    if (!timedOut && isTeacherExam) {
       const current = payload.questions[idx];
-      const hasSelected = current && answers[current.answer_id];
-      if (hasSelected && !feedback) return;
-      const result = current ? lastResult[current.answer_id] : undefined;
-      if (typeof result === "boolean") {
-        showVerdict(result, () => finishAfterVerdict(false));
+      const check = current ? checkByAnswer[current.answer_id] : null;
+      if (check && typeof check.is_correct === "boolean") {
+        showVerdict(check.is_correct, () => finishAfterVerdict(false));
         return;
       }
     }
@@ -120,62 +123,61 @@ export default function TestRunner() {
 
   const { exam, questions } = payload;
   const q = questions[idx];
+  const isSimulator = exam.exam_type === "simulator";
+  const isTeacherExam = exam.exam_type === "teacher";
   const timed = exam.time_limit_minutes > 0 && exam.ends_at;
   const selected = answers[q.answer_id];
-  const checked = Boolean(feedback);
+  const answerCheck = checkByAnswer[q.answer_id] || null;
+  const navBlocked = !!verdict || answerBusy || !selected;
 
   async function choose(optionKey) {
-    if (checked || verifyBusy) return;
+    if (answerBusy || verdict) return;
+    // Simulator: lock after revealing the answer.
+    if (isSimulator && feedback) return;
     setAnswers((a) => ({ ...a, [q.answer_id]: optionKey }));
-    setPendingCheck(null);
-    setVerifyBusy(true);
+    setAnswerBusy(true);
     try {
       const { data } = await client.post(`/exams/${examId}/answer/`, {
         answer_id: q.answer_id,
         selected: optionKey,
       });
-      setPendingCheck(data);
-      if (typeof data.is_correct === "boolean") {
-        setLastResult((r) => ({ ...r, [q.answer_id]: data.is_correct }));
+      setCheckByAnswer((m) => ({ ...m, [q.answer_id]: data }));
+      if (isSimulator) {
+        // Show final answer immediately — no «تحقق», no flash graphic.
+        setFeedback(data);
+        setShowExplainVideo(false);
       }
     } catch {
-      setPendingCheck(null);
+      /* keep selection; student can retry */
     } finally {
-      setVerifyBusy(false);
+      setAnswerBusy(false);
     }
   }
 
-  function verifyAnswer() {
-    if (!pendingCheck || checked) return;
-    setFeedback(pendingCheck);
-    setShowExplainVideo(false);
-  }
-
   function goNext() {
-    if (verdict) return;
-    if (selected && !checked) return;
-    const result = lastResult[q.answer_id];
+    if (verdict || answerBusy) return;
+    if (!selected) return;
     const advance = () => {
-      setFeedback(null);
-      setPendingCheck(null);
-      setShowVideo(false);
-      setShowExplainVideo(false);
+      clearQuestionUi();
       setIdx((i) => i + 1);
     };
-    if (typeof result === "boolean") {
-      showVerdict(result, advance);
+    if (isTeacherExam && answerCheck && typeof answerCheck.is_correct === "boolean") {
+      showVerdict(answerCheck.is_correct, advance);
       return;
     }
     advance();
   }
 
   function go(nextIdx) {
-    if (verdict) return;
-    setFeedback(null);
-    setPendingCheck(null);
-    setShowVideo(false);
-    setShowExplainVideo(false);
+    if (verdict || answerBusy) return;
+    clearQuestionUi();
     setIdx(nextIdx);
+    // Restore simulator explanation if they revisit an answered question.
+    const nextQ = questions[nextIdx];
+    const saved = nextQ ? checkByAnswer[nextQ.answer_id] : null;
+    if (isSimulator && saved) {
+      setFeedback(saved);
+    }
   }
 
   const answeredCount = Object.keys(answers).length;
@@ -293,20 +295,11 @@ export default function TestRunner() {
             );
           })}
 
-          {selected && !checked && (
-            <div style={{ marginTop: 16 }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={verifyBusy || !pendingCheck}
-                onClick={verifyAnswer}
-              >
-                {verifyBusy ? "…" : "تحقق"}
-              </button>
-            </div>
+          {answerBusy && (
+            <p style={{ marginTop: 12, color: "var(--text-muted)", fontSize: 13 }}>جاري الحفظ…</p>
           )}
 
-          {feedback && (
+          {isSimulator && feedback && (
             <div style={{ marginTop: 16 }}>
               <div
                 style={{
@@ -355,7 +348,7 @@ export default function TestRunner() {
             <button
               type="button"
               className="btn btn-ghost"
-              disabled={idx === 0 || !!verdict}
+              disabled={idx === 0 || !!verdict || answerBusy}
               onClick={() => go(idx - 1)}
             >
               ← السابق
@@ -364,7 +357,7 @@ export default function TestRunner() {
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={!!verdict || (selected && !checked)}
+                disabled={navBlocked}
                 onClick={goNext}
               >
                 التالي →
@@ -373,7 +366,7 @@ export default function TestRunner() {
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={!!verdict || (selected && !checked)}
+                disabled={navBlocked}
                 onClick={() => finish(false)}
               >
                 إنهاء الاختبار
@@ -396,15 +389,11 @@ export default function TestRunner() {
               );
             })}
           </div>
-          {exam.review_mode === "immediate" ? (
-            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 12 }}>
-              اختر إجابة ثم اضغط «تحقق»
-            </p>
-          ) : (
-            <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 12 }}>
-              اختر إجابة ثم اضغط «تحقق» لمراجعة السؤال
-            </p>
-          )}
+          <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 12 }}>
+            {isSimulator
+              ? "اختر إجابة لعرض التصحيح فوراً"
+              : "اختر إجابة ثم اضغط «التالي» لمعرفة النتيجة"}
+          </p>
         </div>
       </div>
     </div>
