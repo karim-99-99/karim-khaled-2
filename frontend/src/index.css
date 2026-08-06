@@ -384,6 +384,141 @@ a.card:hover,
 .hero .btn:hover {
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
 }
+
+/* تلوين محلي حسب المادة (حصة قادمة + صفوف الجدول) */
+.session-skin[data-subject="math"] {
+  --skin-primary: #5b8c2a;
+  --skin-primary-dark: #4a7422;
+  --skin-primary-light: #eef5e4;
+  --skin-accent: #ffc400;
+  --skin-on-primary: #fff;
+}
+.session-skin[data-subject="physics"] {
+  --skin-primary: #7c3aed;
+  --skin-primary-dark: #6d28d9;
+  --skin-primary-light: #ede9fe;
+  --skin-accent: #e8b84a;
+  --skin-on-primary: #fff;
+}
+.session-skin[data-subject="chem"] {
+  --skin-primary: #c41e3a;
+  --skin-primary-dark: #9b1b30;
+  --skin-primary-light: #fce8ec;
+  --skin-accent: #d4af37;
+  --skin-on-primary: #fff;
+}
+.session-skin[data-subject="bio"] {
+  --skin-primary: #e6a800;
+  --skin-primary-dark: #c88a00;
+  --skin-primary-light: #fff8e1;
+  --skin-accent: #9a7400;
+  --skin-on-primary: #1a1a1a;
+}
+
+.hero.session-skin {
+  background:
+    radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--skin-accent) 40%, transparent), transparent 40%),
+    linear-gradient(135deg, var(--skin-primary) 0%, var(--skin-primary-dark) 100%);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--skin-primary) 35%, transparent);
+}
+.hero.session-skin::after {
+  background: var(--skin-accent);
+}
+.hero.session-skin .btn {
+  background: linear-gradient(135deg, var(--skin-accent), color-mix(in srgb, var(--skin-accent) 70%, #000));
+  color: var(--skin-on-primary);
+}
+
+.session-card.session-skin {
+  border: 1px solid color-mix(in srgb, var(--skin-primary) 28%, var(--border));
+  border-inline-start: 6px solid var(--skin-primary);
+  background:
+    linear-gradient(135deg, var(--skin-primary-light), #fff 55%);
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--skin-primary) 12%, transparent);
+}
+.session-card.session-skin .session-card__time {
+  color: var(--skin-primary-dark);
+}
+.session-card.session-skin .session-card__title {
+  color: var(--skin-primary-dark);
+}
+
+.session-date {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 140px;
+}
+.session-date__time {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.85;
+  order: 3;
+  margin-top: 4px;
+}
+.session-date__hijri {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--skin-primary-dark, var(--primary));
+  order: 1;
+}
+.session-date__gregorian {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-top: 1px;
+  order: 2;
+}
+
+.session-card.session-skin .btn-primary {
+  background: linear-gradient(135deg, var(--skin-primary), var(--skin-primary-dark));
+  color: var(--skin-on-primary);
+  border: none;
+  box-shadow: 0 6px 14px color-mix(in srgb, var(--skin-primary) 30%, transparent);
+}
+.session-card.session-skin .btn-secondary {
+  border-color: color-mix(in srgb, var(--skin-primary) 40%, var(--border));
+  color: var(--skin-primary-dark);
+  background: var(--skin-primary-light);
+}
+
+.session-number {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: Rubik, "Segoe UI", sans-serif;
+  font-weight: 800;
+  font-size: 18px;
+  color: var(--skin-on-primary, #fff);
+  background: linear-gradient(135deg, var(--skin-primary, var(--primary)), var(--skin-primary-dark, var(--primary-dark, #003d9b)));
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--skin-primary, var(--primary)) 35%, transparent);
+}
+
+.badge-present {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border: 1px solid #a5d6a7;
+}
+.badge-absent {
+  background: #fce8ec;
+  color: #9b1b30;
+  border: 1px solid #f5c2cc;
+}
+.chip.active.attendance-present {
+  background: #2e7d32;
+  border-color: #2e7d32;
+  color: #fff;
+}
+.chip.active.attendance-absent {
+  background: #c41e3a;
+  border-color: #c41e3a;
+  color: #fff;
+}
+
 .answer-option {
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
@@ -867,10 +1002,22 @@ html[data-subject="bio"] .order-controls__num {
 .answer-option.correct {
   border: 2px solid var(--success);
   background: #f0fdf4;
+  color: #166534;
 }
 .answer-option.wrong {
   border: 2px solid var(--error);
   background: #fef2f2;
+  color: #b91c1c;
+}
+html[data-subject] .answer-option.correct {
+  border-color: var(--success);
+  background: #f0fdf4;
+  color: #166534;
+}
+html[data-subject] .answer-option.wrong {
+  border-color: var(--error);
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .q-nav {

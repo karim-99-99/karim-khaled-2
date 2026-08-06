@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import client, { warmApi } from "../api/client";
+import { resolveSubjectKey } from "../theme/subjects";
 import { formatSessionWhen, sessionDisplayTitle } from "../utils/sessionDate";
 
 function contactLabel(account) {
@@ -981,24 +982,33 @@ function ScheduleTab() {
           )}
           {sessions.map((s) => {
             const when = formatSessionWhen(s.start_time);
+            const subjectKey = resolveSubjectKey(s.subject_name) || "math";
             return (
               <div
                 key={s.id}
-                className="card"
+                className="card session-card session-skin"
+                data-subject={subjectKey}
                 style={{ padding: 16, marginBottom: 12, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}
               >
-                <div style={{ minWidth: 160 }}>
-                  <div style={{ fontWeight: 700, color: "var(--primary)", fontSize: 17 }}>{when.time}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginTop: 2 }}>{when.gregorian}</div>
-                  {when.hijri && (
-                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{when.hijri} هـ</div>
-                  )}
+                <div className="session-number" aria-label={`الحصة رقم ${s.session_number}`}>
+                  {s.session_number ?? "—"}
+                </div>
+                <div style={{ minWidth: 140 }}>
+                  <div className="session-date">
+                    <div className="session-card__time session-date__time">{when.time}</div>
+                    {when.hijri ? (
+                      <div className="session-date__hijri">{when.hijri}</div>
+                    ) : null}
+                    <div className="session-date__gregorian">{when.gregorian}</div>
+                  </div>
                 </div>
                 <div style={{ flex: 1, minWidth: 160 }}>
-                  <strong>{sessionDisplayTitle(s)}</strong>{" "}
+                  <strong className="session-card__title">{sessionDisplayTitle(s)}</strong>{" "}
                   {s.status === "live" && <span className="badge badge-live">مباشر</span>}
                   <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                    {s.subject_name} · {s.group_name || "—"} · {s.teacher_name || "بدون مدرس"} · {s.duration_minutes} د
+                    {s.subject_name}
+                    {s.session_number != null ? ` · #${s.session_number}` : ""}
+                    {" · "}{s.group_name || "—"} · {s.teacher_name || "بدون مدرس"} · {s.duration_minutes} د
                     {s.zoom_link ? " · Zoom ✓" : " · بانتظار رابط Zoom"}
                   </div>
                 </div>

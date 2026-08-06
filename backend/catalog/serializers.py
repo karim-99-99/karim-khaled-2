@@ -46,6 +46,7 @@ class LessonSerializer(serializers.ModelSerializer):
     is_locked = serializers.SerializerMethodField()
     sections_count = serializers.SerializerMethodField()
     sections = LessonSectionSerializer(many=True, read_only=True)
+    collection_difficulty_counts = serializers.SerializerMethodField()
 
     class Meta:
         model = Lesson
@@ -63,9 +64,17 @@ class LessonSerializer(serializers.ModelSerializer):
             "is_archived",
             "sections_count",
             "sections",
+            "collection_difficulty_counts",
             "created_at",
         ]
-        read_only_fields = ["id", "created_by", "created_at", "is_locked", "sections_count"]
+        read_only_fields = [
+            "id",
+            "created_by",
+            "created_at",
+            "is_locked",
+            "sections_count",
+            "collection_difficulty_counts",
+        ]
 
     def get_is_locked(self, obj):
         request = self.context.get("request")
@@ -78,3 +87,20 @@ class LessonSerializer(serializers.ModelSerializer):
         if hasattr(obj, "_sections_count"):
             return obj._sections_count
         return obj.sections.count()
+
+    def get_collection_difficulty_counts(self, obj):
+        from django.db.models import Count
+
+        from assessments.models import CollectionQuestion
+
+        rows = (
+            CollectionQuestion.objects.filter(lesson_id=obj.id)
+            .values("difficulty")
+            .annotate(c=Count("id"))
+        )
+        out = {"easy": 0, "medium": 0, "hard": 0}
+        for row in rows:
+            key = row.get("difficulty")
+            if key in out:
+                out[key] = row["c"]
+        return out

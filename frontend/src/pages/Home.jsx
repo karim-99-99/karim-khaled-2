@@ -34,12 +34,8 @@ export default function Home() {
   }, [user]);
 
   const session = next?.session;
+  const sessionKey = resolveSubjectKey(session?.subject_name);
   const when = session ? formatSessionWhen(session.start_time) : null;
-  const sessionTime = when
-    ? when.hijri
-      ? `${when.gregorian} · ${when.hijri} هـ · ${when.time}`
-      : `${when.gregorian} · ${when.time}`
-    : null;
 
   return (
     <div>
@@ -57,15 +53,34 @@ export default function Home() {
         </div>
       )}
 
-      <div className="hero">
+      <div
+        className={`hero${sessionKey ? " session-skin" : ""}`}
+        {...(sessionKey ? { "data-subject": sessionKey } : {})}
+      >
         <div>
           <div className="eyebrow">الحصة القادمة</div>
           {session ? (
             <>
               <h2>{sessionDisplayTitle(session)}</h2>
-              <div className="meta">
-                {sessionTime}
-                {session.teacher_name ? ` · ${session.teacher_name}` : ""}
+              <div className="meta session-date" style={{ minWidth: 0 }}>
+                {when?.hijri ? (
+                  <div className="session-date__hijri" style={{ color: "inherit", fontSize: 20, order: 1 }}>
+                    {when.hijri}
+                  </div>
+                ) : null}
+                {when?.gregorian && (
+                  <div className="session-date__gregorian" style={{ color: "inherit", opacity: 0.75, order: 2 }}>
+                    {when.gregorian}
+                  </div>
+                )}
+                {when?.time && (
+                  <div className="session-date__time" style={{ color: "inherit", opacity: 0.9, order: 3 }}>
+                    {when.time}
+                  </div>
+                )}
+                <div style={{ marginTop: 6, opacity: 0.85, fontSize: 13, order: 4 }}>
+                  {[session.subject_name, session.teacher_name].filter(Boolean).join(" · ")}
+                </div>
               </div>
             </>
           ) : (

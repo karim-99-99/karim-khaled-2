@@ -51,3 +51,37 @@ class Session(models.Model):
     @property
     def display_title(self):
         return (self.title or "").strip() or self.subject.name
+
+
+class SessionAttendance(models.Model):
+    """Present / absent mark for a student in a live session."""
+
+    class Status(models.TextChoices):
+        PRESENT = "present", "حاضر"
+        ABSENT = "absent", "غائب"
+
+    session = models.ForeignKey(
+        Session, related_name="attendances", on_delete=models.CASCADE
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="session_attendances",
+        on_delete=models.CASCADE,
+    )
+    status = models.CharField(max_length=10, choices=Status.choices)
+    marked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="attendance_marks",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    marked_at = models.DateTimeField(auto_now=True)
+    note = models.CharField(max_length=200, blank=True, default="")
+
+    class Meta:
+        unique_together = ("session", "student")
+        ordering = ["student__full_name", "student_id"]
+
+    def __str__(self):
+        return f"{self.student_id} @ session {self.session_id}: {self.status}"

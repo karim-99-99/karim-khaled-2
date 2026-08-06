@@ -22,9 +22,12 @@ export default function TestRunner() {
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState({});
   const [feedback, setFeedback] = useState(null);
+  const [pendingCheck, setPendingCheck] = useState(null);
+  const [verifyBusy, setVerifyBusy] = useState(false);
   const [verdict, setVerdict] = useState(null);
   const [lastResult, setLastResult] = useState({});
   const [showVideo, setShowVideo] = useState(false);
+  const [showExplainVideo, setShowExplainVideo] = useState(false);
   const [remainSec, setRemainSec] = useState(null);
   const finishing = useRef(false);
   const verdictTimer = useRef(null);
@@ -84,12 +87,14 @@ export default function TestRunner() {
   }
 
   async function finish(timedOut = false) {
-    if (finishing.current) return;
-    // On manual finish from last question, flash verdict first (not on timeout).
+    if (finishing.current || verdict) return;
+    // On manual finish from last question, require تحقق then flash.
     if (!timedOut && payload) {
       const current = payload.questions[idx];
+      const hasSelected = current && answers[current.answer_id];
+      if (hasSelected && !feedback) return;
       const result = current ? lastResult[current.answer_id] : undefined;
-      if (typeof result === "boolean" && !verdict) {
+      if (typeof result === "boolean") {
         showVerdict(result, () => finishAfterVerdict(false));
         return;
       }
@@ -115,27 +120,46 @@ export default function TestRunner() {
 
   const { exam, questions } = payload;
   const q = questions[idx];
-  const immediate = exam.review_mode === "immediate";
   const timed = exam.time_limit_minutes > 0 && exam.ends_at;
+  const selected = answers[q.answer_id];
+  const checked = Boolean(feedback);
 
   async function choose(optionKey) {
+    if (checked || verifyBusy) return;
     setAnswers((a) => ({ ...a, [q.answer_id]: optionKey }));
-    const { data } = await client.post(`/exams/${examId}/answer/`, {
-      answer_id: q.answer_id,
-      selected: optionKey,
-    });
-    if (typeof data.is_correct === "boolean") {
-      setLastResult((r) => ({ ...r, [q.answer_id]: data.is_correct }));
+    setPendingCheck(null);
+    setVerifyBusy(true);
+    try {
+      const { data } = await client.post(`/exams/${examId}/answer/`, {
+        answer_id: q.answer_id,
+        selected: optionKey,
+      });
+      setPendingCheck(data);
+      if (typeof data.is_correct === "boolean") {
+        setLastResult((r) => ({ ...r, [q.answer_id]: data.is_correct }));
+      }
+    } catch {
+      setPendingCheck(null);
+    } finally {
+      setVerifyBusy(false);
     }
-    if (immediate) setFeedback(data);
+  }
+
+  function verifyAnswer() {
+    if (!pendingCheck || checked) return;
+    setFeedback(pendingCheck);
+    setShowExplainVideo(false);
   }
 
   function goNext() {
     if (verdict) return;
+    if (selected && !checked) return;
     const result = lastResult[q.answer_id];
     const advance = () => {
       setFeedback(null);
+      setPendingCheck(null);
       setShowVideo(false);
+      setShowExplainVideo(false);
       setIdx((i) => i + 1);
     };
     if (typeof result === "boolean") {
@@ -146,10 +170,11 @@ export default function TestRunner() {
   }
 
   function go(nextIdx) {
-    // خريطة الأسئلة / السابق — بدون فلاش
     if (verdict) return;
     setFeedback(null);
+    setPendingCheck(null);
     setShowVideo(false);
+    setShowExplainVideo(false);
     setIdx(nextIdx);
   }
 
@@ -247,13 +272,15 @@ export default function TestRunner() {
 
           {q.options.map((o) => {
             let cls = "answer-option";
-            if (answers[q.answer_id] === o.key) cls += " selected";
+            if (selected === o.key) cls += " selected";
             if (feedback) {
               if (o.key === feedback.correct_answer) cls = "answer-option correct";
-              else if (o.key === answers[q.answer_id]) cls = "answer-option wrong";
+              else if (o.key === selected && o.key !== feedback.correct_answer) {
+                cls = "answer-option wrong";
+              }
             }
             return (
-              <div key={o.key} className={cls} onClick={() => !feedback && choose(o.key)}>
+              <div key={o.key} className={cls} onClick={() => choose(o.key)}>
                 <span>{o.key})</span> <MathText>{o.text}</MathText>
                 {o.image && (
                   <img
@@ -266,20 +293,38 @@ export default function TestRunner() {
             );
           })}
 
+          {selected && !checked && (
+            <div style={{ marginTop: 16 }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={verifyBusy || !pendingCheck}
+                onClick={verifyAnswer}
+              >
+                {verifyBusy ? "…" : "تحقق"}
+              </button>
+            </div>
+          )}
+
           {feedback && (
             <div style={{ marginTop: 16 }}>
               <div
                 style={{
                   fontWeight: 700,
+                  marginBottom: 10,
                   color: feedback.is_correct ? "var(--success)" : "var(--error)",
                 }}
               >
                 {feedback.is_correct ? "إجابة صحيحة ✓" : "إجابة خاطئة ✗"}
               </div>
               {(feedback.written_correction || feedback.explanation) && (
-                <p style={{ marginTop: 8, color: "var(--text-muted)" }}>
+                <div
+                  className="banner"
+                  style={{ marginBottom: 10, textAlign: "right" }}
+                >
+                  <strong style={{ display: "block", marginBottom: 6 }}>شرح السؤال</strong>
                   <MathText>{feedback.written_correction || feedback.explanation}</MathText>
-                </p>
+                </div>
               )}
               {(feedback.explanation_image || feedback.text_image) && (
                 <img
@@ -290,7 +335,17 @@ export default function TestRunner() {
               )}
               {feedback.video_bunny_id && (
                 <div style={{ marginTop: 12 }}>
-                  <VideoPlayer bunnyId={feedback.video_bunny_id} />
+                  {showExplainVideo ? (
+                    <VideoPlayer bunnyId={feedback.video_bunny_id} />
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setShowExplainVideo(true)}
+                    >
+                      مشاهدة فيديو الشرح
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -300,20 +355,25 @@ export default function TestRunner() {
             <button
               type="button"
               className="btn btn-ghost"
-              disabled={idx === 0}
+              disabled={idx === 0 || !!verdict}
               onClick={() => go(idx - 1)}
             >
               ← السابق
             </button>
             {idx < questions.length - 1 ? (
-              <button type="button" className="btn btn-primary" disabled={!!verdict} onClick={goNext}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!!verdict || (selected && !checked)}
+                onClick={goNext}
+              >
                 التالي →
               </button>
             ) : (
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={!!verdict}
+                disabled={!!verdict || (selected && !checked)}
                 onClick={() => finish(false)}
               >
                 إنهاء الاختبار
@@ -338,11 +398,11 @@ export default function TestRunner() {
           </div>
           {exam.review_mode === "immediate" ? (
             <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 12 }}>
-              مراجعة فورية بعد كل سؤال
+              اختر إجابة ثم اضغط «تحقق»
             </p>
           ) : (
             <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 12 }}>
-              المراجعة في نهاية الاختبار
+              اختر إجابة ثم اضغط «تحقق» لمراجعة السؤال
             </p>
           )}
         </div>

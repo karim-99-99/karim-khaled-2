@@ -34,11 +34,19 @@ export default function CollectionLessonDetail() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [startBusy, setStartBusy] = useState(false);
-  const [selectedLevels, setSelectedLevels] = useState(["medium"]);
-  const [questionCount, setQuestionCount] = useState(10);
+  const [selectedLevels, setSelectedLevels] = useState(["easy", "medium", "hard"]);
 
   const canEdit = canEditSubject(user, subjectId || lesson?.subject);
   const listUrl = `/courses/${subjectId || lesson?.subject}/collections`;
+  const levelCounts = lesson?.collection_difficulty_counts || {
+    easy: 0,
+    medium: 0,
+    hard: 0,
+  };
+  const selectedQuestionTotal = selectedLevels.reduce(
+    (sum, id) => sum + (Number(levelCounts[id]) || 0),
+    0
+  );
 
   function loadLesson() {
     return client.get(`/lessons/${lessonId}/`).then((res) => {
@@ -117,13 +125,17 @@ export default function CollectionLessonDetail() {
       setMsg("اختر مستوى واحداً على الأقل");
       return;
     }
+    if (selectedQuestionTotal < 1) {
+      setMsg("لا توجد أسئلة في المستويات المختارة");
+      return;
+    }
     setStartBusy(true);
     try {
       const { data } = await client.post("/exams/simulator/", {
         subject: Number(subjectId || lesson.subject),
         lessons: [Number(lessonId)],
-        count: questionCount,
         levels: selectedLevels,
+        take_all: true,
       });
       navigate(`/exam/${data.exam.id}`);
     } catch (e) {
@@ -315,59 +327,47 @@ export default function CollectionLessonDetail() {
               ابدأ بالتدريب
             </div>
             <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 12 }}>
-              اختر مستوى أو أكثر (سهل / متوسط / صعب) ثم عدد الأسئلة.
+              اختر نوع الأسئلة (سهل / متوسط / صعب). الرقم بجانب كل مستوى هو عدد الأسئلة،
+              وهتطلع كلها للمستويات اللي تختارها — من غير ما تحدد العدد بنفسك.
             </p>
-            <div className="form-group" style={{ marginBottom: 14 }}>
-              <label>المستوى</label>
-              <div className="filter-row">
-                {LEVELS.map((lv) => (
-                  <span
-                    key={lv.id}
-                    className={`chip ${selectedLevels.includes(lv.id) ? "active" : ""}`}
-                    onClick={() => toggleLevel(lv.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        toggleLevel(lv.id);
-                      }
-                    }}
-                  >
-                    {lv.label}
-                  </span>
-                ))}
-              </div>
-            </div>
             <div className="form-group" style={{ marginBottom: 16 }}>
-              <label>عدد الأسئلة</label>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setQuestionCount((c) => Math.max(1, c - 1))}
-                >
-                  −
-                </button>
-                <div className="form-control" style={{ width: 80, textAlign: "center" }}>
-                  {questionCount}
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm"
-                  onClick={() => setQuestionCount((c) => Math.min(50, c + 1))}
-                >
-                  +
-                </button>
+              <label>نوع الأسئلة</label>
+              <div className="filter-row">
+                {LEVELS.map((lv) => {
+                  const n = Number(levelCounts[lv.id]) || 0;
+                  const active = selectedLevels.includes(lv.id);
+                  return (
+                    <span
+                      key={lv.id}
+                      className={`chip ${active ? "active" : ""}`}
+                      onClick={() => toggleLevel(lv.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          toggleLevel(lv.id);
+                        }
+                      }}
+                    >
+                      {lv.label} ({n})
+                    </span>
+                  );
+                })}
               </div>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 8, marginBottom: 0 }}>
+                إجمالي الأسئلة المختارة: <strong>{selectedQuestionTotal}</strong>
+              </p>
             </div>
             <button
               type="button"
               className="btn btn-primary"
-              disabled={startBusy || selectedLevels.length === 0}
+              disabled={startBusy || selectedLevels.length === 0 || selectedQuestionTotal < 1}
               onClick={startExam}
             >
-              {startBusy ? "جاري البدء…" : "ابدأ الاختبار"}
+              {startBusy
+                ? "جاري البدء…"
+                : `ابدأ الاختبار (${selectedQuestionTotal} سؤال)`}
             </button>
           </div>
 

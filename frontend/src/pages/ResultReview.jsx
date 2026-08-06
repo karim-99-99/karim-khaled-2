@@ -68,18 +68,28 @@ export default function ResultReview() {
           {a.text_image && (
             <img src={a.text_image} alt="" style={{ maxWidth: "100%", marginBottom: 10, borderRadius: 8 }} />
           )}
-          {a.options?.map((o) => (
-            <div key={o.key} style={{ marginBottom: 6, fontSize: 14 }}>
-              <span>{o.key})</span> <MathText>{o.text}</MathText>
-              {o.image && (
-                <img src={o.image} alt="" style={{ display: "block", maxWidth: 160, marginTop: 4, borderRadius: 6 }} />
-              )}
-            </div>
-          ))}
+          {a.options?.map((o) => {
+            let cls = "answer-option";
+            if (o.key === a.correct_answer) cls += " correct";
+            else if (o.key === a.selected_answer && o.key !== a.correct_answer) cls += " wrong";
+            return (
+              <div key={o.key} className={cls} style={{ cursor: "default" }}>
+                <span>{o.key})</span> <MathText>{o.text}</MathText>
+                {o.image && (
+                  <img
+                    src={o.image}
+                    alt=""
+                    style={{ display: "block", maxWidth: 160, marginTop: 4, borderRadius: 6 }}
+                  />
+                )}
+              </div>
+            );
+          })}
           {a.written_correction && (
-            <p style={{ fontSize: 14, color: "var(--text-muted)" }}>
+            <div className="banner" style={{ marginTop: 8, textAlign: "right" }}>
+              <strong style={{ display: "block", marginBottom: 6 }}>شرح السؤال</strong>
               <MathText>{a.written_correction}</MathText>
-            </p>
+            </div>
           )}
           {a.explanation_image && (
             <img src={a.explanation_image} alt="" style={{ maxWidth: "100%", marginTop: 8, borderRadius: 8 }} />
@@ -90,7 +100,7 @@ export default function ResultReview() {
                 <VideoPlayer bunnyId={a.video_bunny_id} />
               ) : (
                 <button className="btn btn-secondary btn-sm" onClick={() => setOpenVideo(a.id)}>
-                  تصحيح بالفيديو
+                  مشاهدة فيديو الشرح
                 </button>
               )}
             </div>

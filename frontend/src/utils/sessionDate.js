@@ -20,6 +20,14 @@ const TIME_OPTS = {
   minute: "2-digit",
 };
 
+/** Strip locale هـ / ه then add a single هـ. */
+function withSingleHijriMark(raw) {
+  const cleaned = String(raw || "")
+    .replace(/\s*هـ?\.?\s*$/u, "")
+    .trim();
+  return cleaned ? `${cleaned} هـ` : "";
+}
+
 export function formatSessionWhen(iso, { withWeekday = true } = {}) {
   if (!iso) return { gregorian: "—", hijri: "", time: "", line: "—" };
   const d = new Date(iso);
@@ -30,20 +38,21 @@ export function formatSessionWhen(iso, { withWeekday = true } = {}) {
     : { day: "numeric", month: "long", year: "numeric" };
 
   let gregorian = d.toLocaleDateString("ar-EG", gregOpts);
-  let hijri = "";
+  let hijriRaw = "";
   try {
-    hijri = d.toLocaleDateString("ar-SA-u-ca-islamic", HIJRI_OPTS);
+    hijriRaw = d.toLocaleDateString("ar-SA-u-ca-islamic", HIJRI_OPTS);
   } catch {
     try {
-      hijri = d.toLocaleDateString("ar-EG-u-ca-islamic", HIJRI_OPTS);
+      hijriRaw = d.toLocaleDateString("ar-EG-u-ca-islamic", HIJRI_OPTS);
     } catch {
-      hijri = "";
+      hijriRaw = "";
     }
   }
+  const hijri = withSingleHijriMark(hijriRaw);
   const time = d.toLocaleTimeString("ar-EG", TIME_OPTS);
 
   const line = hijri
-    ? `${gregorian} · ${hijri} هـ · ${time}`
+    ? `${gregorian} · ${hijri} · ${time}`
     : `${gregorian} · ${time}`;
 
   return { gregorian, hijri, time, line };

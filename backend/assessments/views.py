@@ -240,7 +240,9 @@ class StartSimulatorView(APIView):
     Personal simulator from تجميعات bank.
 
     Body:
-      subject, lessons[], count,
+      subject, lessons[],
+      count (used by personal simulator),
+      take_all (true = كل أسئلة المستويات المختارة — للتجميعات),
       level (easy|medium|hard|all) OR levels[] (one or more of easy/medium/hard),
       review_mode (immediate|final),
       question_pool (any|new|seen),
@@ -253,7 +255,13 @@ class StartSimulatorView(APIView):
         user = request.user
         subject_id = request.data.get("subject")
         lesson_ids = request.data.get("lessons") or []
-        count = int(request.data.get("count", 8))
+        take_all = bool(request.data.get("take_all"))
+        try:
+            count = int(request.data.get("count", 8))
+        except (TypeError, ValueError):
+            count = 8
+        if count < 1:
+            count = 1
         level = request.data.get("level", "medium")
         raw_levels = request.data.get("levels")
         levels = None
@@ -313,9 +321,12 @@ class StartSimulatorView(APIView):
                     },
                     status=status.HTTP_403_FORBIDDEN,
                 )
-            count = min(count, free_question_limit())
+            limit = free_question_limit()
+            pick_n = limit if take_all else min(count, limit)
             free_bank = bank.filter(free_order__isnull=False).order_by("free_order")
-            questions = list(free_bank[:count]) or _pick(bank, count)
+            questions = list(free_bank[:pick_n]) or _pick(bank, pick_n)
+        elif take_all:
+            questions = _pick(bank, bank.count())
         else:
             questions = _pick(bank, count)
 
@@ -674,21 +685,26 @@ class AnswerView(APIView):
         ans.answered_at = timezone.now()
         ans.save()
 
-        payload = {"saved": True, "is_correct": ans.is_correct}
-        # Immediate review reveals answer details right away.
-        if exam.review_mode == Exam.ReviewMode.IMMEDIATE:
-            q = ans.question
-            payload.update(
-                {
-                    "correct_answer": q.correct_answer,
-                    "written_correction": getattr(q, "written_correction", None)
-                    or getattr(q, "explanation", "")
-                    or "",
-                    "explanation_image": getattr(q, "explanation_image", "") or "",
-                    "video_bunny_id": q.video_bunny_id,
-                }
-            )
-        return Response(payload)
+        # Always return check details so the student can press «تحقق»
+        # and see correct/wrong + explanation / video.
+        q = ans.question
+        video_after = (
+            q.video_bunny_id
+            if q.video_timing == q.VideoTiming.AFTER and q.video_bunny_id
+            else ""
+        )
+        return Response(
+            {
+                "saved": True,
+                "is_correct": ans.is_correct,
+                "correct_answer": q.correct_answer,
+                "written_correction": getattr(q, "written_correction", None)
+                or getattr(q, "explanation", "")
+                or "",
+                "explanation_image": getattr(q, "explanation_image", "") or "",
+                "video_bunny_id": video_after,
+            }
+        )
 
 
 class FinishView(APIView):
