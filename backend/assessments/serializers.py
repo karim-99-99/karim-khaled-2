@@ -41,6 +41,7 @@ class CollectionQuestionSerializer(serializers.ModelSerializer):
             "subject",
             "lesson",
             "difficulty",
+            "question_year",
             "text",
             "text_image",
             "options",
@@ -72,6 +73,9 @@ class QuestionPublicSerializer(serializers.ModelSerializer):
     """Question as delivered to a student during an exam (no correct answer)."""
 
     video_before = serializers.SerializerMethodField()
+    subject_name = serializers.CharField(source="subject.name", read_only=True)
+    lesson_title = serializers.CharField(source="lesson.title", read_only=True)
+    difficulty_label = serializers.SerializerMethodField()
 
     class Meta:
         model = CollectionQuestion
@@ -82,10 +86,18 @@ class QuestionPublicSerializer(serializers.ModelSerializer):
             "options",
             "video_before",
             "video_bunny_id",
+            "difficulty",
+            "difficulty_label",
+            "subject_name",
+            "lesson_title",
+            "question_year",
         ]
 
     def get_video_before(self, obj):
         return obj.video_timing == CollectionQuestion.VideoTiming.BEFORE
+
+    def get_difficulty_label(self, obj):
+        return dict(CollectionQuestion.Difficulty.choices).get(obj.difficulty, obj.difficulty)
 
 
 class HomeworkPublicSerializer(serializers.ModelSerializer):
@@ -127,6 +139,11 @@ class ExamAnswerReviewSerializer(serializers.ModelSerializer):
     video_bunny_id = serializers.CharField(
         source="question.video_bunny_id", read_only=True
     )
+    difficulty = serializers.CharField(source="question.difficulty", read_only=True)
+    difficulty_label = serializers.SerializerMethodField()
+    subject_name = serializers.CharField(source="question.subject.name", read_only=True)
+    lesson_title = serializers.CharField(source="question.lesson.title", read_only=True)
+    question_year = serializers.CharField(source="question.question_year", read_only=True)
 
     class Meta:
         model = ExamAnswer
@@ -143,6 +160,11 @@ class ExamAnswerReviewSerializer(serializers.ModelSerializer):
             "written_correction",
             "explanation_image",
             "video_bunny_id",
+            "difficulty",
+            "difficulty_label",
+            "subject_name",
+            "lesson_title",
+            "question_year",
         ]
 
     def get_written_correction(self, obj):
@@ -151,6 +173,10 @@ class ExamAnswerReviewSerializer(serializers.ModelSerializer):
 
     def get_explanation_image(self, obj):
         return getattr(obj.question, "explanation_image", "") or ""
+
+    def get_difficulty_label(self, obj):
+        d = obj.question.difficulty
+        return dict(CollectionQuestion.Difficulty.choices).get(d, d)
 
 
 class ExamSerializer(serializers.ModelSerializer):

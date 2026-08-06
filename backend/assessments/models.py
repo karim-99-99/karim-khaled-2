@@ -63,8 +63,8 @@ class QuestionBase(models.Model):
     explanation = models.TextField(blank=True, default="")
     explanation_image = models.TextField(blank=True, default="")
 
-    # Every question (homework + collection) has a difficulty. It is NEVER shown
-    # to students; it is used only to filter questions per level.
+    # Every question (homework + collection) has a difficulty.
+    # Shown to students on collection/exam questions alongside subject & lesson.
     difficulty = models.CharField(
         max_length=10, choices=Difficulty.choices, default=Difficulty.MEDIUM
     )
@@ -106,6 +106,8 @@ class CollectionQuestion(QuestionBase):
     """
 
     written_correction = models.TextField(blank=True)
+    # Optional year label (e.g. 1445 or 2024) — shown to students when set.
+    question_year = models.CharField(max_length=20, blank=True, default="")
     # free_order 1..N marks a question as part of the free preview (first 10).
     free_order = models.PositiveIntegerField(null=True, blank=True)
 

@@ -823,6 +823,32 @@ html[data-subject="bio"] .order-controls__num {
   color: #fff;
 }
 
+.question-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.question-meta__chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--primary-light);
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border));
+  font-size: 13px;
+  line-height: 1.3;
+}
+.question-meta__label {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.question-meta__value {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
+
 .answer-option {
   padding: 16px;
   border: 1px solid var(--border);
@@ -899,6 +925,105 @@ html[data-subject="bio"] .order-controls__num {
   padding: 40px;
   color: var(--text-muted);
 }
+
+/* Flash صح / غلط في نص الشاشة بعد الإجابة */
+.answer-verdict {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: color-mix(in srgb, #0f172a 38%, transparent);
+  backdrop-filter: blur(3px);
+  cursor: pointer;
+  animation: verdict-fade-in 0.22s ease-out;
+}
+.answer-verdict__burst {
+  position: absolute;
+  width: min(70vw, 320px);
+  height: min(70vw, 320px);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: verdict-burst 0.7s ease-out;
+}
+.answer-verdict--ok .answer-verdict__burst {
+  background: radial-gradient(circle, color-mix(in srgb, #22c55e 45%, transparent), transparent 68%);
+}
+.answer-verdict--bad .answer-verdict__burst {
+  background: radial-gradient(circle, color-mix(in srgb, #ef4444 45%, transparent), transparent 68%);
+}
+.answer-verdict__mark {
+  position: relative;
+  width: min(42vw, 168px);
+  height: min(42vw, 168px);
+  animation: verdict-pop 0.55s cubic-bezier(0.22, 1.4, 0.36, 1);
+}
+.answer-verdict__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.28));
+}
+.answer-verdict__ring {
+  fill: #fff;
+  stroke-width: 6;
+}
+.answer-verdict--ok .answer-verdict__ring {
+  stroke: #16a34a;
+}
+.answer-verdict--bad .answer-verdict__ring {
+  stroke: #dc2626;
+}
+.answer-verdict__check {
+  stroke: #16a34a;
+  stroke-width: 10;
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: verdict-draw 0.45s 0.15s ease-out forwards;
+}
+.answer-verdict__x {
+  stroke: #dc2626;
+  stroke-width: 10;
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: verdict-draw 0.4s 0.12s ease-out forwards;
+}
+.answer-verdict__label {
+  position: relative;
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+  font-weight: 800;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+  animation: verdict-pop 0.5s 0.08s cubic-bezier(0.22, 1.4, 0.36, 1) both;
+}
+.answer-verdict--ok .answer-verdict__label {
+  color: #15803d;
+}
+.answer-verdict--bad .answer-verdict__label {
+  color: #b91c1c;
+}
+
+@keyframes verdict-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes verdict-pop {
+  from { transform: scale(0.4); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+@keyframes verdict-burst {
+  from { transform: scale(0.5); opacity: 0.9; }
+  to { transform: scale(1.35); opacity: 0; }
+}
+@keyframes verdict-draw {
+  to { stroke-dashoffset: 0; }
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;

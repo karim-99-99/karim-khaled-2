@@ -626,7 +626,9 @@ class TeacherTestViewSet(viewsets.ViewSet):
 
 
 def _exam_payload(exam):
-    answers = exam.answers.select_related("question").order_by("order")
+    answers = exam.answers.select_related(
+        "question", "question__subject", "question__lesson"
+    ).order_by("order")
     questions = [
         {
             "answer_id": a.id,
@@ -672,13 +674,12 @@ class AnswerView(APIView):
         ans.answered_at = timezone.now()
         ans.save()
 
-        payload = {"saved": True}
-        # Immediate review reveals correctness right away.
+        payload = {"saved": True, "is_correct": ans.is_correct}
+        # Immediate review reveals answer details right away.
         if exam.review_mode == Exam.ReviewMode.IMMEDIATE:
             q = ans.question
             payload.update(
                 {
-                    "is_correct": ans.is_correct,
                     "correct_answer": q.correct_answer,
                     "written_correction": getattr(q, "written_correction", None)
                     or getattr(q, "explanation", "")
@@ -739,7 +740,9 @@ class ExamReviewView(APIView):
         exam = Exam.objects.filter(id=exam_id, student=request.user).first()
         if not exam:
             return Response(status=status.HTTP_404_NOT_FOUND)
-        answers = exam.answers.select_related("question").order_by("order")
+        answers = exam.answers.select_related(
+            "question", "question__subject", "question__lesson"
+        ).order_by("order")
         if request.query_params.get("filter") == "wrong":
             answers = answers.filter(is_correct=False)
         return Response(

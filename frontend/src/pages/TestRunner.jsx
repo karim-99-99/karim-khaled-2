@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import client from "../api/client";
+import AnswerVerdictFlash from "../components/AnswerVerdictFlash";
 import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
+import QuestionMeta from "../components/QuestionMeta";
 import VideoPlayer from "../components/VideoPlayer";
 import { applySubjectTheme, lockSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 
@@ -20,9 +22,12 @@ export default function TestRunner() {
   const [idx, setIdx] = useState(0);
   const [answers, setAnswers] = useState({});
   const [feedback, setFeedback] = useState(null);
+  const [verdict, setVerdict] = useState(null);
+  const [lastResult, setLastResult] = useState({});
   const [showVideo, setShowVideo] = useState(false);
   const [remainSec, setRemainSec] = useState(null);
   const finishing = useRef(false);
+  const verdictTimer = useRef(null);
 
   useEffect(() => {
     client.get(`/exams/${examId}/`).then((res) => {
@@ -62,7 +67,37 @@ export default function TestRunner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [payload?.exam?.id, payload?.exam?.ends_at]);
 
+  useEffect(
+    () => () => {
+      if (verdictTimer.current) clearTimeout(verdictTimer.current);
+    },
+    []
+  );
+
+  function showVerdict(isCorrect, after) {
+    if (verdictTimer.current) clearTimeout(verdictTimer.current);
+    setVerdict(isCorrect ? "correct" : "wrong");
+    verdictTimer.current = setTimeout(() => {
+      setVerdict(null);
+      after?.();
+    }, 1500);
+  }
+
   async function finish(timedOut = false) {
+    if (finishing.current) return;
+    // On manual finish from last question, flash verdict first (not on timeout).
+    if (!timedOut && payload) {
+      const current = payload.questions[idx];
+      const result = current ? lastResult[current.answer_id] : undefined;
+      if (typeof result === "boolean" && !verdict) {
+        showVerdict(result, () => finishAfterVerdict(false));
+        return;
+      }
+    }
+    finishAfterVerdict(timedOut);
+  }
+
+  async function finishAfterVerdict(timedOut = false) {
     if (finishing.current) return;
     finishing.current = true;
     try {
@@ -89,10 +124,30 @@ export default function TestRunner() {
       answer_id: q.answer_id,
       selected: optionKey,
     });
+    if (typeof data.is_correct === "boolean") {
+      setLastResult((r) => ({ ...r, [q.answer_id]: data.is_correct }));
+    }
     if (immediate) setFeedback(data);
   }
 
+  function goNext() {
+    if (verdict) return;
+    const result = lastResult[q.answer_id];
+    const advance = () => {
+      setFeedback(null);
+      setShowVideo(false);
+      setIdx((i) => i + 1);
+    };
+    if (typeof result === "boolean") {
+      showVerdict(result, advance);
+      return;
+    }
+    advance();
+  }
+
   function go(nextIdx) {
+    // خريطة الأسئلة / السابق — بدون فلاش
+    if (verdict) return;
     setFeedback(null);
     setShowVideo(false);
     setIdx(nextIdx);
@@ -103,6 +158,7 @@ export default function TestRunner() {
 
   return (
     <div className="exam-shell">
+      <AnswerVerdictFlash verdict={verdict} onDone={() => {}} />
       <BackToCourses subjectId={exam.subject} />
       <div
         className="card"
@@ -169,6 +225,14 @@ export default function TestRunner() {
               )}
             </div>
           )}
+
+          <QuestionMeta
+            difficulty={q.difficulty}
+            difficultyLabel={q.difficulty_label}
+            subjectName={q.subject_name}
+            lessonTitle={q.lesson_title}
+            questionYear={q.question_year}
+          />
 
           <h3 style={{ fontSize: 18, marginBottom: 20, lineHeight: 1.8 }}>
             <MathText>{q.text}</MathText>
@@ -242,11 +306,16 @@ export default function TestRunner() {
               ← السابق
             </button>
             {idx < questions.length - 1 ? (
-              <button type="button" className="btn btn-primary" onClick={() => go(idx + 1)}>
+              <button type="button" className="btn btn-primary" disabled={!!verdict} onClick={goNext}>
                 التالي →
               </button>
             ) : (
-              <button type="button" className="btn btn-primary" onClick={() => finish(false)}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!!verdict}
+                onClick={() => finish(false)}
+              >
                 إنهاء الاختبار
               </button>
             )}

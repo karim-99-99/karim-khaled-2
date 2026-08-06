@@ -454,7 +454,8 @@ export default function CollectionLessonDetail() {
                   >
                     <div style={{ flex: 1 }}>
                       <strong>
-                        س{i + 1} · {levelLabel(item.difficulty)}:
+                        س{i + 1} · {levelLabel(item.difficulty)}
+                        {item.question_year ? ` · ${item.question_year}` : ""}:
                       </strong>{" "}
                       <MathText>{item.text}</MathText>
                       {item.text_image && (

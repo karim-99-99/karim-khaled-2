@@ -24,6 +24,7 @@ function formFromQuestion(q, defaultDifficulty) {
   if (!q) {
     return {
       difficulty: defaultDifficulty,
+      question_year: "",
       text: "",
       text_image: "",
       options: emptyOptions(),
@@ -36,6 +37,7 @@ function formFromQuestion(q, defaultDifficulty) {
   }
   return {
     difficulty: q.difficulty || defaultDifficulty,
+    question_year: q.question_year || "",
     text: q.text || "",
     text_image: q.text_image || "",
     options: normalizeOptions(q.options),
@@ -108,6 +110,7 @@ export default function TeacherQuestionForm({
     // تجميعات = بنك عام لكل الطلاب (بدون تقييد مجموعة)
     if (kind === "collection") {
       payload.group = null;
+      payload.question_year = (form.question_year || "").trim();
     }
     if (kind === "homework" && sectionId) {
       payload.section = Number(sectionId);
@@ -146,18 +149,29 @@ export default function TeacherQuestionForm({
       </h3>
 
       {kind === "collection" && (
-        <div className="form-group">
-          <label>المستوى</label>
-          <select
-            className="form-control"
-            value={form.difficulty}
-            onChange={(e) => setForm((f) => ({ ...f, difficulty: e.target.value }))}
-          >
-            <option value="easy">سهل</option>
-            <option value="medium">متوسط</option>
-            <option value="hard">صعب</option>
-          </select>
-        </div>
+        <>
+          <div className="form-group">
+            <label>المستوى</label>
+            <select
+              className="form-control"
+              value={form.difficulty}
+              onChange={(e) => setForm((f) => ({ ...f, difficulty: e.target.value }))}
+            >
+              <option value="easy">سهل</option>
+              <option value="medium">متوسط</option>
+              <option value="hard">صعب</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label>سنة السؤال (اختياري)</label>
+            <input
+              className="form-control"
+              value={form.question_year}
+              onChange={(e) => setForm((f) => ({ ...f, question_year: e.target.value }))}
+              placeholder="مثال: 1445 أو 2024 — اتركه فارغاً إن لم ترد"
+            />
+          </div>
+        </>
       )}
 
       <div className="form-group">

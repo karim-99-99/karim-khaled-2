@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import client from "../api/client";
 import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
+import QuestionMeta from "../components/QuestionMeta";
 import VideoPlayer from "../components/VideoPlayer";
 import { applySubjectTheme, lockSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 
@@ -54,6 +55,13 @@ export default function ResultReview() {
             سؤال {a.order + 1} — {a.is_correct ? "صحيح" : "خطأ"} · إجابتك: {a.selected_answer || "—"}
             {!a.is_correct && ` · الصحيح: ${a.correct_answer}`}
           </div>
+          <QuestionMeta
+            difficulty={a.difficulty}
+            difficultyLabel={a.difficulty_label}
+            subjectName={a.subject_name}
+            lessonTitle={a.lesson_title}
+            questionYear={a.question_year}
+          />
           <div style={{ marginBottom: 10 }}>
             <MathText>{a.question_text}</MathText>
           </div>
