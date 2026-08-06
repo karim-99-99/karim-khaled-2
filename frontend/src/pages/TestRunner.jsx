@@ -30,6 +30,7 @@ export default function TestRunner() {
   const [remainSec, setRemainSec] = useState(null);
   const finishing = useRef(false);
   const verdictTimer = useRef(null);
+  const pendingFeedback = useRef(null);
 
   useEffect(() => {
     client.get(`/exams/${examId}/`).then((res) => {
@@ -82,7 +83,17 @@ export default function TestRunner() {
     verdictTimer.current = setTimeout(() => {
       setVerdict(null);
       after?.();
-    }, 1500);
+    }, 1700);
+  }
+
+  function dismissVerdict() {
+    if (!verdict) return;
+    if (verdictTimer.current) clearTimeout(verdictTimer.current);
+    setVerdict(null);
+    if (pendingFeedback.current) {
+      setFeedback(pendingFeedback.current);
+      setShowExplainVideo(false);
+    }
   }
 
   function clearQuestionUi() {
@@ -93,15 +104,6 @@ export default function TestRunner() {
 
   async function finish(timedOut = false) {
     if (finishing.current || verdict) return;
-    const isTeacherExam = payload?.exam?.exam_type === "teacher";
-    if (!timedOut && isTeacherExam) {
-      const current = payload.questions[idx];
-      const check = current ? checkByAnswer[current.answer_id] : null;
-      if (check && typeof check.is_correct === "boolean") {
-        showVerdict(check.is_correct, () => finishAfterVerdict(false));
-        return;
-      }
-    }
     finishAfterVerdict(timedOut);
   }
 
@@ -123,17 +125,12 @@ export default function TestRunner() {
 
   const { exam, questions } = payload;
   const q = questions[idx];
-  const isSimulator = exam.exam_type === "simulator";
-  const isTeacherExam = exam.exam_type === "teacher";
   const timed = exam.time_limit_minutes > 0 && exam.ends_at;
   const selected = answers[q.answer_id];
-  const answerCheck = checkByAnswer[q.answer_id] || null;
-  const navBlocked = !!verdict || answerBusy || !selected;
+  const navBlocked = !!verdict || answerBusy || !selected || !feedback;
 
   async function choose(optionKey) {
-    if (answerBusy || verdict) return;
-    // Simulator: lock after revealing the answer.
-    if (isSimulator && feedback) return;
+    if (answerBusy || verdict || feedback) return;
     setAnswers((a) => ({ ...a, [q.answer_id]: optionKey }));
     setAnswerBusy(true);
     try {
@@ -142,8 +139,14 @@ export default function TestRunner() {
         selected: optionKey,
       });
       setCheckByAnswer((m) => ({ ...m, [q.answer_id]: data }));
-      if (isSimulator) {
-        // Show final answer immediately — no «تحقق», no flash graphic.
+      pendingFeedback.current = data;
+      // Big ✓ / ✗ in the center, then reveal explanation / video.
+      if (typeof data.is_correct === "boolean") {
+        showVerdict(data.is_correct, () => {
+          setFeedback(pendingFeedback.current);
+          setShowExplainVideo(false);
+        });
+      } else {
         setFeedback(data);
         setShowExplainVideo(false);
       }
@@ -156,28 +159,18 @@ export default function TestRunner() {
 
   function goNext() {
     if (verdict || answerBusy) return;
-    if (!selected) return;
-    const advance = () => {
-      clearQuestionUi();
-      setIdx((i) => i + 1);
-    };
-    if (isTeacherExam && answerCheck && typeof answerCheck.is_correct === "boolean") {
-      showVerdict(answerCheck.is_correct, advance);
-      return;
-    }
-    advance();
+    if (!selected || !feedback) return;
+    clearQuestionUi();
+    setIdx((i) => i + 1);
   }
 
   function go(nextIdx) {
     if (verdict || answerBusy) return;
     clearQuestionUi();
     setIdx(nextIdx);
-    // Restore simulator explanation if they revisit an answered question.
     const nextQ = questions[nextIdx];
     const saved = nextQ ? checkByAnswer[nextQ.answer_id] : null;
-    if (isSimulator && saved) {
-      setFeedback(saved);
-    }
+    if (saved) setFeedback(saved);
   }
 
   const answeredCount = Object.keys(answers).length;
@@ -185,7 +178,7 @@ export default function TestRunner() {
 
   return (
     <div className="exam-shell">
-      <AnswerVerdictFlash verdict={verdict} onDone={() => {}} />
+      <AnswerVerdictFlash verdict={verdict} onDone={dismissVerdict} />
       <BackToCourses subjectId={exam.subject} />
       <div
         className="card"
@@ -299,7 +292,7 @@ export default function TestRunner() {
             <p style={{ marginTop: 12, color: "var(--text-muted)", fontSize: 13 }}>جاري الحفظ…</p>
           )}
 
-          {isSimulator && feedback && (
+          {feedback && (
             <div style={{ marginTop: 16 }}>
               <div
                 style={{
@@ -341,6 +334,15 @@ export default function TestRunner() {
                   )}
                 </div>
               )}
+              {!feedback.written_correction &&
+                !feedback.explanation &&
+                !feedback.explanation_image &&
+                !feedback.text_image &&
+                !feedback.video_bunny_id && (
+                  <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                    لا يوجد شرح نصي أو فيديو لهذا السؤال.
+                  </p>
+                )}
             </div>
           )}
 
@@ -360,7 +362,7 @@ export default function TestRunner() {
                 disabled={navBlocked}
                 onClick={goNext}
               >
-                التالي →
+                تحقق →
               </button>
             ) : (
               <button
@@ -390,9 +392,7 @@ export default function TestRunner() {
             })}
           </div>
           <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 12 }}>
-            {isSimulator
-              ? "اختر إجابة لعرض التصحيح فوراً"
-              : "اختر إجابة ثم اضغط «التالي» لمعرفة النتيجة"}
+            بعد اختيار الإجابة تظهر علامة الصح أو الخطأ، ثم شرح المدرس أو فيديو الشرح إن وُجد
           </p>
         </div>
       </div>

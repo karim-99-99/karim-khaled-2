@@ -1104,8 +1104,8 @@ html[data-subject] .answer-option.wrong {
 }
 .answer-verdict__mark {
   position: relative;
-  width: min(42vw, 168px);
-  height: min(42vw, 168px);
+  width: min(56vw, 220px);
+  height: min(56vw, 220px);
   animation: verdict-pop 0.55s cubic-bezier(0.22, 1.4, 0.36, 1);
 }
 .answer-verdict__svg {
