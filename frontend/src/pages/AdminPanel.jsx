@@ -40,17 +40,37 @@ function AccountsTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  function load() {
-    setLoading(true);
+  function load(silent = false) {
+    if (!silent) setLoading(true);
     setError("");
     warmApi();
-    Promise.all([
-      client.get("/admin/accounts/"),
-      client.get("/subjects/"),
-    ])
-      .then(([accountsRes, subjectsRes]) => {
+    let subjectsP;
+    try {
+      const raw = sessionStorage.getItem("zad_subjects_cache_v1");
+      if (raw) {
+        const list = JSON.parse(raw);
+        if (Array.isArray(list) && list.length) {
+          setSubjects(list);
+          subjectsP = Promise.resolve(null);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    if (!subjectsP) {
+      subjectsP = client.get("/subjects/").then((subjectsRes) => {
+        const list = subjectsRes.data.results || subjectsRes.data || [];
+        setSubjects(list);
+        try {
+          sessionStorage.setItem("zad_subjects_cache_v1", JSON.stringify(list));
+        } catch {
+          /* ignore */
+        }
+      });
+    }
+    Promise.all([client.get("/admin/accounts/"), subjectsP])
+      .then(([accountsRes]) => {
         setData(accountsRes.data);
-        setSubjects(subjectsRes.data.results || subjectsRes.data || []);
       })
       .catch((e) => {
         setError(
@@ -66,9 +86,52 @@ function AccountsTab() {
     load();
   }, []);
 
+  function patchStudent(userId, patch) {
+    setData((d) => {
+      if (!d) return d;
+      return {
+        ...d,
+        students: d.students.map((s) => (s.id === userId ? { ...s, ...patch } : s)),
+      };
+    });
+  }
+
+  function patchTeacher(userId, patch) {
+    setData((d) => {
+      if (!d) return d;
+      return {
+        ...d,
+        teachers: d.teachers.map((t) => (t.id === userId ? { ...t, ...patch } : t)),
+      };
+    });
+  }
+
+  function removeAccount(userId, role) {
+    setData((d) => {
+      if (!d) return d;
+      if (role === "teacher") {
+        return {
+          ...d,
+          teachers: d.teachers.filter((t) => t.id !== userId),
+          totals: { ...d.totals, teachers: Math.max(0, (d.totals.teachers || 1) - 1) },
+        };
+      }
+      return {
+        ...d,
+        students: d.students.filter((s) => s.id !== userId),
+        totals: { ...d.totals, students: Math.max(0, (d.totals.students || 1) - 1) },
+      };
+    });
+  }
+
   async function toggleActive(userId, current) {
-    await client.patch(`/admin/users/${userId}/set-active/`, { is_active: !current });
-    load();
+    try {
+      await client.patch(`/admin/users/${userId}/set-active/`, { is_active: !current });
+      patchStudent(userId, { is_active: !current });
+      patchTeacher(userId, { is_active: !current });
+    } catch (e) {
+      window.alert(e.response?.data?.detail || "تعذّر تحديث الحالة");
+    }
   }
 
   async function grantSubscription(userId) {
@@ -83,8 +146,19 @@ function AccountsTab() {
       return;
     }
     try {
-      await client.post(`/admin/users/${userId}/grant-subscription/`, { days });
-      load();
+      const { data: res } = await client.post(`/admin/users/${userId}/grant-subscription/`, { days });
+      const sub = res?.subscription;
+      patchStudent(userId, {
+        is_active: true,
+        subscription: {
+          subscription_status: "active",
+          subscription_plan: sub?.plan ?? null,
+          subscription_plan_label: sub?.plan ?? null,
+          subscription_start: sub?.start_date ?? null,
+          subscription_end: sub?.end_date ?? null,
+          subscription_days_remaining: sub?.days_remaining ?? days,
+        },
+      });
     } catch (e) {
       window.alert(e.response?.data?.detail || "تعذّر منح الاشتراك");
     }
@@ -98,7 +172,7 @@ function AccountsTab() {
     if (!ok) return;
     try {
       await client.delete(`/admin/users/${user.id}/delete/`);
-      load();
+      removeAccount(user.id, user.role);
     } catch (e) {
       window.alert(e.response?.data?.detail || "تعذّر حذف الحساب");
     }
@@ -119,7 +193,8 @@ function AccountsTab() {
         password: password.trim(),
       });
       window.alert("تم تعيين كلمة المرور. احفظها وأرسلها للطالب الآن — لن تظهر مرة أخرى من قاعدة البيانات.");
-      load();
+      patchStudent(user.id, { has_usable_password: true });
+      patchTeacher(user.id, { has_usable_password: true });
     } catch (e) {
       window.alert(e.response?.data?.detail || "تعذّر تعيين كلمة المرور");
     }
@@ -128,10 +203,14 @@ function AccountsTab() {
   async function changeTeacherSubject(teacherId, subjectId) {
     if (!subjectId) return;
     try {
-      await client.patch(`/admin/users/${teacherId}/set-subject/`, {
+      const { data: res } = await client.patch(`/admin/users/${teacherId}/set-subject/`, {
         taught_subject: Number(subjectId),
       });
-      load();
+      const subj = subjects.find((s) => Number(s.id) === Number(subjectId));
+      patchTeacher(teacherId, {
+        subject_id: Number(subjectId),
+        subject_name: res?.taught_subject_name || subj?.name || res?.subject_name,
+      });
     } catch (e) {
       window.alert(e.response?.data?.detail || "تعذّر تغيير المادة");
     }
@@ -216,7 +295,7 @@ function AccountsTab() {
               </thead>
               <tbody>
                 {pending.map((p) => (
-                  <PendingRow key={p.id} account={p} subjects={subjects} onDone={load} />
+                  <PendingRow key={p.id} account={p} subjects={subjects} onDone={() => load(true)} />
                 ))}
               </tbody>
             </table>
@@ -572,7 +651,13 @@ function GroupsTab() {
       await client.post(`/admin/groups/${open.id}/students/`, { student_id: Number(studentId) });
       setStudentId("");
       openGroup(open);
-      load();
+      setGroups((gs) =>
+        gs.map((g) =>
+          g.id === open.id
+            ? { ...g, student_count: (g.student_count || 0) + 1 }
+            : g
+        )
+      );
       loadPickers(true);
     } catch (e) {
       setMsg(e.response?.data?.detail || "تعذّر إضافة الطالب");

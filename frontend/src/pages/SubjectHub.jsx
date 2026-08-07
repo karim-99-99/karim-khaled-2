@@ -13,9 +13,26 @@ export default function SubjectHub() {
   const canEdit = canEditSubject(user, subjectId);
 
   useEffect(() => {
-    client.get(`/subjects/`).then((res) => {
-      const list = res.data.results || res.data;
-      setSubject(list.find((s) => String(s.id) === subjectId));
+    try {
+      const raw = sessionStorage.getItem("zad_subjects_cache_v1");
+      if (raw) {
+        const list = JSON.parse(raw);
+        const hit = (list || []).find((s) => String(s.id) === String(subjectId));
+        if (hit) {
+          setSubject(hit);
+          return;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    client.get(`/subjects/${subjectId}/`).then((res) => {
+      setSubject(res.data);
+    }).catch(() => {
+      client.get(`/subjects/`).then((res) => {
+        const list = res.data.results || res.data;
+        setSubject(list.find((s) => String(s.id) === subjectId) || null);
+      });
     });
   }, [subjectId]);
 

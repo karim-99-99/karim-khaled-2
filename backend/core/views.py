@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
 from catalog.models import Lesson, Subject
-from catalog.serializers import LessonSerializer, SubjectSerializer
+from catalog.serializers import LessonListSerializer, SubjectSerializer, annotate_lesson_list
 from .models import VideoView
 from .services import signed_embed_url
 
@@ -22,13 +22,15 @@ def _client_ip(request):
 def home_free_content(request):
     """Public: subjects + free-preview lessons shown to visitors on the home page."""
     subjects = Subject.objects.all()
-    free_lessons = Lesson.objects.filter(
-        is_free_preview=True, is_archived=False
-    ).select_related("subject")
+    free_lessons = annotate_lesson_list(
+        Lesson.objects.filter(is_free_preview=True, is_archived=False).select_related(
+            "subject"
+        )
+    )
     return Response(
         {
             "subjects": SubjectSerializer(subjects, many=True).data,
-            "free_lessons": LessonSerializer(free_lessons, many=True).data,
+            "free_lessons": LessonListSerializer(free_lessons, many=True).data,
             "free_question_limit": settings.FREE_TIER_QUESTION_LIMIT,
         }
     )

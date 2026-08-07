@@ -1,3 +1,4 @@
+from django.db.models import Count, Q
 from rest_framework import serializers
 
 from core.access import lesson_is_free_preview, user_has_full_content_access
@@ -41,11 +42,23 @@ class LessonSectionSerializer(serializers.ModelSerializer):
         return not lesson_is_free_preview(obj.lesson)
 
 
-class LessonSerializer(serializers.ModelSerializer):
+def _difficulty_counts_from(obj):
+    """Prefer queryset annotations; fall back to zeros (avoid N+1 on lists)."""
+    if hasattr(obj, "_cq_easy"):
+        return {
+            "easy": obj._cq_easy or 0,
+            "medium": obj._cq_medium or 0,
+            "hard": obj._cq_hard or 0,
+        }
+    return {"easy": 0, "medium": 0, "hard": 0}
+
+
+class LessonListSerializer(serializers.ModelSerializer):
+    """Lightweight list payload — no nested sections (big win for courses pages)."""
+
     subject_name = serializers.CharField(source="subject.name", read_only=True)
     is_locked = serializers.SerializerMethodField()
     sections_count = serializers.SerializerMethodField()
-    sections = LessonSectionSerializer(many=True, read_only=True)
     collection_difficulty_counts = serializers.SerializerMethodField()
 
     class Meta:
@@ -63,7 +76,6 @@ class LessonSerializer(serializers.ModelSerializer):
             "is_locked",
             "is_archived",
             "sections_count",
-            "sections",
             "collection_difficulty_counts",
             "created_at",
         ]
@@ -89,8 +101,22 @@ class LessonSerializer(serializers.ModelSerializer):
         return obj.sections.count()
 
     def get_collection_difficulty_counts(self, obj):
-        from django.db.models import Count
+        return _difficulty_counts_from(obj)
 
+
+class LessonSerializer(LessonListSerializer):
+    """Detail payload — includes nested sections."""
+
+    sections = LessonSectionSerializer(many=True, read_only=True)
+
+    class Meta(LessonListSerializer.Meta):
+        fields = LessonListSerializer.Meta.fields + ["sections"]
+
+    def get_collection_difficulty_counts(self, obj):
+        counts = _difficulty_counts_from(obj)
+        if hasattr(obj, "_cq_easy"):
+            return counts
+        # Single-lesson retrieve without annotate: one query is acceptable.
         from assessments.models import CollectionQuestion
 
         rows = (
@@ -104,3 +130,25 @@ class LessonSerializer(serializers.ModelSerializer):
             if key in out:
                 out[key] = row["c"]
         return out
+
+
+def annotate_lesson_list(qs):
+    """Annotate section + collection difficulty counts in one SQL query."""
+    return qs.annotate(
+        _sections_count=Count("sections", distinct=True),
+        _cq_easy=Count(
+            "collectionquestions",
+            filter=Q(collectionquestions__difficulty="easy"),
+            distinct=True,
+        ),
+        _cq_medium=Count(
+            "collectionquestions",
+            filter=Q(collectionquestions__difficulty="medium"),
+            distinct=True,
+        ),
+        _cq_hard=Count(
+            "collectionquestions",
+            filter=Q(collectionquestions__difficulty="hard"),
+            distinct=True,
+        ),
+    )

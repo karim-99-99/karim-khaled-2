@@ -7,7 +7,13 @@ from rest_framework.response import Response
 from core.access import assert_teacher_can_manage_subject
 from core.permissions import IsAdminOrReadOnly
 from .models import Lesson, LessonSection, Subject
-from .serializers import LessonSectionSerializer, LessonSerializer, SubjectSerializer
+from .serializers import (
+    LessonListSerializer,
+    LessonSectionSerializer,
+    LessonSerializer,
+    SubjectSerializer,
+    annotate_lesson_list,
+)
 
 
 def _subject_id_from(value):
@@ -23,17 +29,13 @@ class SubjectViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=["get"])
     def lessons(self, request, pk=None):
-        qs = (
-            Lesson.objects.filter(subject_id=pk, is_archived=False)
-            .select_related("subject")
-            .annotate(_sections_count=Count("sections"))
-            .prefetch_related(
-                Prefetch("sections", queryset=LessonSection.objects.order_by("order_number", "id"))
+        qs = annotate_lesson_list(
+            Lesson.objects.filter(subject_id=pk, is_archived=False).select_related(
+                "subject"
             )
-            .order_by("order_number", "id")
-        )
+        ).order_by("order_number", "id")
         return Response(
-            LessonSerializer(qs, many=True, context={"request": request}).data
+            LessonListSerializer(qs, many=True, context={"request": request}).data
         )
 
 
@@ -47,14 +49,22 @@ class LessonViewSet(viewsets.ModelViewSet):
 
         return [IsTeacherOrAdmin()]
 
+    def get_serializer_class(self):
+        if self.action == "list":
+            return LessonListSerializer
+        return LessonSerializer
+
     def get_queryset(self):
-        qs = (
-            Lesson.objects.filter(is_archived=False)
-            .select_related("subject")
-            .annotate(_sections_count=Count("sections"))
-            .prefetch_related("sections")
-            .order_by("order_number", "id")
-        )
+        qs = annotate_lesson_list(
+            Lesson.objects.filter(is_archived=False).select_related("subject")
+        ).order_by("order_number", "id")
+        if self.action == "retrieve":
+            qs = qs.prefetch_related(
+                Prefetch(
+                    "sections",
+                    queryset=LessonSection.objects.order_by("order_number", "id"),
+                )
+            )
         subject = self.request.query_params.get("subject")
         if subject:
             qs = qs.filter(subject_id=subject)
@@ -103,11 +113,13 @@ class LessonViewSet(viewsets.ModelViewSet):
                 Lesson.objects.filter(id=lid).update(order_number=10000 + i)
             for i, lid in enumerate(ids):
                 Lesson.objects.filter(id=lid).update(order_number=i + 1)
-        rows = Lesson.objects.filter(subject_id=subject_id, is_archived=False).order_by(
-            "order_number", "id"
-        )
+        rows = annotate_lesson_list(
+            Lesson.objects.filter(subject_id=subject_id, is_archived=False).select_related(
+                "subject"
+            )
+        ).order_by("order_number", "id")
         return Response(
-            LessonSerializer(rows, many=True, context={"request": request}).data
+            LessonListSerializer(rows, many=True, context={"request": request}).data
         )
 
     @action(detail=True, methods=["get", "post"])

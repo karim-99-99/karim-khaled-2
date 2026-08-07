@@ -41,9 +41,8 @@ def study_group_queryset(base=None):
                 distinct=True,
             ),
         )
+        # List only needs teachers + counts — do NOT prefetch every student.
         .prefetch_related(
-            "student_links__student",
-            active_subs_prefetch("student_links__student__"),
             "teacher_links__teacher",
             "teacher_links__subject",
         )

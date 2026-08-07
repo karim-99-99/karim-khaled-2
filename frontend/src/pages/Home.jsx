@@ -13,19 +13,27 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      try {
-        const free = await client.get("/home/free-content/");
-        if (!cancelled) setContent(free.data);
-      } catch {
-        if (!cancelled) setContent({ subjects: [], free_lessons: [] });
+      const freeP = client
+        .get("/home/free-content/")
+        .then((res) => {
+          if (!cancelled) setContent(res.data);
+        })
+        .catch(() => {
+          if (!cancelled) setContent({ subjects: [], free_lessons: [] });
+        });
+      if (!user) {
+        await freeP;
+        return;
       }
-      if (!user || cancelled) return;
-      try {
-        const nextRes = await client.get("/home/next-session/");
-        if (!cancelled) setNext(nextRes.data);
-      } catch {
-        if (!cancelled) setNext(null);
-      }
+      const nextP = client
+        .get("/home/next-session/")
+        .then((res) => {
+          if (!cancelled) setNext(res.data);
+        })
+        .catch(() => {
+          if (!cancelled) setNext(null);
+        });
+      await Promise.all([freeP, nextP]);
     };
     load();
     return () => {

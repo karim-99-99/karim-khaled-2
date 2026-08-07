@@ -99,21 +99,31 @@ class User(AbstractUser):
 
     @property
     def has_active_subscription(self):
+        if hasattr(self, "_has_active_sub_cached"):
+            return self._has_active_sub_cached
         cached = self._cached_active_subs()
         if cached is not None:
-            return bool(cached)
-        return self.subscriptions.filter(end_date__gte=timezone.now().date()).exists()
+            self._has_active_sub_cached = bool(cached)
+            return self._has_active_sub_cached
+        self._has_active_sub_cached = self.subscriptions.filter(
+            end_date__gte=timezone.now().date()
+        ).exists()
+        return self._has_active_sub_cached
 
     @property
     def active_subscription(self):
+        if hasattr(self, "_active_subscription_cached"):
+            return self._active_subscription_cached
         cached = self._cached_active_subs()
         if cached is not None:
-            return cached[0] if cached else None
-        return (
+            self._active_subscription_cached = cached[0] if cached else None
+            return self._active_subscription_cached
+        self._active_subscription_cached = (
             self.subscriptions.filter(end_date__gte=timezone.now().date())
             .order_by("-end_date")
             .first()
         )
+        return self._active_subscription_cached
 
 
 class TelegramOAuthState(models.Model):

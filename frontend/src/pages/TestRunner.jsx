@@ -83,7 +83,7 @@ export default function TestRunner() {
     verdictTimer.current = setTimeout(() => {
       setVerdict(null);
       after?.();
-    }, 1700);
+    }, 750);
   }
 
   function dismissVerdict() {
@@ -140,15 +140,10 @@ export default function TestRunner() {
       });
       setCheckByAnswer((m) => ({ ...m, [q.answer_id]: data }));
       pendingFeedback.current = data;
-      // Big ✓ / ✗ in the center, then reveal explanation / video.
+      setFeedback(data);
+      setShowExplainVideo(false);
       if (typeof data.is_correct === "boolean") {
-        showVerdict(data.is_correct, () => {
-          setFeedback(pendingFeedback.current);
-          setShowExplainVideo(false);
-        });
-      } else {
-        setFeedback(data);
-        setShowExplainVideo(false);
+        showVerdict(data.is_correct);
       }
     } catch {
       /* keep selection; student can retry */

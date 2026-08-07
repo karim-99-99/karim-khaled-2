@@ -637,6 +637,16 @@ class TeacherTestViewSet(viewsets.ViewSet):
 
 
 def _exam_payload(exam):
+    from django.db.models import Count, Q
+
+    if not hasattr(exam, "_ann_correct"):
+        stats = exam.answers.aggregate(
+            _ann_correct=Count("id", filter=Q(is_correct=True)),
+            _ann_wrong=Count("id", filter=Q(is_correct=False, skipped=False)),
+        )
+        exam._ann_correct = stats["_ann_correct"]
+        exam._ann_wrong = stats["_ann_wrong"]
+
     answers = exam.answers.select_related(
         "question", "question__subject", "question__lesson"
     ).order_by("order")
@@ -660,7 +670,20 @@ class ExamDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, exam_id):
-        exam = Exam.objects.filter(id=exam_id, student=request.user).first()
+        from django.db.models import Count, Q
+
+        exam = (
+            Exam.objects.filter(id=exam_id, student=request.user)
+            .select_related("subject")
+            .annotate(
+                _ann_correct=Count("answers", filter=Q(answers__is_correct=True)),
+                _ann_wrong=Count(
+                    "answers",
+                    filter=Q(answers__is_correct=False, answers__skipped=False),
+                ),
+            )
+            .first()
+        )
         if not exam:
             return Response(status=status.HTTP_404_NOT_FOUND)
         return Response(_exam_payload(exam))
@@ -670,7 +693,7 @@ class AnswerView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request, exam_id):
-        exam = Exam.objects.filter(id=exam_id, student=request.user).first()
+        exam = Exam.objects.filter(id=exam_id, student=request.user).only("id").first()
         if not exam:
             return Response(status=status.HTTP_404_NOT_FOUND)
         answer_id = request.data.get("answer_id")
@@ -683,10 +706,10 @@ class AnswerView(APIView):
         ans.skipped = skipped
         ans.is_correct = (not skipped) and selected == ans.question.correct_answer
         ans.answered_at = timezone.now()
-        ans.save()
+        ans.save(
+            update_fields=["selected_answer", "skipped", "is_correct", "answered_at"]
+        )
 
-        # Always return check details so the student can press «تحقق»
-        # and see correct/wrong + explanation / video.
         q = ans.question
         video_after = (
             q.video_bunny_id
