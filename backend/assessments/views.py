@@ -339,6 +339,20 @@ class StartSimulatorView(APIView):
                 detail = "لا توجد أسئلة متاحة بهذه الإعدادات في بنك التجميعات"
             return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
 
+        title_override = (request.data.get("title") or "").strip()[:200]
+        if not title_override and take_all and len(lesson_ids) == 1:
+            from catalog.models import Lesson
+
+            lesson_row = (
+                Lesson.objects.filter(id=lesson_ids[0])
+                .select_related("subject")
+                .first()
+            )
+            if lesson_row:
+                title_override = (
+                    f"تجميعات {lesson_row.subject.name} ( {lesson_row.title} )"
+                )
+
         exam = Exam.objects.create(
             student=user,
             subject_id=subject_id,
@@ -349,6 +363,7 @@ class StartSimulatorView(APIView):
             question_count=len(questions),
             is_free_attempt=free,
             time_limit_minutes=time_limit,
+            title_override=title_override,
         )
         for lid in lesson_ids:
             ExamLesson.objects.get_or_create(exam=exam, lesson_id=lid)

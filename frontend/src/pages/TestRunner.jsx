@@ -127,10 +127,14 @@ export default function TestRunner() {
   const q = questions[idx];
   const timed = exam.time_limit_minutes > 0 && exam.ends_at;
   const selected = answers[q.answer_id];
-  const navBlocked = !!verdict || answerBusy || !selected || !feedback;
+  const isFinalReview = exam.review_mode !== "immediate";
+  const navBlocked = isFinalReview
+    ? !!verdict || answerBusy || !selected
+    : !!verdict || answerBusy || !selected || !feedback;
 
   async function choose(optionKey) {
-    if (answerBusy || verdict || feedback) return;
+    if (answerBusy || verdict) return;
+    if (!isFinalReview && feedback) return;
     setAnswers((a) => ({ ...a, [q.answer_id]: optionKey }));
     setAnswerBusy(true);
     try {
@@ -138,12 +142,23 @@ export default function TestRunner() {
         answer_id: q.answer_id,
         selected: optionKey,
       });
-      setCheckByAnswer((m) => ({ ...m, [q.answer_id]: data }));
-      pendingFeedback.current = data;
-      setFeedback(data);
-      setShowExplainVideo(false);
-      if (typeof data.is_correct === "boolean") {
-        showVerdict(data.is_correct);
+      if (isFinalReview) {
+        // Save only — reveal correct/wrong + explanation after finishing.
+        pendingFeedback.current = null;
+        setFeedback(null);
+        setCheckByAnswer((m) => {
+          const next = { ...m };
+          delete next[q.answer_id];
+          return next;
+        });
+      } else {
+        setCheckByAnswer((m) => ({ ...m, [q.answer_id]: data }));
+        pendingFeedback.current = data;
+        setFeedback(data);
+        setShowExplainVideo(false);
+        if (typeof data.is_correct === "boolean") {
+          showVerdict(data.is_correct);
+        }
       }
     } catch {
       /* keep selection; student can retry */
@@ -154,7 +169,8 @@ export default function TestRunner() {
 
   function goNext() {
     if (verdict || answerBusy) return;
-    if (!selected || !feedback) return;
+    if (!selected) return;
+    if (!isFinalReview && !feedback) return;
     clearQuestionUi();
     setIdx((i) => i + 1);
   }
@@ -163,6 +179,7 @@ export default function TestRunner() {
     if (verdict || answerBusy) return;
     clearQuestionUi();
     setIdx(nextIdx);
+    if (isFinalReview) return;
     const nextQ = questions[nextIdx];
     const saved = nextQ ? checkByAnswer[nextQ.answer_id] : null;
     if (saved) setFeedback(saved);
@@ -263,7 +280,7 @@ export default function TestRunner() {
           {q.options.map((o) => {
             let cls = "answer-option";
             if (selected === o.key) cls += " selected";
-            if (feedback) {
+            if (!isFinalReview && feedback) {
               if (o.key === feedback.correct_answer) cls = "answer-option correct";
               else if (o.key === selected && o.key !== feedback.correct_answer) {
                 cls = "answer-option wrong";
@@ -271,14 +288,17 @@ export default function TestRunner() {
             }
             return (
               <div key={o.key} className={cls} onClick={() => choose(o.key)}>
-                <span>{o.key})</span> <MathText>{o.text}</MathText>
-                {o.image && (
-                  <img
-                    src={o.image}
-                    alt=""
-                    style={{ display: "block", maxWidth: 180, marginTop: 8, borderRadius: 6 }}
-                  />
-                )}
+                <span className="answer-option__key">{o.key}</span>
+                <div className="answer-option__body">
+                  <MathText>{o.text}</MathText>
+                  {o.image && (
+                    <img
+                      src={o.image}
+                      alt=""
+                      style={{ display: "block", maxWidth: 180, marginTop: 8, borderRadius: 6 }}
+                    />
+                  )}
+                </div>
               </div>
             );
           })}
@@ -287,7 +307,7 @@ export default function TestRunner() {
             <p style={{ marginTop: 12, color: "var(--text-muted)", fontSize: 13 }}>جاري الحفظ…</p>
           )}
 
-          {feedback && (
+          {!isFinalReview && feedback && (
             <div style={{ marginTop: 16 }}>
               <div
                 style={{
@@ -329,15 +349,6 @@ export default function TestRunner() {
                   )}
                 </div>
               )}
-              {!feedback.written_correction &&
-                !feedback.explanation &&
-                !feedback.explanation_image &&
-                !feedback.text_image &&
-                !feedback.video_bunny_id && (
-                  <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                    لا يوجد شرح نصي أو فيديو لهذا السؤال.
-                  </p>
-                )}
             </div>
           )}
 
@@ -357,7 +368,7 @@ export default function TestRunner() {
                 disabled={navBlocked}
                 onClick={goNext}
               >
-                تحقق →
+                {isFinalReview ? "التالي →" : "تحقق →"}
               </button>
             ) : (
               <button
@@ -387,7 +398,9 @@ export default function TestRunner() {
             })}
           </div>
           <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 12 }}>
-            بعد اختيار الإجابة تظهر علامة الصح أو الخطأ، ثم شرح المدرس أو فيديو الشرح إن وُجد
+            {isFinalReview
+              ? "المراجعة نهائية: اختر إجاباتك دون معرفة الصح أو الخطأ، ثم تظهر النتيجة بعد إنهاء الاختبار."
+              : "بعد اختيار الإجابة تظهر علامة الصح أو الخطأ، ثم شرح المدرس أو فيديو الشرح إن وُجد"}
           </p>
         </div>
       </div>

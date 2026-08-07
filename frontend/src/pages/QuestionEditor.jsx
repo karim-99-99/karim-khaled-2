@@ -395,10 +395,13 @@ export default function QuestionEditor() {
             )}
             {form.options.map((o) => (
               <div key={o.key} className={`answer-option ${form.correct_answer === o.key ? "correct" : ""}`}>
-                <span>{o.key})</span> <MathText>{o.text}</MathText>
-                {o.image && (
-                  <img src={o.image} alt="" style={{ display: "block", maxWidth: 160, marginTop: 6, borderRadius: 6 }} />
-                )}
+                <span className="answer-option__key">{o.key}</span>
+                <div className="answer-option__body">
+                  <MathText>{o.text}</MathText>
+                  {o.image && (
+                    <img src={o.image} alt="" style={{ display: "block", maxWidth: 160, marginTop: 6, borderRadius: 6 }} />
+                  )}
+                </div>
               </div>
             ))}
             {(form.explanation || form.explanation_image) && (

@@ -15,8 +15,8 @@ const LEVELS = [
 ];
 
 /**
- * داخل درس التجميع: فيديو الدرس + أسئلة (نص/صور/فيديو/مستوى).
- * للطالب: اختيار المستوى وبدء اختبار من بنك كل المدرسين.
+ * داخل درس التجميع: للطالب اختيار نوع الأسئلة وبدء الاختبار فقط.
+ * للمدرس: فيديو / PDF / إدارة بنك الأسئلة.
  */
 export default function CollectionLessonDetail() {
   const { subjectId, lessonId } = useParams();
@@ -34,9 +34,11 @@ export default function CollectionLessonDetail() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [startBusy, setStartBusy] = useState(false);
-  const [selectedLevels, setSelectedLevels] = useState(["easy", "medium", "hard"]);
+  const [selectedLevels, setSelectedLevels] = useState([]);
 
   const canEdit = canEditSubject(user, subjectId || lesson?.subject);
+  const canRenameLesson =
+    canEdit && (user?.role === "teacher" || user?.role === "admin");
   const listUrl = `/courses/${subjectId || lesson?.subject}/collections`;
   const levelCounts = lesson?.collection_difficulty_counts || {
     easy: 0,
@@ -111,10 +113,7 @@ export default function CollectionLessonDetail() {
 
   function toggleLevel(id) {
     setSelectedLevels((prev) => {
-      if (prev.includes(id)) {
-        if (prev.length === 1) return prev;
-        return prev.filter((x) => x !== id);
-      }
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
       return [...prev, id];
     });
   }
@@ -136,6 +135,11 @@ export default function CollectionLessonDetail() {
         lessons: [Number(lessonId)],
         levels: selectedLevels,
         take_all: true,
+        review_mode: "final",
+        title: `تجميعات ${lesson.subject_name || ""} ( ${lesson.title || ""} )`.replace(
+          /\s+/g,
+          " "
+        ).trim(),
       });
       navigate(`/exam/${data.exam.id}`);
     } catch (e) {
@@ -182,7 +186,7 @@ export default function CollectionLessonDetail() {
         تجميع &gt; <span>{lesson.title}</span>
       </div>
 
-      {canEdit ? (
+      {canRenameLesson ? (
         <div
           className="card"
           style={{
@@ -225,59 +229,59 @@ export default function CollectionLessonDetail() {
         </div>
       )}
 
-      <div className="filter-row" style={{ marginBottom: 16 }}>
-        <span
-          className={`chip ${tab === "questions" ? "active" : ""}`}
-          onClick={() => setTab("questions")}
-          role="button"
-          tabIndex={0}
-        >
-          الأسئلة
-        </span>
-        <span
-          className={`chip ${tab === "video" ? "active" : ""}`}
-          onClick={() => setTab("video")}
-          role="button"
-          tabIndex={0}
-        >
-          فيديو الدرس
-        </span>
-        <span
-          className={`chip ${tab === "pdf" ? "active" : ""}`}
-          onClick={() => setTab("pdf")}
-          role="button"
-          tabIndex={0}
-        >
-          ملف PDF
-        </span>
-      </div>
+      {canEdit && (
+        <div className="filter-row" style={{ marginBottom: 16 }}>
+          <span
+            className={`chip ${tab === "questions" ? "active" : ""}`}
+            onClick={() => setTab("questions")}
+            role="button"
+            tabIndex={0}
+          >
+            الأسئلة
+          </span>
+          <span
+            className={`chip ${tab === "video" ? "active" : ""}`}
+            onClick={() => setTab("video")}
+            role="button"
+            tabIndex={0}
+          >
+            فيديو الدرس
+          </span>
+          <span
+            className={`chip ${tab === "pdf" ? "active" : ""}`}
+            onClick={() => setTab("pdf")}
+            role="button"
+            tabIndex={0}
+          >
+            ملف PDF
+          </span>
+        </div>
+      )}
 
-      {tab === "video" && (
+      {canEdit && tab === "video" && (
         <div className="card" style={{ padding: 20, marginBottom: 20 }}>
-          {canEdit && (
-            <div className="form-group">
-              <label>Bunny Video ID</label>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <input
-                  className="form-control"
-                  style={{ flex: 1, minWidth: 180 }}
-                  value={editVideo}
-                  onChange={(e) => setEditVideo(e.target.value)}
-                  placeholder="GUID من Bunny Stream"
-                />
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={busy}
-                  onClick={() =>
-                    saveLessonPatch({ bunny_video_id: editVideo.trim() }, "تم حفظ الفيديو ✓")
-                  }
-                >
-                  حفظ الفيديو
-                </button>
-              </div>
+          <div className="form-group">
+            <label>Bunny Video ID</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input
+                className="form-control"
+                style={{ flex: 1, minWidth: 180 }}
+                value={editVideo}
+                onChange={(e) => setEditVideo(e.target.value)}
+                placeholder="GUID من Bunny Stream"
+              />
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy}
+                onClick={() =>
+                  saveLessonPatch({ bunny_video_id: editVideo.trim() }, "تم حفظ الفيديو ✓")
+                }
+              >
+                حفظ الفيديو
+              </button>
             </div>
-          )}
+          </div>
           {lesson.bunny_video_id ? (
             <VideoPlayer bunnyId={lesson.bunny_video_id} />
           ) : (
@@ -286,30 +290,28 @@ export default function CollectionLessonDetail() {
         </div>
       )}
 
-      {tab === "pdf" && (
+      {canEdit && tab === "pdf" && (
         <div className="card" style={{ padding: 20, marginBottom: 20 }}>
-          {canEdit && (
-            <div className="form-group">
-              <label>رابط PDF</label>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <input
-                  className="form-control"
-                  style={{ flex: 1, minWidth: 180 }}
-                  value={editPdf}
-                  onChange={(e) => setEditPdf(e.target.value)}
-                  placeholder="https://…"
-                />
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  disabled={busy}
-                  onClick={() => saveLessonPatch({ pdf_url: editPdf.trim() }, "تم حفظ الملف ✓")}
-                >
-                  حفظ الرابط
-                </button>
-              </div>
+          <div className="form-group">
+            <label>رابط PDF</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <input
+                className="form-control"
+                style={{ flex: 1, minWidth: 180 }}
+                value={editPdf}
+                onChange={(e) => setEditPdf(e.target.value)}
+                placeholder="https://…"
+              />
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy}
+                onClick={() => saveLessonPatch({ pdf_url: editPdf.trim() }, "تم حفظ الملف ✓")}
+              >
+                حفظ الرابط
+              </button>
             </div>
-          )}
+          </div>
           {lesson.pdf_url ? (
             <a href={lesson.pdf_url} target="_blank" rel="noreferrer" className="btn btn-secondary">
               فتح ملف PDF
@@ -320,15 +322,15 @@ export default function CollectionLessonDetail() {
         </div>
       )}
 
-      {tab === "questions" && (
+      {(!canEdit || tab === "questions") && (
         <>
           <div className="card" style={{ padding: 16, marginBottom: 20 }}>
             <div className="section-title" style={{ marginTop: 0 }}>
               ابدأ بالتدريب
             </div>
             <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 12 }}>
-              اختر نوع الأسئلة (سهل / متوسط / صعب). الرقم بجانب كل مستوى هو عدد الأسئلة،
-              وهتطلع كلها للمستويات اللي تختارها — من غير ما تحدد العدد بنفسك.
+              اختر نوع الأسئلة الذي تريده (سهل / متوسط / صعب)، ثم ابدأ الاختبار.
+              الرقم بجانب الزر هو عدد الأسئلة للمستويات المختارة.
             </p>
             <div className="form-group" style={{ marginBottom: 16 }}>
               <label>نوع الأسئلة</label>
@@ -355,20 +357,29 @@ export default function CollectionLessonDetail() {
                   );
                 })}
               </div>
-              <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 8, marginBottom: 0 }}>
-                إجمالي الأسئلة المختارة: <strong>{selectedQuestionTotal}</strong>
-              </p>
             </div>
-            <button
-              type="button"
-              className="btn btn-primary"
-              disabled={startBusy || selectedLevels.length === 0 || selectedQuestionTotal < 1}
-              onClick={startExam}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
             >
-              {startBusy
-                ? "جاري البدء…"
-                : `ابدأ الاختبار (${selectedQuestionTotal} سؤال)`}
-            </button>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={startBusy || selectedLevels.length === 0 || selectedQuestionTotal < 1}
+                onClick={startExam}
+              >
+                {startBusy ? "جاري البدء…" : "ابدأ الاختبار"}
+              </button>
+              <span style={{ fontWeight: 700, fontSize: 15 }}>
+                {selectedLevels.length === 0
+                  ? "اختر نوع الأسئلة"
+                  : `${selectedQuestionTotal} سؤال`}
+              </span>
+            </div>
           </div>
 
           {canEdit && (

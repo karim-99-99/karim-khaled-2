@@ -1,5 +1,4 @@
 from django.db.models import Count, Q
-from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -7,7 +6,7 @@ from rest_framework.response import Response
 
 from core.permissions import IsAdmin, IsTeacherOrAdmin
 from groups.models import GroupStudent, GroupTeacher
-from .models import Session, SessionAttendance
+from .models import Session, SessionAttendance, sync_session_statuses
 from .serializers import SessionSerializer
 
 
@@ -53,21 +52,18 @@ class SessionViewSet(viewsets.ModelViewSet):
         return qs
 
     def get_queryset(self):
+        # Close sessions whose duration has elapsed (fixes stuck «مباشر الآن»).
+        sync_session_statuses(Session.objects.all())
         qs = self._scoped_queryset()
         when = (self.request.query_params.get("when") or "").strip().lower()
-        now = timezone.now()
         if when == "past":
-            qs = qs.filter(
-                Q(status=Session.Status.DONE)
-                | (Q(start_time__lt=now) & ~Q(status=Session.Status.LIVE))
+            return qs.filter(status=Session.Status.DONE).order_by(
+                "-start_time", "-id"
             )
-            return qs.order_by("-start_time", "-id")
         if when == "upcoming":
-            qs = qs.filter(
-                Q(status=Session.Status.LIVE)
-                | (Q(start_time__gte=now) & ~Q(status=Session.Status.DONE))
+            return qs.exclude(status=Session.Status.DONE).order_by(
+                "start_time", "id"
             )
-            return qs.order_by("start_time", "id")
         return qs.order_by("start_time", "id")
 
     def get_serializer_context(self):

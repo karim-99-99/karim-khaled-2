@@ -1,25 +1,29 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import client from "../api/client";
 import BackToCourses from "../components/BackToCourses";
+import SectionPanel from "../components/SectionPanel";
 import { useAuth } from "../auth/AuthContext";
 import { canEditSubject } from "../auth/teacherScope";
 
 /**
- * تأسيس — داخل الدرس الرئيسي: قائمة العناوين الفرعية (الحصص).
- * التجميعات لا تستخدم هذه الصفحة.
+ * تأسيس — داخل الدرس الرئيسي: قائمة العناوين الفرعية مع توسيع أسفل كل عنوان
+ * (فيديو / أسئلة / PDF) بدون صفحة جديدة.
  */
 export default function LessonDetail() {
   const { lessonId } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [lesson, setLesson] = useState(null);
   const [sections, setSections] = useState([]);
-  const [editTitle, setEditTitle] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [newSectionTitle, setNewSectionTitle] = useState("");
   const [renameId, setRenameId] = useState(null);
   const [renameTitle, setRenameTitle] = useState("");
+  const [openId, setOpenId] = useState(
+    searchParams.get("section") ? Number(searchParams.get("section")) : null
+  );
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -29,7 +33,6 @@ export default function LessonDetail() {
   function load() {
     return client.get(`/lessons/${lessonId}/`).then((res) => {
       setLesson(res.data);
-      setEditTitle(res.data.title || "");
       const rows = res.data.sections || [];
       setSections(
         [...rows].sort((a, b) => (a.order_number || 0) - (b.order_number || 0) || a.id - b.id)
@@ -42,22 +45,16 @@ export default function LessonDetail() {
     load().catch(() => {});
   }, [lessonId]);
 
-  async function saveLessonTitle() {
-    if (!editTitle.trim()) return;
-    setBusy(true);
-    setMsg("");
-    try {
-      const { data } = await client.patch(`/lessons/${lessonId}/`, {
-        title: editTitle.trim(),
-      });
-      setLesson(data);
-      setSections(data.sections || sections);
-      setMsg("تم تعديل اسم الدرس ✓");
-    } catch (e) {
-      setMsg(e.response?.data?.detail || "تعذّر الحفظ");
-    } finally {
-      setBusy(false);
-    }
+  useEffect(() => {
+    const q = searchParams.get("section");
+    if (q) setOpenId(Number(q));
+  }, [searchParams]);
+
+  function toggleSection(id) {
+    const next = openId === id ? null : id;
+    setOpenId(next);
+    if (next) setSearchParams({ section: String(next) }, { replace: true });
+    else setSearchParams({}, { replace: true });
   }
 
   async function createSection() {
@@ -65,14 +62,15 @@ export default function LessonDetail() {
     setBusy(true);
     setMsg("");
     try {
-      await client.post(`/lessons/${lessonId}/sections/`, {
+      const { data } = await client.post(`/lessons/${lessonId}/sections/`, {
         title: newSectionTitle.trim(),
         order_number: sections.length + 1,
       });
       setNewSectionTitle("");
       setShowAdd(false);
-      setMsg("تم إضافة العنوان الفرعي ✓ — ادخل لإضافة فيديو وواجب وPDF");
+      setMsg("تم إضافة العنوان الفرعي ✓");
       await load();
+      if (data?.id) toggleSection(data.id);
     } catch (e) {
       setMsg(e.response?.data?.detail || "تعذّر الإضافة");
     } finally {
@@ -99,6 +97,10 @@ export default function LessonDetail() {
     if (!confirm("حذف هذا العنوان الفرعي وكل واجبه؟")) return;
     try {
       await client.delete(`/lesson-sections/${id}/`);
+      if (openId === id) {
+        setOpenId(null);
+        setSearchParams({}, { replace: true });
+      }
       setMsg("تم الحذف");
       await load();
     } catch (e) {
@@ -123,9 +125,9 @@ export default function LessonDetail() {
         <h1 style={{ fontSize: 28, marginBottom: 16 }}>{lesson.title}</h1>
         <div className="card" style={{ padding: 24, textAlign: "center" }}>
           <p style={{ marginBottom: 16 }}>هذا الدرس يتطلب تفعيل الحساب أو الاشتراك.</p>
-          <Link to="/subscription" className="btn btn-primary">
+          <button type="button" className="btn btn-primary" onClick={() => navigate("/subscription")}>
             الاشتراك
-          </Link>
+          </button>
         </div>
       </div>
     );
@@ -134,49 +136,23 @@ export default function LessonDetail() {
   return (
     <div>
       <BackToCourses subjectId={lesson.subject} />
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => navigate(lessonsUrl)}>
-          ← العودة للدروس
-        </button>
-      </div>
+      <button
+        type="button"
+        className="btn btn-ghost btn-sm"
+        style={{ marginBottom: 12 }}
+        onClick={() => navigate(lessonsUrl)}
+      >
+        ← العودة للدروس
+      </button>
 
       <div className="breadcrumb">
         تأسيس &gt; <span>{lesson.title}</span>
       </div>
 
-      {canEdit ? (
-        <div
-          className="card"
-          style={{
-            padding: 16,
-            marginBottom: 16,
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <input
-            className="form-control"
-            style={{ flex: 1, minWidth: 200, fontSize: 20, fontWeight: 700 }}
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            disabled={busy}
-            onClick={saveLessonTitle}
-          >
-            حفظ اسم الدرس
-          </button>
-        </div>
-      ) : (
-        <h1 style={{ fontSize: 28, marginBottom: 8 }}>{lesson.title}</h1>
-      )}
+      <h1 style={{ fontSize: 28, marginBottom: 8 }}>{lesson.title}</h1>
 
       <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>
-        اختر عنواناً فرعياً (حصة) — داخله الفيديو والواجب وملف PDF إن وُجد.
+        اضغط على عنوان فرعي لإضافة أو مشاهدة الفيديو والأسئلة وملف PDF أسفله مباشرة.
       </p>
 
       {canEdit && (
@@ -228,75 +204,101 @@ export default function LessonDetail() {
 
       {sections.map((s) => {
         const renaming = renameId === s.id;
+        const open = openId === s.id;
         return (
-          <div
-            key={s.id}
-            className="card"
-            style={{
-              padding: 16,
-              marginBottom: 10,
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              flexWrap: "wrap",
-            }}
-          >
-            <span className="lesson-num lesson-num--sm" aria-hidden="true">
-              {s.order_number}
-            </span>
-            {renaming ? (
-              <>
-                <input
-                  className="form-control"
-                  style={{ flex: 1, minWidth: 160 }}
-                  value={renameTitle}
-                  onChange={(e) => setRenameTitle(e.target.value)}
-                />
-                <button
-                  type="button"
-                  className="btn btn-primary btn-sm"
-                  disabled={busy}
-                  onClick={() => saveRename(s.id)}
-                >
-                  حفظ
-                </button>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRenameId(null)}>
-                  إلغاء
-                </button>
-              </>
-            ) : (
-              <>
-                <Link to={`/sections/${s.id}`} style={{ flex: 1, fontWeight: 600 }}>
-                  {s.title}
-                </Link>
-                <span style={{ color: "var(--text-muted)", fontSize: 13 }}>
-                  فيديو · واجب · PDF
-                </span>
-                {canEdit && (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => {
-                        setRenameId(s.id);
-                        setRenameTitle(s.title);
-                      }}
-                    >
-                      تعديل الاسم
-                    </button>
-                    <Link to={`/sections/${s.id}`} className="btn btn-secondary btn-sm">
-                      فتح
-                    </Link>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-sm"
-                      onClick={() => deleteSection(s.id)}
-                    >
-                      حذف
-                    </button>
-                  </>
-                )}
-              </>
+          <div key={s.id} className="card" style={{ padding: 0, marginBottom: 10, overflow: "hidden" }}>
+            <div
+              style={{
+                padding: 16,
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+                cursor: renaming ? "default" : "pointer",
+                background: open ? "var(--primary-light)" : undefined,
+              }}
+              onClick={() => {
+                if (!renaming) toggleSection(s.id);
+              }}
+            >
+              <span className="lesson-num lesson-num--sm" aria-hidden="true">
+                {s.order_number}
+              </span>
+              {renaming ? (
+                <>
+                  <input
+                    className="form-control"
+                    style={{ flex: 1, minWidth: 160 }}
+                    value={renameTitle}
+                    onChange={(e) => setRenameTitle(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    disabled={busy}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      saveRename(s.id);
+                    }}
+                  >
+                    حفظ
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setRenameId(null);
+                    }}
+                  >
+                    إلغاء
+                  </button>
+                </>
+              ) : (
+                <>
+                  <strong style={{ flex: 1 }}>{s.title}</strong>
+                  <span style={{ color: "var(--text-muted)", fontSize: 13 }}>
+                    {open ? "▲ إغلاق" : "▼ فيديو · أسئلة · PDF"}
+                  </span>
+                  {canEdit && (
+                    <>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRenameId(s.id);
+                          setRenameTitle(s.title);
+                        }}
+                      >
+                        تعديل الاسم
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteSection(s.id);
+                        }}
+                      >
+                        حذف
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+            {open && (
+              <div
+                style={{
+                  padding: 16,
+                  borderTop: "1px solid var(--border)",
+                  background: "#fff",
+                }}
+              >
+                <SectionPanel sectionId={s.id} onUpdated={() => load()} />
+              </div>
             )}
           </div>
         );

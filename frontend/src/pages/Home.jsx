@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import client from "../api/client";
 import { useAuth } from "../auth/AuthContext";
-import { resolveSubjectKey } from "../theme/subjects";
+import VideoPlayer from "../components/VideoPlayer";
+import { getSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 import { formatSessionWhen, sessionDisplayTitle } from "../utils/sessionDate";
 
 export default function Home() {
@@ -44,6 +45,21 @@ export default function Home() {
   const session = next?.session;
   const sessionKey = resolveSubjectKey(session?.subject_name);
   const when = session ? formatSessionWhen(session.start_time) : null;
+
+  const freeBySubject = new Map();
+  for (const l of content?.free_lessons || []) {
+    const sid = String(l.subject);
+    if (!freeBySubject.has(sid)) freeBySubject.set(sid, l);
+  }
+  const subjectPanels = (content?.subjects || []).map((s) => {
+    const key = resolveSubjectKey(s.name) || "math";
+    return {
+      subject: s,
+      freeLesson: freeBySubject.get(String(s.id)) || null,
+      key,
+      theme: getSubjectTheme(resolveSubjectKey(s.name)),
+    };
+  });
 
   return (
     <div>
@@ -110,18 +126,10 @@ export default function Home() {
       </div>
 
       <div className="section-title">تصفح حسب المادة</div>
-      <div className="filter-row">
-        {content?.subjects?.map((s) => {
-          const cls = resolveSubjectKey(s.name) || "math";
-          return (
-            <Link key={s.id} to={user ? `/courses/${s.id}` : "/login"} className={`chip ${cls}`}>
-              {s.name}
-            </Link>
-          );
-        })}
-      </div>
+      <p className="home-subjects__lead">
+        اختر مادتك، وشاهد الدرس المجاني مباشرة أسفل كل مادة
+      </p>
 
-      <div className="section-title">الدروس المتاحة مجاناً</div>
       {!content && (
         <div className="spinner">
           جاري التحميل…
@@ -130,26 +138,79 @@ export default function Home() {
           </div>
         </div>
       )}
-      <div className="grid grid-4">
-        {content?.free_lessons?.map((l, i) => {
-          const thumb = ["", "gold", "teal", "rose"][i % 4];
+
+      {content && subjectPanels.length === 0 && (
+        <p style={{ color: "var(--text-muted)" }}>لا توجد مواد بعد.</p>
+      )}
+
+      <div className="home-subjects">
+        {subjectPanels.map(({ subject: s, freeLesson, key, theme }, index) => {
+          const courseTo = user ? `/courses/${s.id}` : "/login";
+          const lessonTo = freeLesson
+            ? user
+              ? `/lessons/${freeLesson.id}`
+              : "/login"
+            : courseTo;
+          const bunnyId =
+            freeLesson?.preview_bunny_id || freeLesson?.bunny_video_id || "";
+
           return (
-            <Link key={l.id} to={user ? `/lessons/${l.id}` : "/login"} className="card">
-              <div className={`lesson-thumb ${thumb}`.trim()}>▶</div>
-              <div className="lesson-card-body">
-                <h4>{l.title}</h4>
-                <p>{l.subject_name} · معاينة مجانية</p>
+            <article
+              key={s.id}
+              className={`home-subject-panel home-subject-panel--${key}`}
+              style={{ animationDelay: `${index * 70}ms` }}
+            >
+              <Link to={courseTo} className="home-subject-panel__head">
+                <div className="home-subject-panel__glow" aria-hidden />
+                {theme?.logo ? (
+                  <img
+                    src={theme.logo}
+                    alt=""
+                    className="home-subject-panel__logo"
+                  />
+                ) : null}
+                <div className="home-subject-panel__titles">
+                  <h3>{s.name}</h3>
+                  <span>ادخل الدورة</span>
+                </div>
+              </Link>
+
+              <div className="home-subject-panel__free">
+                <div className="home-subject-panel__free-label">
+                  <span className="home-subject-panel__pill">مجاني</span>
+                  <span>معاينة الدرس الأول</span>
+                </div>
+
+                {freeLesson ? (
+                  <>
+                    {bunnyId ? (
+                      <div className="home-subject-panel__player">
+                        <VideoPlayer bunnyId={bunnyId} />
+                      </div>
+                    ) : (
+                      <Link to={lessonTo} className="home-subject-panel__thumb">
+                        <span className="home-subject-panel__play">▶</span>
+                        <span>افتح الدرس المجاني</span>
+                      </Link>
+                    )}
+                    <Link to={lessonTo} className="home-subject-panel__lesson">
+                      <strong>{freeLesson.title}</strong>
+                      <span>شاهد الدرس ←</span>
+                    </Link>
+                  </>
+                ) : (
+                  <div className="home-subject-panel__empty">
+                    قريباً درس مجاني لهذه المادة
+                  </div>
+                )}
               </div>
-            </Link>
+            </article>
           );
         })}
-        {content?.free_lessons?.length === 0 && (
-          <p style={{ color: "var(--text-muted)" }}>لا توجد دروس مجانية بعد.</p>
-        )}
       </div>
 
       {!user && (
-        <div style={{ marginTop: 32, textAlign: "center" }}>
+        <div style={{ marginTop: 36, textAlign: "center" }}>
           <Link to="/register" className="btn btn-primary">أنشئ حساباً وابدأ التعلم</Link>
         </div>
       )}

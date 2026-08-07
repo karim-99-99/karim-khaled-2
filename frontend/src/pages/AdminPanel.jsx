@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import client, { warmApi } from "../api/client";
 import { resolveSubjectKey } from "../theme/subjects";
-import { formatSessionWhen, sessionDisplayTitle } from "../utils/sessionDate";
+import { formatSessionWhen, sessionDisplayTitle, effectiveSessionStatus } from "../utils/sessionDate";
 
 function contactLabel(account) {
   return account.email || "—";
@@ -856,6 +856,7 @@ function ScheduleTab() {
   };
   const [groups, setGroups] = useState([]);
   const [sessions, setSessions] = useState([]);
+  const [lessons, setLessons] = useState([]);
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
   const [msg, setMsg] = useState("");
@@ -868,6 +869,25 @@ function ScheduleTab() {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (!form.subject) {
+      setLessons([]);
+      return undefined;
+    }
+    let cancelled = false;
+    client
+      .get(`/subjects/${form.subject}/lessons/`)
+      .then((res) => {
+        if (!cancelled) setLessons(res.data.results || res.data || []);
+      })
+      .catch(() => {
+        if (!cancelled) setLessons([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [form.subject]);
 
   const selectedGroup = groups.find((g) => String(g.id) === String(form.group));
   const subjectOptions = selectedGroup?.teachers?.length
@@ -887,6 +907,7 @@ function ScheduleTab() {
     }
   });
   const pickedSubject = uniqueSubjects.find((s) => String(s.id) === String(form.subject));
+  const lessonTitles = [...new Set(lessons.map((l) => (l.title || "").trim()).filter(Boolean))];
 
   function set(k, v) {
     setForm((f) => {
@@ -964,19 +985,6 @@ function ScheduleTab() {
           <h3 style={{ marginBottom: 16 }}>{editingId ? "تعديل حصة" : "إضافة حصة للجدول"}</h3>
 
           <div className="form-group">
-            <label>اسم الحصة</label>
-            <input
-              className="form-control"
-              value={form.title}
-              onChange={(e) => set("title", e.target.value)}
-              placeholder="مثال: مراجعة الباب الأول — أو أي اسم براحتك"
-            />
-            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
-              اختياري. لو فاضي يظهر اسم المادة.
-            </div>
-          </div>
-
-          <div className="form-group">
             <label>المجموعة</label>
             <select className="form-control" value={form.group} onChange={(e) => set("group", e.target.value)}>
               <option value="">اختر…</option>
@@ -1009,6 +1017,47 @@ function ScheduleTab() {
                 المدرس المعتمد: {pickedSubject.teacher_name}
               </div>
             )}
+          </div>
+
+          <div className="form-group">
+            <label>اسم الحصة</label>
+            {form.subject && lessonTitles.length > 0 && (
+              <select
+                className="form-control"
+                style={{ marginBottom: 8 }}
+                value={lessonTitles.includes(form.title) ? form.title : ""}
+                onChange={(e) => {
+                  if (e.target.value) set("title", e.target.value);
+                }}
+              >
+                <option value="">اختر من دروس المادة…</option>
+                {lessonTitles.map((title) => (
+                  <option key={title} value={title}>{title}</option>
+                ))}
+              </select>
+            )}
+            <input
+              className="form-control"
+              list={form.subject ? `session-lesson-titles-${form.subject}` : undefined}
+              value={form.title}
+              onChange={(e) => set("title", e.target.value)}
+              placeholder={
+                form.subject
+                  ? "أو اكتب اسماً جديداً للحصة"
+                  : "اختر المادة أولاً — ثم اختر درساً أو اكتب اسماً"
+              }
+              disabled={!form.subject && !editingId}
+            />
+            {form.subject && (
+              <datalist id={`session-lesson-titles-${form.subject}`}>
+                {lessonTitles.map((title) => (
+                  <option key={title} value={title} />
+                ))}
+              </datalist>
+            )}
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>
+              يمكنك اختيار اسم درس موجود أو كتابة اسم جديد. لو فاضي يظهر اسم المادة.
+            </div>
           </div>
 
           <div className="form-group">
@@ -1089,7 +1138,7 @@ function ScheduleTab() {
                 </div>
                 <div style={{ flex: 1, minWidth: 160 }}>
                   <strong className="session-card__title">{sessionDisplayTitle(s)}</strong>{" "}
-                  {s.status === "live" && <span className="badge badge-live">مباشر</span>}
+                  {effectiveSessionStatus(s) === "live" && <span className="badge badge-live">مباشر</span>}
                   <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
                     {s.subject_name}
                     {s.session_number != null ? ` · #${s.session_number}` : ""}

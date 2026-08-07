@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import client from "../api/client";
 import { resolveSubjectKey } from "../theme/subjects";
-import { formatSessionWhen, sessionDisplayTitle } from "../utils/sessionDate";
+import { formatSessionWhen, sessionDisplayTitle, effectiveSessionStatus } from "../utils/sessionDate";
 
 /**
  * Teacher view: Zoom link + session status + attendance per group session.
@@ -183,7 +183,7 @@ export default function TeacherSchedule() {
               </div>
               <div style={{ flex: 1, minWidth: 180 }}>
                 <strong className="session-card__title">{sessionDisplayTitle(s)}</strong>
-                {s.status === "live" && (
+                {effectiveSessionStatus(s) === "live" && (
                   <span className="badge badge-live" style={{ marginInlineStart: 8 }}>مباشر</span>
                 )}
                 <div style={{ fontSize: 13, color: "var(--text-muted)" }}>

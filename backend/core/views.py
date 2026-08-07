@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import Q
 from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -20,20 +21,55 @@ def _client_ip(request):
 @api_view(["GET"])
 @permission_classes([permissions.AllowAny])
 def home_free_content(request):
-    """Public: subjects + free-preview lessons shown to visitors on the home page."""
-    subjects = Subject.objects.all()
-    free_lessons = annotate_lesson_list(
-        Lesson.objects.filter(is_free_preview=True, is_archived=False).select_related(
-            "subject"
-        )
-    )
+    """Public: subjects + one free-preview lesson per subject for the home page."""
+    from catalog.models import LessonSection
+
+    subjects = list(Subject.objects.all())
+    candidates = annotate_lesson_list(
+        Lesson.objects.filter(
+            Q(is_free_preview=True) | Q(order_number=1),
+            is_archived=False,
+        ).select_related("subject")
+    ).order_by("subject_id", "-is_free_preview", "order_number", "id")
+
+    free_by_subject = {}
+    for lesson in candidates:
+        sid = lesson.subject_id
+        current = free_by_subject.get(sid)
+        if current is None:
+            free_by_subject[sid] = lesson
+        elif lesson.is_free_preview and not current.is_free_preview:
+            free_by_subject[sid] = lesson
+
+    lessons = [free_by_subject[s.id] for s in subjects if s.id in free_by_subject]
+    payload = LessonListSerializer(
+        lessons, many=True, context={"request": request}
+    ).data
+
+    # If the lesson itself has no video, fall back to the first section video.
+    missing_ids = [row["id"] for row in payload if not row.get("bunny_video_id")]
+    section_vids = {}
+    if missing_ids:
+        for sec in (
+            LessonSection.objects.filter(lesson_id__in=missing_ids)
+            .exclude(bunny_video_id="")
+            .order_by("lesson_id", "order_number", "id")
+            .only("lesson_id", "bunny_video_id")
+        ):
+            section_vids.setdefault(sec.lesson_id, sec.bunny_video_id)
+
+    for row in payload:
+        preview = row.get("bunny_video_id") or section_vids.get(row["id"], "")
+        row["preview_bunny_id"] = preview
+
     return Response(
         {
             "subjects": SubjectSerializer(subjects, many=True).data,
-            "free_lessons": LessonListSerializer(free_lessons, many=True).data,
+            "free_lessons": payload,
             "free_question_limit": settings.FREE_TIER_QUESTION_LIMIT,
         }
     )
+
 
 
 @api_view(["GET"])
@@ -120,14 +156,20 @@ def next_session(request):
     - Teacher: sessions they teach (plus the subjects they teach).
     - Admin: the nearest upcoming session overall.
     """
+    from django.db.models import Q
     from django.utils import timezone
-    from scheduling.models import Session
+    from scheduling.models import Session, sync_session_statuses
     from scheduling.serializers import SessionSerializer
     from groups.models import GroupStudent, GroupTeacher
 
     user = request.user
     now = timezone.now()
-    qs = Session.objects.filter(start_time__gte=now).select_related("subject")
+
+    sync_session_statuses(Session.objects.all())
+    qs = Session.objects.filter(
+        Q(status=Session.Status.LIVE)
+        | (Q(start_time__gte=now) & ~Q(status=Session.Status.DONE))
+    ).select_related("subject")
 
     my_subjects = []
     if user.is_student:

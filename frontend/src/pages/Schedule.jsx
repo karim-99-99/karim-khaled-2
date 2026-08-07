@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import client from "../api/client";
 import { resolveSubjectKey } from "../theme/subjects";
-import { formatSessionWhen, sessionDisplayTitle } from "../utils/sessionDate";
+import {
+  effectiveSessionStatus,
+  formatSessionWhen,
+  sessionDisplayTitle,
+} from "../utils/sessionDate";
 
 export default function Schedule() {
   const [sessions, setSessions] = useState([]);
@@ -59,6 +63,8 @@ export default function Schedule() {
         sessions.map((s) => {
           const when = formatSessionWhen(s.start_time);
           const subjectKey = resolveSubjectKey(s.subject_name) || "math";
+          const status = effectiveSessionStatus(s);
+          const lessonTitle = sessionDisplayTitle(s);
           return (
             <div
               key={s.id}
@@ -75,30 +81,41 @@ export default function Schedule() {
               <div className="session-number" aria-label={`الحصة رقم ${s.session_number}`}>
                 {s.session_number ?? "—"}
               </div>
-              <div style={{ minWidth: 140 }}>
-                <div className="session-date">
-                  <div className="session-card__time session-date__time">{when.time}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="session-date session-date--stack">
+                  <div className="session-date__dayline">
+                    <span className="session-date__weekday">{when.weekday}</span>
+                    {when.time ? (
+                      <span className="session-date__time">{when.time}</span>
+                    ) : null}
+                    {status === "live" && (
+                      <span className="badge badge-live">مباشر الآن</span>
+                    )}
+                    {status === "done" && <span className="badge">منتهية</span>}
+                  </div>
                   {when.hijri ? (
                     <div className="session-date__hijri">{when.hijri}</div>
                   ) : null}
                   <div className="session-date__gregorian">{when.gregorian}</div>
+                  <div className="session-date__names">
+                    <span className="session-date__subject">{s.subject_name}</span>
+                    {lessonTitle && lessonTitle !== s.subject_name ? (
+                      <>
+                        <span className="session-date__sep">·</span>
+                        <span className="session-card__title session-date__lesson">
+                          {lessonTitle}
+                        </span>
+                      </>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-              <div style={{ flex: 1 }}>
-                <h4 className="session-card__title" style={{ fontSize: 16 }}>
-                  {sessionDisplayTitle(s)}{" "}
-                  {s.status === "live" && <span className="badge badge-live">مباشر الآن</span>}
-                  {s.status === "done" && (
-                    <span className="badge" style={{ marginInlineStart: 6 }}>
-                      منتهية
-                    </span>
-                  )}
-                </h4>
-                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                  {s.subject_name}
-                  {s.session_number != null ? ` · الحصة ${s.session_number}` : ""}
-                  {s.teacher_name ? ` · ${s.teacher_name}` : ""} · {s.duration_minutes} دقيقة
-                </p>
+                {(s.teacher_name || s.duration_minutes) && (
+                  <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "6px 0 0" }}>
+                    {s.teacher_name ? s.teacher_name : ""}
+                    {s.teacher_name && s.duration_minutes ? " · " : ""}
+                    {s.duration_minutes ? `${s.duration_minutes} دقيقة` : ""}
+                  </p>
+                )}
                 {isPast && (
                   <div style={{ marginTop: 8 }}>
                     {s.my_attendance === "present" && (

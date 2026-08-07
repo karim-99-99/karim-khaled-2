@@ -2,8 +2,7 @@
  * Format session datetime with Gregorian + Hijri (Islamic) calendars.
  */
 
-const GREG_OPTS = {
-  weekday: "long",
+const GREG_DATE_OPTS = {
   day: "numeric",
   month: "long",
   year: "numeric",
@@ -29,15 +28,30 @@ function withSingleHijriMark(raw) {
 }
 
 export function formatSessionWhen(iso, { withWeekday = true } = {}) {
-  if (!iso) return { gregorian: "—", hijri: "", time: "", line: "—" };
+  if (!iso) {
+    return {
+      weekday: "",
+      gregorian: "—",
+      hijri: "",
+      time: "",
+      line: "—",
+    };
+  }
   const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return { gregorian: "—", hijri: "", time: "", line: "—" };
+  if (Number.isNaN(d.getTime())) {
+    return {
+      weekday: "",
+      gregorian: "—",
+      hijri: "",
+      time: "",
+      line: "—",
+    };
+  }
 
-  const gregOpts = withWeekday
-    ? GREG_OPTS
-    : { day: "numeric", month: "long", year: "numeric" };
+  const weekday = d.toLocaleDateString("ar-EG", { weekday: "long" });
+  const gregorianDate = d.toLocaleDateString("ar-EG", GREG_DATE_OPTS);
+  const gregorian = withWeekday ? `${weekday}، ${gregorianDate}` : gregorianDate;
 
-  let gregorian = d.toLocaleDateString("ar-EG", gregOpts);
   let hijriRaw = "";
   try {
     hijriRaw = d.toLocaleDateString("ar-SA-u-ca-islamic", HIJRI_OPTS);
@@ -52,13 +66,36 @@ export function formatSessionWhen(iso, { withWeekday = true } = {}) {
   const time = d.toLocaleTimeString("ar-EG", TIME_OPTS);
 
   const line = hijri
-    ? `${gregorian} · ${hijri} · ${time}`
-    : `${gregorian} · ${time}`;
+    ? `${weekday} · ${time} · ${hijri} · ${gregorianDate}`
+    : `${weekday} · ${time} · ${gregorianDate}`;
 
-  return { gregorian, hijri, time, line };
+  return { weekday, gregorian: gregorianDate, gregorianFull: gregorian, hijri, time, line };
 }
 
 export function sessionDisplayTitle(s) {
   if (!s) return "";
   return (s.display_title || s.title || s.subject_name || "").trim();
 }
+
+/**
+ * Status from the clock so «مباشر الآن» cannot linger after duration ends,
+ * even if the API status was left on live.
+ */
+export function effectiveSessionStatus(session, now = new Date()) {
+  if (!session) return "scheduled";
+  if (session.status === "done") return "done";
+  const start = new Date(session.start_time);
+  if (Number.isNaN(start.getTime())) return session.status || "scheduled";
+  const mins = Number(session.duration_minutes) || 60;
+  const end = new Date(start.getTime() + mins * 60_000);
+  if (now < start) return "scheduled";
+  if (now <= end) return "live";
+  return "done";
+}
+
+export function statusLabel(status) {
+  if (status === "live") return "مباشر الآن";
+  if (status === "done") return "منتهية";
+  return "مجدولة";
+}
+

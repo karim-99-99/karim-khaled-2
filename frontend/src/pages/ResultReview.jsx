@@ -74,14 +74,17 @@ export default function ResultReview() {
             else if (o.key === a.selected_answer && o.key !== a.correct_answer) cls += " wrong";
             return (
               <div key={o.key} className={cls} style={{ cursor: "default" }}>
-                <span>{o.key})</span> <MathText>{o.text}</MathText>
-                {o.image && (
-                  <img
-                    src={o.image}
-                    alt=""
-                    style={{ display: "block", maxWidth: 160, marginTop: 4, borderRadius: 6 }}
-                  />
-                )}
+                <span className="answer-option__key">{o.key}</span>
+                <div className="answer-option__body">
+                  <MathText>{o.text}</MathText>
+                  {o.image && (
+                    <img
+                      src={o.image}
+                      alt=""
+                      style={{ display: "block", maxWidth: 160, marginTop: 4, borderRadius: 6 }}
+                    />
+                  )}
+                </div>
               </div>
             );
           })}
