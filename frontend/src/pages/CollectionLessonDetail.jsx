@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { canEditSubject } from "../auth/teacherScope";
@@ -14,35 +14,9 @@ const LEVELS = [
   { id: "hard", label: "صعب" },
 ];
 
-const DIFFICULTY_PRESETS = [
-  {
-    id: "easy",
-    label: "سهل",
-    hint: "٦٠٪ سهل · ٣٥٪ متوسط · ٥٪ صعب",
-    tone: "mix-easy",
-  },
-  {
-    id: "medium",
-    label: "متوسط",
-    hint: "٤٠٪ سهل · ٦٠٪ متوسط · ١٠٪ صعب",
-    tone: "mix-medium",
-  },
-  {
-    id: "advanced",
-    label: "متقدم",
-    hint: "٢٥٪ سهل · ٥٥٪ متوسط · ٢٠٪ صعب",
-    tone: "mix-advanced",
-  },
-  {
-    id: "challenge",
-    label: "تحدي",
-    hint: "١٠٪ سهل · ٤٠٪ متوسط · ٥٠٪ صعب",
-    tone: "mix-challenge",
-  },
-];
-
 /**
- * داخل درس التجميع: للطالب اختيار نوع الأسئلة وبدء الاختبار فقط.
+ * داخل درس التجميع: للطالب اختيار المستويات + السنة وبدء الاختبار بكل الأسئلة المطابقة.
+ * نسب المزج (سهل/متقدم/تحدي) خاصة بالمحاكي الشخصي فقط.
  * للمدرس: فيديو / PDF / إدارة بنك الأسئلة.
  */
 export default function CollectionLessonDetail() {
@@ -61,7 +35,10 @@ export default function CollectionLessonDetail() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [startBusy, setStartBusy] = useState(false);
-  const [difficultyMix, setDifficultyMix] = useState("");
+  const [selectedLevels, setSelectedLevels] = useState([]);
+  const [years, setYears] = useState([]);
+  const [yearStats, setYearStats] = useState([]);
+  const [selectedYears, setSelectedYears] = useState([]);
   const [reviewMode, setReviewMode] = useState("immediate");
 
   const canEdit = canEditSubject(user, subjectId || lesson?.subject);
@@ -78,6 +55,44 @@ export default function CollectionLessonDetail() {
     (Number(levelCounts.medium) || 0) +
     (Number(levelCounts.hard) || 0);
 
+  const filteredLevelCounts = useMemo(() => {
+    if (!selectedYears.length) {
+      return {
+        easy: Number(levelCounts.easy) || 0,
+        medium: Number(levelCounts.medium) || 0,
+        hard: Number(levelCounts.hard) || 0,
+      };
+    }
+    const out = { easy: 0, medium: 0, hard: 0 };
+    for (const row of yearStats) {
+      if (!selectedYears.includes(row.year)) continue;
+      out.easy += Number(row.easy) || 0;
+      out.medium += Number(row.medium) || 0;
+      out.hard += Number(row.hard) || 0;
+    }
+    return out;
+  }, [selectedYears, yearStats, levelCounts.easy, levelCounts.medium, levelCounts.hard]);
+
+  const selectedCount = useMemo(() => {
+    if (!selectedLevels.length) return 0;
+    return selectedLevels.reduce(
+      (sum, lv) => sum + (Number(filteredLevelCounts[lv]) || 0),
+      0
+    );
+  }, [selectedLevels, filteredLevelCounts]);
+
+  function toggleLevel(id) {
+    setSelectedLevels((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
+
+  function toggleYear(y) {
+    setSelectedYears((prev) =>
+      prev.includes(y) ? prev.filter((x) => x !== y) : [...prev, y]
+    );
+  }
+
   function loadLesson() {
     return client.get(`/lessons/${lessonId}/`).then((res) => {
       setLesson(res.data);
@@ -93,13 +108,35 @@ export default function CollectionLessonDetail() {
     setShowForm(false);
     setEditingQ(null);
     setMsg("");
+    setSelectedLevels([]);
+    setSelectedYears([]);
     loadLesson()
       .then((data) => {
         if (cancelled) return;
-        if (canEditSubject(user, subjectId || data.subject)) {
-          return loadQuestions();
-        }
-        setQList([]);
+        const sid = subjectId || data.subject;
+        const params = new URLSearchParams();
+        params.append("subjects", String(sid));
+        params.append("lessons", String(lessonId));
+        return client
+          .get(`/exams/simulator/options/?${params.toString()}`)
+          .then((res) => {
+            if (cancelled) return;
+            setYears(res.data.years || []);
+            setYearStats(res.data.year_stats || []);
+          })
+          .catch(() => {
+            if (!cancelled) {
+              setYears([]);
+              setYearStats([]);
+            }
+          })
+          .then(() => {
+            if (cancelled) return;
+            if (canEditSubject(user, sid)) {
+              return loadQuestions();
+            }
+            setQList([]);
+          });
       })
       .catch(() => {});
     return () => {
@@ -141,29 +178,32 @@ export default function CollectionLessonDetail() {
 
   async function startExam() {
     setMsg("");
-    if (!difficultyMix) {
-      setMsg("اختر مستوى واحداً");
+    if (!selectedLevels.length) {
+      setMsg("اختر مستوى صعوبة واحداً على الأقل");
       return;
     }
-    if (bankTotal < 1) {
-      setMsg("لا توجد أسئلة في هذا الدرس");
+    if (selectedCount < 1) {
+      setMsg("لا توجد أسئلة بالمستويات/السنوات المختارة");
       return;
     }
     setStartBusy(true);
     try {
-      const { data } = await client.post("/exams/simulator/", {
+      const payload = {
         subjects: [Number(subjectId || lesson.subject)],
         subject: Number(subjectId || lesson.subject),
         lessons: [Number(lessonId)],
-        difficulty_mix: difficultyMix,
+        levels: selectedLevels,
         take_all: true,
         review_mode: reviewMode,
         time_limit_minutes: null,
-        title: `تجميعات ${lesson.subject_name || ""} ( ${lesson.title || ""} )`.replace(
-          /\s+/g,
-          " "
-        ).trim(),
-      });
+        title: `تجميعات ${lesson.subject_name || ""} ( ${lesson.title || ""} )`
+          .replace(/\s+/g, " ")
+          .trim(),
+      };
+      if (selectedYears.length) {
+        payload.years = selectedYears;
+      }
+      const { data } = await client.post("/exams/simulator/", payload);
       navigate(`/exam/${data.exam.id}`);
     } catch (e) {
       setMsg(e.response?.data?.detail || "لا توجد أسئلة كافية بهذه الإعدادات");
@@ -352,36 +392,70 @@ export default function CollectionLessonDetail() {
               ابدأ بالتدريب
             </div>
             <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 12 }}>
-              تدريب سريع على هذا الدرس، أو إعداد كامل لاختيار عدة مواد ودروس وسنة ومدة.
+              اختر المستويات وسنة الاختبار (اختياري) — يظهر لك كل الأسئلة المطابقة في هذا الدرس.
+              نسب المزج موجودة في المحاكي الشخصي فقط.
             </p>
             <div style={{ marginBottom: 16 }}>
               <Link
                 to={`/tests/simulator/${subjectId || lesson.subject}?lesson=${lessonId}&from=collections`}
                 className="btn btn-secondary"
               >
-                إعداد كامل (مواد · دروس · سنة · زمن) ←
+                المحاكي الشخصي (نسب صعوبة · عدة مواد · زمن) ←
               </Link>
             </div>
             <div className="form-group" style={{ marginBottom: 16 }}>
-              <label>مستوى الصعوبة</label>
+              <label>مستوى الصعوبة — يمكن اختيار أكثر من مستوى</label>
               <div className="filter-row" style={{ marginBottom: 8 }}>
-                {DIFFICULTY_PRESETS.map((lv) => (
+                {LEVELS.map((lv) => (
                   <span
                     key={lv.id}
-                    className={`chip chip-mix ${lv.tone} ${difficultyMix === lv.id ? "active" : ""}`}
-                    onClick={() => setDifficultyMix(lv.id)}
+                    className={`chip ${selectedLevels.includes(lv.id) ? "active" : ""}`}
+                    onClick={() => toggleLevel(lv.id)}
                     role="button"
                     tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") toggleLevel(lv.id);
+                    }}
                   >
-                    {lv.label}
+                    {lv.label} ({filteredLevelCounts[lv.id] || 0})
                   </span>
                 ))}
               </div>
               <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>
-                {difficultyMix
-                  ? DIFFICULTY_PRESETS.find((p) => p.id === difficultyMix)?.hint
-                  : "أخضر سهل · أصفر متوسط · برتقالي متقدم · أحمر تحدي"}
+                مثال: سهل فقط = كل الأسئلة السهلة · سهل + صعب = كل السهل وكل الصعب
               </p>
+            </div>
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label>سنة / تاريخ الاختبار — اختياري (واحد أو أكثر، أو بدون فلتر)</label>
+              <div className="filter-row" style={{ marginBottom: 8 }}>
+                <span
+                  className={`chip ${selectedYears.length === 0 ? "active" : ""}`}
+                  onClick={() => setSelectedYears([])}
+                  role="button"
+                  tabIndex={0}
+                >
+                  كل السنوات
+                </span>
+                {years.map((y) => (
+                  <span
+                    key={y}
+                    className={`chip ${selectedYears.includes(y) ? "active" : ""}`}
+                    onClick={() => toggleYear(y)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") toggleYear(y);
+                    }}
+                  >
+                    {y}
+                  </span>
+                ))}
+              </div>
+              {!years.length && (
+                <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>
+                  لا توجد سنوات مسجّلة على أسئلة هذا الدرس بعد.
+                </p>
+              )}
             </div>
             <div className="form-group" style={{ marginBottom: 16 }}>
               <label>المراجعة</label>
@@ -415,13 +489,15 @@ export default function CollectionLessonDetail() {
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={startBusy || !difficultyMix || bankTotal < 1}
+                disabled={startBusy || !selectedLevels.length || selectedCount < 1 || bankTotal < 1}
                 onClick={startExam}
               >
                 {startBusy ? "جاري البدء…" : "ابدأ هذا الدرس"}
               </button>
               <span style={{ fontWeight: 700, fontSize: 15 }}>
-                {!difficultyMix ? "اختر المستوى" : `${bankTotal} سؤال في البنك`}
+                {!selectedLevels.length
+                  ? "اختر المستوى"
+                  : `${selectedCount} سؤال سيظهر في الاختبار`}
               </span>
             </div>
           </div>

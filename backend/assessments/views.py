@@ -563,9 +563,12 @@ class StartSimulatorView(APIView):
 @permission_classes([IsAuthenticated])
 def simulator_options(request):
     """
-    Lessons + distinct question years for simulator setup.
+    Lessons + distinct question years for simulator / collections setup.
     Query: ?subjects=1&subjects=2  (or subjects=1,2)
+    Optional: ?lessons=3&lessons=4 — narrow years/stats to those lessons.
     """
+    from django.db.models import Count
+
     raw = request.query_params.getlist("subjects")
     if len(raw) == 1 and "," in raw[0]:
         raw = [x.strip() for x in raw[0].split(",") if x.strip()]
@@ -587,18 +590,32 @@ def simulator_options(request):
             {"detail": "subjects مطلوب"}, status=status.HTTP_400_BAD_REQUEST
         )
 
+    raw_lessons = request.query_params.getlist("lessons")
+    if len(raw_lessons) == 1 and "," in raw_lessons[0]:
+        raw_lessons = [x.strip() for x in raw_lessons[0].split(",") if x.strip()]
+    lesson_ids = []
+    for x in raw_lessons:
+        try:
+            lesson_ids.append(int(x))
+        except (TypeError, ValueError):
+            continue
+
     lessons = list(
         Lesson.objects.filter(subject_id__in=subject_ids, is_archived=False)
         .select_related("subject")
         .order_by("subject_id", "order_number", "id")
         .values("id", "title", "order_number", "subject_id", "subject__name")
     )
+    bank = CollectionQuestion.objects.filter(subject_id__in=subject_ids)
+    if lesson_ids:
+        bank = bank.filter(lesson_id__in=lesson_ids)
+
     years = list(
-        CollectionQuestion.objects.filter(subject_id__in=subject_ids)
-        .exclude(question_year="")
+        bank.exclude(question_year="")
         .values_list("question_year", flat=True)
         .distinct()
     )
+
     # Prefer numeric-looking years sorted desc, then other labels.
     def year_key(y):
         s = str(y).strip()
@@ -606,6 +623,24 @@ def simulator_options(request):
         return (-int(digits) if digits else 0, s)
 
     years = sorted(set(years), key=year_key)
+
+    # Per-year difficulty counts (for collections filters).
+    year_stats = {}
+    for row in (
+        bank.exclude(question_year="")
+        .values("question_year", "difficulty")
+        .annotate(count=Count("id"))
+    ):
+        y = row["question_year"]
+        bucket = year_stats.setdefault(
+            y, {"year": y, "easy": 0, "medium": 0, "hard": 0, "total": 0}
+        )
+        diff = row["difficulty"]
+        if diff in ("easy", "medium", "hard"):
+            bucket[diff] = row["count"]
+            bucket["total"] += row["count"]
+
+    year_stats_list = sorted(year_stats.values(), key=lambda r: year_key(r["year"]))
 
     return Response(
         {
@@ -621,6 +656,7 @@ def simulator_options(request):
                 for row in lessons
             ],
             "years": years,
+            "year_stats": year_stats_list,
         }
     )
 
