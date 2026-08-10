@@ -55,18 +55,33 @@ function isExamSurface(pathname) {
   );
 }
 
+function isSimulatorSurface(pathname) {
+  return Boolean(
+    matchPath({ path: "/tests/simulator", end: true }, pathname) ||
+      matchPath({ path: "/tests/simulator/:subjectId", end: true }, pathname)
+  );
+}
+
+/** Keep locked theme on exam/results and while configuring the personal simulator. */
+function isLockedThemeSurface(pathname) {
+  return isExamSurface(pathname) || isSimulatorSurface(pathname);
+}
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [subjects, setSubjects] = useState(readCachedSubjects);
   const [lockedThemeKey, setLockedThemeKey] = useState(() =>
-    isExamSurface(location.pathname) ? peekLockedTheme() : null
+    isLockedThemeSurface(location.pathname) ? peekLockedTheme() : null
   );
 
   const initial = user?.full_name?.trim()?.[0] || "؟";
   const subjectId = useMemo(() => readSubjectId(location.pathname), [location.pathname]);
-  const examSurface = useMemo(() => isExamSurface(location.pathname), [location.pathname]);
+  const lockedSurface = useMemo(
+    () => isLockedThemeSurface(location.pathname),
+    [location.pathname]
+  );
 
   // Theme only for subject routes — avoid extra lesson/exam API calls on every visit.
   useEffect(() => {
@@ -90,28 +105,36 @@ export default function Layout() {
 
   const subjectFromRoute = subjects.find((s) => String(s.id) === String(subjectId));
   const routeThemeKey = resolveSubjectKey(subjectFromRoute?.name) || null;
-  const themeKey = (examSurface && lockedThemeKey) || routeThemeKey;
+  const themeKey = (lockedSurface && lockedThemeKey) || routeThemeKey;
   const theme = getSubjectTheme(themeKey);
   const logoSrc = theme?.logo || DEFAULT_LOGO;
   const logoAlt = theme ? `زاد ${theme.label}` : "زاد التحصيلي";
 
   useEffect(() => {
-    if (examSurface) {
+    if (lockedSurface) {
       const locked = peekLockedTheme();
       if (locked) {
         setLockedThemeKey(locked);
         applySubjectTheme(locked);
+        return undefined;
       }
+      // Simulator with a subject in the URL: use route theme until multi is locked.
+      if (routeThemeKey) {
+        setLockedThemeKey(routeThemeKey);
+        applySubjectTheme(routeThemeKey);
+        return undefined;
+      }
+      setLockedThemeKey(null);
       return undefined;
     }
     setLockedThemeKey(null);
     unlockSubjectTheme();
     applySubjectTheme(routeThemeKey);
     return () => clearSubjectTheme();
-  }, [routeThemeKey, examSurface, location.pathname]);
+  }, [routeThemeKey, lockedSurface, location.pathname]);
 
   useEffect(() => {
-    if (!examSurface) return undefined;
+    if (!lockedSurface) return undefined;
     const onTheme = (e) => {
       const key = e.detail?.key || peekLockedTheme();
       setLockedThemeKey(key);
@@ -119,7 +142,7 @@ export default function Layout() {
     };
     window.addEventListener(SUBJECT_THEME_EVENT, onTheme);
     return () => window.removeEventListener(SUBJECT_THEME_EVENT, onTheme);
-  }, [examSurface]);
+  }, [lockedSurface]);
 
   function handleLogout() {
     logout();

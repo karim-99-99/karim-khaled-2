@@ -6,7 +6,7 @@ import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
 import QuestionMeta from "../components/QuestionMeta";
 import VideoPlayer from "../components/VideoPlayer";
-import { applySubjectTheme, lockSubjectTheme, resolveSubjectKey } from "../theme/subjects";
+import { applySubjectTheme, lockSubjectTheme, resolveExamThemeKey } from "../theme/subjects";
 
 function formatRemain(sec) {
   if (sec == null || sec < 0) return "—";
@@ -44,13 +44,12 @@ export default function TestRunner() {
   }, [examId]);
 
   useEffect(() => {
-    const name = payload?.exam?.subject_name;
-    if (!name) return undefined;
-    const key = resolveSubjectKey(name);
+    if (!payload?.exam) return undefined;
+    const key = resolveExamThemeKey(payload.exam, payload.questions);
     lockSubjectTheme(key);
     applySubjectTheme(key);
     return undefined;
-  }, [payload?.exam?.subject_name]);
+  }, [payload?.exam, payload?.questions]);
 
   useEffect(() => {
     const ends = payload?.exam?.ends_at;

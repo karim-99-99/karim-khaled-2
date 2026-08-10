@@ -4,6 +4,11 @@ import { useAuth } from "../auth/AuthContext";
 import { filterSubjectsForUser } from "../auth/teacherScope";
 import client from "../api/client";
 import BackToCourses from "../components/BackToCourses";
+import {
+  lockSubjectTheme,
+  resolveSubjectKey,
+  unlockSubjectTheme,
+} from "../theme/subjects";
 
 /** Student difficulty presets (ratios applied on the server). */
 const DIFFICULTY_PRESETS = [
@@ -108,6 +113,28 @@ export default function SimulatorSetup() {
     // Changing subjects allows one fresh auto-select of lessons.
     autoSelectLessons.current = true;
   }, [selectedSubjects.join(",")]);
+
+  // Blue skin for multi-subject; otherwise the single selected subject's theme.
+  useEffect(() => {
+    if (selectedSubjects.length > 1) {
+      lockSubjectTheme("multi");
+      return undefined;
+    }
+    if (selectedSubjects.length === 1) {
+      const s = subjects.find((x) => Number(x.id) === Number(selectedSubjects[0]));
+      lockSubjectTheme(resolveSubjectKey(s?.name));
+      return undefined;
+    }
+    if (preSubject) {
+      const s = subjects.find((x) => Number(x.id) === Number(preSubject));
+      const key = resolveSubjectKey(s?.name);
+      if (key) lockSubjectTheme(key);
+      else unlockSubjectTheme();
+      return undefined;
+    }
+    unlockSubjectTheme();
+    return undefined;
+  }, [selectedSubjects.join(","), subjects, preSubject]);
 
   useEffect(() => {
     if (!selectedSubjects.length) {
@@ -240,6 +267,12 @@ export default function SimulatorSetup() {
         time_limit_minutes: resolveTimeLimit(),
       };
       if (selectedYears.length) payload.years = selectedYears;
+      if (selectedSubjects.length > 1) {
+        lockSubjectTheme("multi");
+      } else if (selectedSubjects.length === 1) {
+        const s = subjects.find((x) => Number(x.id) === Number(selectedSubjects[0]));
+        lockSubjectTheme(resolveSubjectKey(s?.name));
+      }
       const { data } = await client.post("/exams/simulator/", payload);
       navigate(`/exam/${data.exam.id}`);
     } catch (e) {

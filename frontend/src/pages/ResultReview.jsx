@@ -5,7 +5,7 @@ import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
 import QuestionMeta from "../components/QuestionMeta";
 import VideoPlayer from "../components/VideoPlayer";
-import { applySubjectTheme, lockSubjectTheme, resolveSubjectKey } from "../theme/subjects";
+import { applySubjectTheme, lockSubjectTheme, resolveExamThemeKey } from "../theme/subjects";
 
 function DonutChart({ correct = 0, wrong = 0, unanswered = 0, size = 168 }) {
   const total = Math.max(1, correct + wrong + unanswered);
@@ -70,13 +70,12 @@ export default function ResultReview() {
   }, [examId, filter]);
 
   useEffect(() => {
-    const name = data?.exam?.subject_name;
-    if (!name) return undefined;
-    const key = resolveSubjectKey(name);
+    if (!data?.exam) return undefined;
+    const key = resolveExamThemeKey(data.exam, data.answers);
     lockSubjectTheme(key);
     applySubjectTheme(key);
     return undefined;
-  }, [data?.exam?.subject_name]);
+  }, [data?.exam, data?.answers]);
 
   if (!data) return <div className="spinner">جاري التحميل…</div>;
 

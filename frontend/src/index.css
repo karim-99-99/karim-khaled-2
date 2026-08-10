@@ -1020,6 +1020,15 @@ html[data-subject="bio"] {
   --accent-soft: #fff3cd;
   --bg: #fffdf5;
 }
+html[data-subject="multi"] {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --primary-light: #dbeafe;
+  --accent: #38bdf8;
+  --accent-dark: #0284c7;
+  --accent-soft: #e0f2fe;
+  --bg: #f0f7ff;
+}
 
 html[data-subject] .hero {
   background:

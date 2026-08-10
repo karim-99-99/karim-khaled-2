@@ -30,6 +30,13 @@ export const SUBJECT_THEMES = {
     logo: "/logo-bio.png",
     match: ["أحياء"],
   },
+  /** Multi-subject personal simulator — blue skin */
+  multi: {
+    key: "multi",
+    label: "عدة مواد",
+    logo: DEFAULT_LOGO,
+    match: ["عدة مواد"],
+  },
 };
 
 function notifyThemeChange(key) {
@@ -43,9 +50,21 @@ function notifyThemeChange(key) {
 export function resolveSubjectKey(name = "") {
   const n = String(name);
   for (const theme of Object.values(SUBJECT_THEMES)) {
+    if (theme.key === "multi") continue;
     if (theme.match.some((m) => n.includes(m))) return theme.key;
   }
   return null;
+}
+
+/** Theme for an exam: blue when questions span more than one subject. */
+export function resolveExamThemeKey(exam, questions = []) {
+  const names = new Set();
+  for (const q of questions || []) {
+    if (q?.subject_name) names.add(String(q.subject_name).trim());
+  }
+  if (names.size > 1) return "multi";
+  if (names.size === 1) return resolveSubjectKey([...names][0]);
+  return resolveSubjectKey(exam?.subject_name || "");
 }
 
 export function getSubjectTheme(key) {
