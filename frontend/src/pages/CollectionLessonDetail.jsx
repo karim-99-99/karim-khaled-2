@@ -14,6 +14,33 @@ const LEVELS = [
   { id: "hard", label: "صعب" },
 ];
 
+const DIFFICULTY_PRESETS = [
+  {
+    id: "easy",
+    label: "سهل",
+    hint: "٦٠٪ سهل · ٣٥٪ متوسط · ٥٪ صعب",
+    tone: "mix-easy",
+  },
+  {
+    id: "medium",
+    label: "متوسط",
+    hint: "٤٠٪ سهل · ٦٠٪ متوسط · ١٠٪ صعب",
+    tone: "mix-medium",
+  },
+  {
+    id: "advanced",
+    label: "متقدم",
+    hint: "٢٥٪ سهل · ٥٥٪ متوسط · ٢٠٪ صعب",
+    tone: "mix-advanced",
+  },
+  {
+    id: "challenge",
+    label: "تحدي",
+    hint: "١٠٪ سهل · ٤٠٪ متوسط · ٥٠٪ صعب",
+    tone: "mix-challenge",
+  },
+];
+
 /**
  * داخل درس التجميع: للطالب اختيار نوع الأسئلة وبدء الاختبار فقط.
  * للمدرس: فيديو / PDF / إدارة بنك الأسئلة.
@@ -34,7 +61,8 @@ export default function CollectionLessonDetail() {
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const [startBusy, setStartBusy] = useState(false);
-  const [selectedLevels, setSelectedLevels] = useState([]);
+  const [difficultyMix, setDifficultyMix] = useState("");
+  const [reviewMode, setReviewMode] = useState("immediate");
 
   const canEdit = canEditSubject(user, subjectId || lesson?.subject);
   const canRenameLesson =
@@ -45,10 +73,10 @@ export default function CollectionLessonDetail() {
     medium: 0,
     hard: 0,
   };
-  const selectedQuestionTotal = selectedLevels.reduce(
-    (sum, id) => sum + (Number(levelCounts[id]) || 0),
-    0
-  );
+  const bankTotal =
+    (Number(levelCounts.easy) || 0) +
+    (Number(levelCounts.medium) || 0) +
+    (Number(levelCounts.hard) || 0);
 
   function loadLesson() {
     return client.get(`/lessons/${lessonId}/`).then((res) => {
@@ -111,31 +139,26 @@ export default function CollectionLessonDetail() {
     }
   }
 
-  function toggleLevel(id) {
-    setSelectedLevels((prev) => {
-      if (prev.includes(id)) return prev.filter((x) => x !== id);
-      return [...prev, id];
-    });
-  }
-
   async function startExam() {
     setMsg("");
-    if (selectedLevels.length === 0) {
-      setMsg("اختر مستوى واحداً على الأقل");
+    if (!difficultyMix) {
+      setMsg("اختر مستوى واحداً");
       return;
     }
-    if (selectedQuestionTotal < 1) {
-      setMsg("لا توجد أسئلة في المستويات المختارة");
+    if (bankTotal < 1) {
+      setMsg("لا توجد أسئلة في هذا الدرس");
       return;
     }
     setStartBusy(true);
     try {
       const { data } = await client.post("/exams/simulator/", {
+        subjects: [Number(subjectId || lesson.subject)],
         subject: Number(subjectId || lesson.subject),
         lessons: [Number(lessonId)],
-        levels: selectedLevels,
+        difficulty_mix: difficultyMix,
         take_all: true,
-        review_mode: "final",
+        review_mode: reviewMode,
+        time_limit_minutes: null,
         title: `تجميعات ${lesson.subject_name || ""} ( ${lesson.title || ""} )`.replace(
           /\s+/g,
           " "
@@ -261,14 +284,14 @@ export default function CollectionLessonDetail() {
       {canEdit && tab === "video" && (
         <div className="card" style={{ padding: 20, marginBottom: 20 }}>
           <div className="form-group">
-            <label>Bunny Video ID</label>
+            <label>فيديو الدرس — Bunny أو رابط (YouTube / Drive / أي رابط)</label>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <input
                 className="form-control"
                 style={{ flex: 1, minWidth: 180 }}
                 value={editVideo}
                 onChange={(e) => setEditVideo(e.target.value)}
-                placeholder="GUID من Bunny Stream"
+                placeholder="Bunny GUID أو https://youtube.com/... أو Drive"
               />
               <button
                 type="button"
@@ -329,33 +352,56 @@ export default function CollectionLessonDetail() {
               ابدأ بالتدريب
             </div>
             <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 12 }}>
-              اختر نوع الأسئلة الذي تريده (سهل / متوسط / صعب)، ثم ابدأ الاختبار.
-              الرقم بجانب الزر هو عدد الأسئلة للمستويات المختارة.
+              تدريب سريع على هذا الدرس، أو إعداد كامل لاختيار عدة مواد ودروس وسنة ومدة.
             </p>
+            <div style={{ marginBottom: 16 }}>
+              <Link
+                to={`/tests/simulator/${subjectId || lesson.subject}?lesson=${lessonId}&from=collections`}
+                className="btn btn-secondary"
+              >
+                إعداد كامل (مواد · دروس · سنة · زمن) ←
+              </Link>
+            </div>
             <div className="form-group" style={{ marginBottom: 16 }}>
-              <label>نوع الأسئلة</label>
-              <div className="filter-row">
-                {LEVELS.map((lv) => {
-                  const n = Number(levelCounts[lv.id]) || 0;
-                  const active = selectedLevels.includes(lv.id);
-                  return (
-                    <span
-                      key={lv.id}
-                      className={`chip ${active ? "active" : ""}`}
-                      onClick={() => toggleLevel(lv.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          toggleLevel(lv.id);
-                        }
-                      }}
-                    >
-                      {lv.label} ({n})
-                    </span>
-                  );
-                })}
+              <label>مستوى الصعوبة</label>
+              <div className="filter-row" style={{ marginBottom: 8 }}>
+                {DIFFICULTY_PRESETS.map((lv) => (
+                  <span
+                    key={lv.id}
+                    className={`chip chip-mix ${lv.tone} ${difficultyMix === lv.id ? "active" : ""}`}
+                    onClick={() => setDifficultyMix(lv.id)}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    {lv.label}
+                  </span>
+                ))}
+              </div>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>
+                {difficultyMix
+                  ? DIFFICULTY_PRESETS.find((p) => p.id === difficultyMix)?.hint
+                  : "أخضر سهل · أصفر متوسط · برتقالي متقدم · أحمر تحدي"}
+              </p>
+            </div>
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label>المراجعة</label>
+              <div className="filter-row" style={{ marginBottom: 8 }}>
+                <span
+                  className={`chip ${reviewMode === "immediate" ? "active" : ""}`}
+                  onClick={() => setReviewMode("immediate")}
+                  role="button"
+                  tabIndex={0}
+                >
+                  فورية
+                </span>
+                <span
+                  className={`chip ${reviewMode === "final" ? "active" : ""}`}
+                  onClick={() => setReviewMode("final")}
+                  role="button"
+                  tabIndex={0}
+                >
+                  نهائية
+                </span>
               </div>
             </div>
             <div
@@ -369,15 +415,13 @@ export default function CollectionLessonDetail() {
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={startBusy || selectedLevels.length === 0 || selectedQuestionTotal < 1}
+                disabled={startBusy || !difficultyMix || bankTotal < 1}
                 onClick={startExam}
               >
-                {startBusy ? "جاري البدء…" : "ابدأ الاختبار"}
+                {startBusy ? "جاري البدء…" : "ابدأ هذا الدرس"}
               </button>
               <span style={{ fontWeight: 700, fontSize: 15 }}>
-                {selectedLevels.length === 0
-                  ? "اختر نوع الأسئلة"
-                  : `${selectedQuestionTotal} سؤال`}
+                {!difficultyMix ? "اختر المستوى" : `${bankTotal} سؤال في البنك`}
               </span>
             </div>
           </div>

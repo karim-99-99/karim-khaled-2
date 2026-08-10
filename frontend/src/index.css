@@ -312,6 +312,52 @@ a.card:hover,
 .chip.physics:hover { background: #7c3aed; color: #fff; }
 .chip.chem:hover { background: #c41e3a; color: #fff; }
 .chip.bio:hover { background: #e6a800; color: #3d2e00; }
+
+/* Difficulty mix presets — green / yellow / deep orange / red */
+.chip.chip-mix.mix-easy {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border-color: #66bb6a;
+}
+.chip.chip-mix.mix-easy.active,
+.chip.chip-mix.mix-easy:hover {
+  background: #2e7d32;
+  color: #fff;
+  border-color: #2e7d32;
+}
+.chip.chip-mix.mix-medium {
+  background: #fff8e1;
+  color: #f9a825;
+  border-color: #fdd835;
+}
+.chip.chip-mix.mix-medium.active,
+.chip.chip-mix.mix-medium:hover {
+  background: #f9a825;
+  color: #3d2e00;
+  border-color: #f9a825;
+}
+.chip.chip-mix.mix-advanced {
+  background: #fff3e0;
+  color: #e65100;
+  border-color: #ff9800;
+}
+.chip.chip-mix.mix-advanced.active,
+.chip.chip-mix.mix-advanced:hover {
+  background: #e65100;
+  color: #fff;
+  border-color: #e65100;
+}
+.chip.chip-mix.mix-challenge {
+  background: #fce8ec;
+  color: #b71c1c;
+  border-color: #e53935;
+}
+.chip.chip-mix.mix-challenge.active,
+.chip.chip-mix.mix-challenge:hover {
+  background: #b71c1c;
+  color: #fff;
+  border-color: #b71c1c;
+}
 .section-title {
   font-size: 20px;
   font-weight: 700;
@@ -545,6 +591,28 @@ a.card:hover,
   background: #fce8ec;
   color: #9b1b30;
   border: 1px solid #f5c2cc;
+}
+.result-stat {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.result-stat__label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.result-stat__value {
+  font-size: 22px;
+  font-weight: 800;
+}
+.result-stat--ok .result-stat__value {
+  color: var(--success);
+}
+.result-stat--bad .result-stat__value {
+  color: var(--error);
 }
 .chip.active.attendance-present {
   background: #2e7d32;

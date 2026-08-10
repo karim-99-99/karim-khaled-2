@@ -230,12 +230,12 @@ export default function TeacherQuestionForm({
       />
 
       <div className="form-group">
-        <label>فيديو شرح السؤال — Bunny ID (اختياري)</label>
+        <label>فيديو شرح السؤال — Bunny أو رابط (اختياري)</label>
         <input
           className="form-control"
           value={form.video_bunny_id}
           onChange={(e) => setForm((f) => ({ ...f, video_bunny_id: e.target.value }))}
-          placeholder="GUID من Bunny Stream"
+          placeholder="Bunny GUID أو رابط YouTube / Drive / أي رابط"
         />
       </div>
       <div className="form-group">

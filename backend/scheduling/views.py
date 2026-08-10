@@ -1,4 +1,5 @@
 from django.db.models import Count, Q
+from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -41,7 +42,12 @@ class SessionViewSet(viewsets.ModelViewSet):
         if user.is_teacher:
             links = GroupTeacher.objects.filter(teacher=user)
             group_ids = list(links.values_list("group_id", flat=True))
-            qs = qs.filter(Q(teacher=user) | Q(group_id__in=group_ids)).distinct()
+            subject_ids = list(links.values_list("subject_id", flat=True))
+            # Teacher sees only their subject(s) with their groups (or sessions assigned to them).
+            qs = qs.filter(
+                Q(teacher=user)
+                | (Q(group_id__in=group_ids) & Q(subject_id__in=subject_ids))
+            ).distinct()
         else:
             group_ids = list(
                 GroupStudent.objects.filter(student=user).values_list(
@@ -51,10 +57,7 @@ class SessionViewSet(viewsets.ModelViewSet):
             qs = qs.filter(group_id__in=group_ids)
         return qs
 
-    def get_queryset(self):
-        # Close sessions whose duration has elapsed (fixes stuck «مباشر الآن»).
-        sync_session_statuses(Session.objects.all())
-        qs = self._scoped_queryset()
+    def _when_filtered(self, qs):
         when = (self.request.query_params.get("when") or "").strip().lower()
         if when == "past":
             return qs.filter(status=Session.Status.DONE).order_by(
@@ -66,21 +69,38 @@ class SessionViewSet(viewsets.ModelViewSet):
             )
         return qs.order_by("start_time", "id")
 
+    def _sync_open_sessions(self):
+        # Close sessions whose duration has elapsed (fixes stuck «مباشر الآن»).
+        now = timezone.now()
+        sync_session_statuses(
+            Session.objects.exclude(status=Session.Status.DONE).filter(
+                Q(start_time__lte=now) | Q(status=Session.Status.LIVE)
+            )
+        )
+
+    def get_queryset(self):
+        self._sync_open_sessions()
+        return self._when_filtered(self._scoped_queryset())
+
     def get_serializer_context(self):
         ctx = super().get_serializer_context()
         # Numbers span all sessions (past + upcoming) for the same subject/group.
         ctx["numbering_qs"] = self._scoped_queryset()
         user = self.request.user
+        # Do NOT call get_queryset() here — that re-syncs and doubles DB work.
+        page_ids = list(
+            self.filter_queryset(self._when_filtered(self._scoped_queryset())).values_list(
+                "id", flat=True
+            )
+        )
         if user.is_authenticated and getattr(user, "is_student", False):
-            ids = list(self.filter_queryset(self.get_queryset()).values_list("id", flat=True))
             rows = SessionAttendance.objects.filter(
-                student=user, session_id__in=ids
+                student=user, session_id__in=page_ids
             ).values_list("session_id", "status")
             ctx["my_attendance_map"] = {sid: st for sid, st in rows}
         elif user.is_authenticated and (user.is_teacher or user.is_admin_role):
-            ids = list(self.filter_queryset(self.get_queryset()).values_list("id", flat=True))
             stats = (
-                SessionAttendance.objects.filter(session_id__in=ids)
+                SessionAttendance.objects.filter(session_id__in=page_ids)
                 .values("session_id")
                 .annotate(
                     present=Count("id", filter=Q(status=SessionAttendance.Status.PRESENT)),
@@ -160,14 +180,41 @@ class SessionViewSet(viewsets.ModelViewSet):
 
         zoom = serializer.validated_data.get("zoom_link", instance.zoom_link)
         status_val = serializer.validated_data.get("status", instance.status)
+        joined = serializer.validated_data.get(
+            "teacher_joined_zoom", instance.teacher_joined_zoom
+        )
         instance.zoom_link = zoom or ""
         instance.status = status_val
-        instance.save(update_fields=["zoom_link", "status"])
+        update_fields = ["zoom_link", "status"]
+        if joined != instance.teacher_joined_zoom:
+            instance.teacher_joined_zoom = bool(joined)
+            instance.teacher_joined_zoom_at = (
+                timezone.now() if instance.teacher_joined_zoom else None
+            )
+            update_fields.extend(["teacher_joined_zoom", "teacher_joined_zoom_at"])
+        instance.save(update_fields=update_fields)
 
     def perform_destroy(self, instance):
         if not self.request.user.is_admin_role:
             raise PermissionDenied("المدير فقط يحذف الحصص من الجدول")
         instance.delete()
+
+    @action(detail=True, methods=["post"])
+    def teacher_zoom(self, request, pk=None):
+        """Teacher marks that they joined (or left) the Zoom meeting."""
+        session = self.get_object()
+        user = request.user
+        if user.is_student:
+            raise PermissionDenied()
+        if not user.is_admin_role and not self._teacher_owns_session(session, user):
+            raise PermissionDenied("حصصك فقط")
+        joined = request.data.get("joined")
+        if joined is None:
+            joined = True
+        session.teacher_joined_zoom = bool(joined)
+        session.teacher_joined_zoom_at = timezone.now() if session.teacher_joined_zoom else None
+        session.save(update_fields=["teacher_joined_zoom", "teacher_joined_zoom_at"])
+        return Response(SessionSerializer(session, context=self.get_serializer_context()).data)
 
     @action(detail=True, methods=["get", "put", "patch"])
     def attendance(self, request, pk=None):

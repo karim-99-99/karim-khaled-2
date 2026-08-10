@@ -109,12 +109,16 @@ export default function Schedule() {
                     ) : null}
                   </div>
                 </div>
-                {(s.teacher_name || s.duration_minutes) && (
-                  <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "6px 0 0" }}>
-                    {s.teacher_name ? s.teacher_name : ""}
-                    {s.teacher_name && s.duration_minutes ? " · " : ""}
-                    {s.duration_minutes ? `${s.duration_minutes} دقيقة` : ""}
-                  </p>
+                {s.teacher_joined_zoom ? (
+                  <div style={{ marginTop: 8 }}>
+                    <span className="badge badge-present">المدرس دخل Zoom ✓</span>
+                  </div>
+                ) : (
+                  <div style={{ marginTop: 8 }}>
+                    <span className="badge" style={{ opacity: 0.75 }}>
+                      المدرس لم يسجّل دخول Zoom بعد
+                    </span>
+                  </div>
                 )}
                 {isPast && (
                   <div style={{ marginTop: 8 }}>

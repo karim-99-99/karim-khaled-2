@@ -159,7 +159,7 @@ export default function SectionPanel({ sectionId, onUpdated }) {
           {canEdit && (
             <div style={{ marginTop: 12 }}>
               <label style={{ fontWeight: 600, display: "block", marginBottom: 8 }}>
-                Bunny Video ID
+                فيديو الحصة — Bunny أو رابط (YouTube / Drive / أي رابط)
               </label>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 <input
@@ -167,7 +167,7 @@ export default function SectionPanel({ sectionId, onUpdated }) {
                   style={{ flex: 1, minWidth: 180 }}
                   value={editVideo}
                   onChange={(e) => setEditVideo(e.target.value)}
-                  placeholder="GUID من Bunny Stream"
+                  placeholder="Bunny GUID أو https://youtube.com/... أو Drive"
                 />
                 <button
                   type="button"

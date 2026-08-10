@@ -184,6 +184,8 @@ class ExamSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source="subject.name", read_only=True)
     correct_count = serializers.SerializerMethodField()
     wrong_count = serializers.SerializerMethodField()
+    answered_count = serializers.SerializerMethodField()
+    unanswered_count = serializers.SerializerMethodField()
     ends_at = serializers.DateTimeField(read_only=True)
 
     class Meta:
@@ -204,6 +206,8 @@ class ExamSerializer(serializers.ModelSerializer):
             "score_percent",
             "correct_count",
             "wrong_count",
+            "answered_count",
+            "unanswered_count",
             "started_at",
             "finished_at",
         ]
@@ -216,7 +220,20 @@ class ExamSerializer(serializers.ModelSerializer):
     def get_wrong_count(self, obj):
         if hasattr(obj, "_ann_wrong"):
             return obj._ann_wrong
-        return obj.answers.filter(is_correct=False, skipped=False).count()
+        return obj.answers.filter(is_correct=False, skipped=False).exclude(
+            selected_answer=""
+        ).count()
+
+    def get_answered_count(self, obj):
+        if hasattr(obj, "_ann_answered"):
+            return obj._ann_answered
+        return obj.answers.filter(skipped=False).exclude(selected_answer="").count()
+
+    def get_unanswered_count(self, obj):
+        if hasattr(obj, "_ann_unanswered"):
+            return obj._ann_unanswered
+        total = obj.question_count or obj.answers.count()
+        return max(0, total - self.get_answered_count(obj))
 
 
 class TeacherTestSerializer(serializers.ModelSerializer):
@@ -224,6 +241,7 @@ class TeacherTestSerializer(serializers.ModelSerializer):
     lesson_ids = serializers.SerializerMethodField()
     lesson_titles = serializers.SerializerMethodField()
     question_ids = serializers.SerializerMethodField()
+    subject_name = serializers.CharField(source="subject.name", read_only=True)
     created_by_name = serializers.CharField(
         source="created_by.full_name", read_only=True, default=""
     )
@@ -234,6 +252,7 @@ class TeacherTestSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "subject",
+            "subject_name",
             "review_mode",
             "is_published",
             "question_count",
@@ -244,7 +263,7 @@ class TeacherTestSerializer(serializers.ModelSerializer):
             "created_by_name",
             "created_at",
         ]
-        read_only_fields = ["id", "created_by", "created_at"]
+        read_only_fields = ["id", "created_by", "created_at", "subject_name"]
 
     def get_question_count(self, obj):
         return obj.items.count()

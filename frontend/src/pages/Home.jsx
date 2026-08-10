@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import client from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { filterSubjectsForUser } from "../auth/teacherScope";
 import VideoPlayer from "../components/VideoPlayer";
 import { getSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 import { formatSessionWhen, sessionDisplayTitle } from "../utils/sessionDate";
@@ -10,6 +11,7 @@ export default function Home() {
   const { user } = useAuth();
   const [content, setContent] = useState(null);
   const [next, setNext] = useState(null);
+  const isTeacher = user?.role === "teacher";
 
   useEffect(() => {
     let cancelled = false;
@@ -51,7 +53,8 @@ export default function Home() {
     const sid = String(l.subject);
     if (!freeBySubject.has(sid)) freeBySubject.set(sid, l);
   }
-  const subjectPanels = (content?.subjects || []).map((s) => {
+  const visibleSubjects = filterSubjectsForUser(content?.subjects || [], user);
+  const subjectPanels = visibleSubjects.map((s) => {
     const key = resolveSubjectKey(s.name) || "math";
     return {
       subject: s,
@@ -61,19 +64,17 @@ export default function Home() {
     };
   });
 
+  const isSubscribed =
+    user?.role === "student" && user?.has_active_subscription;
+  const showFreePreview = !user || (user.role === "student" && !user.has_active_subscription);
+
   return (
     <div>
       {user && user.role === "student" && !user.has_active_subscription && (
         <div className="banner">
-          يمكنك تصفّح الموقع ومشاهدة أول درس وحل أول ١٠ أسئلة فقط —
-          الرجاء التواصل مع الإدارة للتفعيل، أو{" "}
+          الدرس المجاني: فيديوهات الدرس كاملة + الواجب + ١٠ أسئلة من التجميعات —
+          للاشتراك الكامل{" "}
           <Link to="/subscription"><strong>اشترك الآن</strong></Link>.
-        </div>
-      )}
-
-      {user && next?.role === "teacher" && next.teaches_subjects?.length > 0 && (
-        <div style={{ marginBottom: 12, color: "var(--text-muted)" }}>
-          أنت مدرّس مادة: <strong>{next.teaches_subjects.join("، ")}</strong>
         </div>
       )}
 
@@ -85,26 +86,29 @@ export default function Home() {
           <div className="eyebrow">الحصة القادمة</div>
           {session ? (
             <>
-              <h2>{sessionDisplayTitle(session)}</h2>
-              <div className="meta session-date" style={{ minWidth: 0 }}>
-                {when?.hijri ? (
-                  <div className="session-date__hijri" style={{ color: "inherit", fontSize: 20, order: 1 }}>
-                    {when.hijri}
-                  </div>
-                ) : null}
-                {when?.gregorian && (
-                  <div className="session-date__gregorian" style={{ color: "inherit", opacity: 0.75, order: 2 }}>
-                    {when.gregorian}
-                  </div>
-                )}
-                {when?.time && (
-                  <div className="session-date__time" style={{ color: "inherit", opacity: 0.9, order: 3 }}>
-                    {when.time}
-                  </div>
-                )}
-                <div style={{ marginTop: 6, opacity: 0.85, fontSize: 13, order: 4 }}>
-                  {[session.subject_name, session.teacher_name].filter(Boolean).join(" · ")}
+              <div className="meta session-date" style={{ minWidth: 0, marginBottom: 10 }}>
+                <div
+                  className="session-date__dayline"
+                  style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}
+                >
+                  {when?.weekday ? (
+                    <span style={{ fontSize: 22, fontWeight: 800 }}>{when.weekday}</span>
+                  ) : null}
+                  {when?.time ? (
+                    <span style={{ fontSize: 22, fontWeight: 800 }}>{when.time}</span>
+                  ) : null}
                 </div>
+                {when?.hijri ? (
+                  <div style={{ opacity: 0.95, fontSize: 15, marginTop: 4 }}>{when.hijri}</div>
+                ) : null}
+                {when?.gregorian ? (
+                  <div style={{ opacity: 0.75, fontSize: 13 }}>{when.gregorian}</div>
+                ) : null}
+              </div>
+              <h2 style={{ marginTop: 0 }}>{sessionDisplayTitle(session)}</h2>
+              <div className="meta" style={{ marginTop: 6, opacity: 0.9, fontSize: 14 }}>
+                {session.subject_name}
+                {session.teacher_joined_zoom ? " · المدرس في Zoom ✓" : ""}
               </div>
             </>
           ) : (
@@ -125,10 +129,22 @@ export default function Home() {
         )}
       </div>
 
-      <div className="section-title">تصفح حسب المادة</div>
-      <p className="home-subjects__lead">
-        اختر مادتك، وشاهد الدرس المجاني مباشرة أسفل كل مادة
-      </p>
+      <div className="section-title">
+        {isTeacher ? (subjectPanels.length > 1 ? "موادك" : "مادتك") : "تصفح حسب المادة"}
+      </div>
+      {showFreePreview && (
+        <p className="home-subjects__lead">
+          اختر مادتك، وشاهد الدرس المجاني مباشرة أسفل كل مادة (فيديوهات + واجب + ١٠ أسئلة تجميع)
+        </p>
+      )}
+      {isSubscribed && (
+        <p className="home-subjects__lead">اختر مادتك للدخول إلى الدورة</p>
+      )}
+      {isTeacher && (
+        <p className="home-subjects__lead">
+          مادتك المخصصة فقط — ادخل لإدارة الدروس والأسئلة
+        </p>
+      )}
 
       {!content && (
         <div className="spinner">
@@ -140,7 +156,11 @@ export default function Home() {
       )}
 
       {content && subjectPanels.length === 0 && (
-        <p style={{ color: "var(--text-muted)" }}>لا توجد مواد بعد.</p>
+        <p style={{ color: "var(--text-muted)" }}>
+          {isTeacher
+            ? "لم تُخصص لك مادة بعد — تواصل مع الإدارة."
+            : "لا توجد مواد بعد."}
+        </p>
       )}
 
       <div className="home-subjects">
@@ -171,14 +191,15 @@ export default function Home() {
                 ) : null}
                 <div className="home-subject-panel__titles">
                   <h3>{s.name}</h3>
-                  <span>ادخل الدورة</span>
+                  <span>{isTeacher ? "إدارة المادة" : "ادخل الدورة"}</span>
                 </div>
               </Link>
 
+              {showFreePreview && (
               <div className="home-subject-panel__free">
                 <div className="home-subject-panel__free-label">
                   <span className="home-subject-panel__pill">مجاني</span>
-                  <span>معاينة الدرس الأول</span>
+                  <span>فيديو · واجب · ١٠ أسئلة تجميع</span>
                 </div>
 
                 {freeLesson ? (
@@ -197,6 +218,16 @@ export default function Home() {
                       <strong>{freeLesson.title}</strong>
                       <span>شاهد الدرس ←</span>
                     </Link>
+                    {user && (
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+                        <Link
+                          to={`/courses/${s.id}/collections/${freeLesson.id}`}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          تجميع (١٠ أسئلة)
+                        </Link>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="home-subject-panel__empty">
@@ -204,6 +235,7 @@ export default function Home() {
                   </div>
                 )}
               </div>
+              )}
             </article>
           );
         })}

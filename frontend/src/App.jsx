@@ -14,6 +14,7 @@ const SectionDetail = lazy(() => import("./pages/SectionDetail"));
 const Collections = lazy(() => import("./pages/Collections"));
 const CollectionLessonDetail = lazy(() => import("./pages/CollectionLessonDetail"));
 const TestsHub = lazy(() => import("./pages/TestsHub"));
+const TestsPage = lazy(() => import("./pages/TestsPage"));
 const SimulatorSetup = lazy(() => import("./pages/SimulatorSetup"));
 const TeacherTestSetup = lazy(() => import("./pages/TeacherTestSetup"));
 const TestRunner = lazy(() => import("./pages/TestRunner"));
@@ -51,8 +52,10 @@ export default function App() {
           <Route path="/lessons/:lessonId" element={<RequireAuth><LessonDetail /></RequireAuth>} />
           <Route path="/sections/:sectionId" element={<RequireAuth><SectionDetail /></RequireAuth>} />
 
-          <Route path="/courses/:subjectId/tests" element={<RequireAuth><TestsHub /></RequireAuth>} />
+          <Route path="/tests" element={<RequireAuth><TestsPage /></RequireAuth>} />
+          <Route path="/tests/simulator" element={<RequireAuth><SimulatorSetup /></RequireAuth>} />
           <Route path="/tests/simulator/:subjectId" element={<RequireAuth><SimulatorSetup /></RequireAuth>} />
+          <Route path="/courses/:subjectId/tests" element={<RequireAuth><TestsHub /></RequireAuth>} />
           <Route path="/tests/teacher/:subjectId" element={<RequireAuth><TeacherTestSetup /></RequireAuth>} />
           <Route path="/exam/:examId" element={<RequireAuth><TestRunner /></RequireAuth>} />
 

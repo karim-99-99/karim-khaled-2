@@ -145,6 +145,7 @@ export default function Layout() {
             الرئيسية
           </NavLink>
           <NavLink to="/courses">دورات</NavLink>
+          <NavLink to="/tests">اختبارات</NavLink>
           <NavLink to="/results">نتائج</NavLink>
           <NavLink to="/schedule">جدول الحصص</NavLink>
           {user?.role === "student" && <NavLink to="/subscription">اشتراكي</NavLink>}

@@ -41,7 +41,8 @@ class Lesson(models.Model):
     title = models.CharField(max_length=200)
     # Legacy fields — content moved to LessonSection for تأسيس.
     # Kept for older clients / collections lesson-level media if any.
-    bunny_video_id = models.CharField(max_length=100, blank=True)
+    # Bunny Stream GUID, or any external video URL (YouTube / Drive / cloud).
+    bunny_video_id = models.CharField(max_length=500, blank=True)
     pdf_url = models.URLField(blank=True)
     is_free_preview = models.BooleanField(default=False)
     is_archived = models.BooleanField(default=False)
@@ -65,7 +66,8 @@ class LessonSection(models.Model):
     )
     order_number = models.PositiveIntegerField(default=1)
     title = models.CharField(max_length=200)
-    bunny_video_id = models.CharField(max_length=100, blank=True)
+    # Bunny Stream GUID, or any external video URL (YouTube / Drive / cloud).
+    bunny_video_id = models.CharField(max_length=500, blank=True)
     pdf_url = models.URLField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

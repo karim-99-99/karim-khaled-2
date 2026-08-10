@@ -209,14 +209,21 @@ def _student_group_ids(user):
     )
 
 
-def _student_question_bank(user, subject_id):
+def _student_question_bank(user, subject_id=None, subject_ids=None):
     """
     تجميعات: بنك عام لكل طلاب المادة — أسئلة كل المدرسين تظهر للجميع.
     (عكس تأسيس/الواجب المقيد بمجموعات المدرس.)
     """
     group_ids = _student_group_ids(user)
-    qs = CollectionQuestion.objects.filter(subject_id=subject_id)
-    return qs, group_ids
+    ids = []
+    if subject_ids:
+        ids = [int(x) for x in subject_ids if str(x).isdigit() or isinstance(x, int)]
+    elif subject_id:
+        ids = [int(subject_id)]
+    qs = CollectionQuestion.objects.all()
+    if ids:
+        qs = qs.filter(subject_id__in=ids)
+    return qs, group_ids, ids
 
 
 def _pick(pool, n):
@@ -225,14 +232,89 @@ def _pick(pool, n):
     return pool[:n]
 
 
-def _seen_question_ids(user, subject_id):
-    """Collection question IDs this student has faced before in this subject."""
-    return set(
-        ExamAnswer.objects.filter(
-            exam__student=user,
-            exam__subject_id=subject_id,
-        ).values_list("question_id", flat=True)
-    )
+# Student difficulty presets → mix of easy/medium/hard question ratios.
+# Medium totals 110 as specified by product; weights are normalized when picking.
+DIFFICULTY_MIXES = {
+    "easy": {"easy": 60, "medium": 35, "hard": 5},
+    "medium": {"easy": 40, "medium": 60, "hard": 10},
+    "advanced": {"easy": 25, "medium": 55, "hard": 20},
+    "challenge": {"easy": 10, "medium": 40, "hard": 50},
+}
+
+
+def _pick_mixed(bank_qs, n, mix_key):
+    """
+    Draw ~n questions following DIFFICULTY_MIXES ratios.
+    Falls back to other difficulties if a bucket runs short.
+    Loads the bank once (not three difficulty queries).
+    """
+    raw = DIFFICULTY_MIXES.get(mix_key) or DIFFICULTY_MIXES["medium"]
+    total_w = sum(raw.values()) or 1
+    weights = {k: v / total_w for k, v in raw.items()}
+
+    pools = {"easy": [], "medium": [], "hard": []}
+    for q in bank_qs:
+        if q.difficulty in pools:
+            pools[q.difficulty].append(q)
+    for key in pools:
+        random.shuffle(pools[key])
+
+    available = sum(len(v) for v in pools.values())
+    if n is None or n > available:
+        n = available
+    if n < 1:
+        return []
+
+    # Allocate counts; fix rounding so sum == n
+    alloc = {k: int(n * weights[k]) for k in ("easy", "medium", "hard")}
+    while sum(alloc.values()) < n:
+        order = sorted(weights.keys(), key=lambda k: -weights[k])
+        grew = False
+        for k in order:
+            if pools[k] and alloc[k] < len(pools[k]):
+                alloc[k] += 1
+                grew = True
+                break
+        if not grew:
+            # no room left in preferred buckets — fill any remaining below
+            for k in order:
+                if pools[k]:
+                    alloc[k] += 1
+                    grew = True
+                    break
+            if not grew:
+                break
+    while sum(alloc.values()) > n:
+        order = sorted(weights.keys(), key=lambda k: weights[k])
+        for k in order:
+            if alloc[k] > 0:
+                alloc[k] -= 1
+                break
+
+    picked = []
+    leftover = []
+    for diff in ("easy", "medium", "hard"):
+        need = alloc[diff]
+        bucket = pools[diff]
+        take = bucket[:need]
+        picked.extend(take)
+        leftover.extend(bucket[need:])
+
+    if len(picked) < n and leftover:
+        random.shuffle(leftover)
+        picked.extend(leftover[: n - len(picked)])
+
+    random.shuffle(picked)
+    return picked[:n]
+
+
+def _seen_question_ids(user, subject_ids):
+    """Collection question IDs this student has faced before in these subjects."""
+    ids = list(subject_ids or [])
+    qs = ExamAnswer.objects.filter(exam__student=user)
+    if ids:
+        qs = qs.filter(exam__subject_id__in=ids)
+    return set(qs.values_list("question_id", flat=True))
 
 
 class StartSimulatorView(APIView):
@@ -240,7 +322,9 @@ class StartSimulatorView(APIView):
     Personal simulator from تجميعات bank.
 
     Body:
-      subject, lessons[],
+      subject OR subjects[] (one or more),
+      lessons[],
+      years[] OR year (optional filter on question_year),
       count (used by personal simulator),
       take_all (true = كل أسئلة المستويات المختارة — للتجميعات),
       level (easy|medium|hard|all) OR levels[] (one or more of easy/medium/hard),
@@ -253,8 +337,37 @@ class StartSimulatorView(APIView):
 
     def post(self, request):
         user = request.user
-        subject_id = request.data.get("subject")
+        raw_subjects = request.data.get("subjects")
+        subject_ids = []
+        if isinstance(raw_subjects, list) and raw_subjects:
+            for x in raw_subjects:
+                try:
+                    subject_ids.append(int(x))
+                except (TypeError, ValueError):
+                    continue
+        elif request.data.get("subject"):
+            try:
+                subject_ids = [int(request.data.get("subject"))]
+            except (TypeError, ValueError):
+                subject_ids = []
+
         lesson_ids = request.data.get("lessons") or []
+        try:
+            lesson_ids = [int(x) for x in lesson_ids]
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "قائمة الدروس غير صالحة"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        raw_years = request.data.get("years")
+        years = []
+        if isinstance(raw_years, list):
+            years = [str(y).strip() for y in raw_years if str(y).strip()]
+        single_year = (request.data.get("year") or "").strip()
+        if single_year and single_year not in years:
+            years.append(single_year)
+
         take_all = bool(request.data.get("take_all"))
         try:
             count = int(request.data.get("count", 8))
@@ -269,6 +382,14 @@ class StartSimulatorView(APIView):
             levels = [x for x in raw_levels if x in ("easy", "medium", "hard")]
             if not levels:
                 levels = None
+        # New student presets: easy | medium | advanced | challenge (ratio mixes)
+        mix_key = (request.data.get("difficulty_mix") or "").strip()
+        if mix_key not in DIFFICULTY_MIXES:
+            # legacy: single level easy/medium/hard maps to same-named mix when present
+            if level in DIFFICULTY_MIXES and not levels:
+                mix_key = level
+            else:
+                mix_key = None
         review_mode = request.data.get("review_mode", Exam.ReviewMode.FINAL)
         if review_mode not in (Exam.ReviewMode.IMMEDIATE, Exam.ReviewMode.FINAL):
             review_mode = Exam.ReviewMode.FINAL
@@ -281,25 +402,48 @@ class StartSimulatorView(APIView):
         if time_limit is not None and time_limit < 1:
             time_limit = None
 
+        if not subject_ids:
+            return Response(
+                {"detail": "اختر مادة واحدةً على الأقل"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         if not lesson_ids:
             return Response(
                 {"detail": "اختر درساً واحداً على الأقل"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        bank, group_ids = _student_question_bank(user, subject_id)
-        if levels:
+        # Lessons must belong to the selected subjects.
+        valid_lessons = set(
+            Lesson.objects.filter(
+                id__in=lesson_ids, subject_id__in=subject_ids, is_archived=False
+            ).values_list("id", flat=True)
+        )
+        if set(lesson_ids) - valid_lessons:
+            return Response(
+                {"detail": "بعض الدروس لا تنتمي للمواد المختارة"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        bank, group_ids, _ = _student_question_bank(user, subject_ids=subject_ids)
+        bank = bank.filter(lesson_id__in=lesson_ids)
+        if years:
+            bank = bank.filter(question_year__in=years)
+
+        # Legacy multi-select of raw difficulties (teacher tools / old clients)
+        if levels and not mix_key:
             bank = bank.filter(difficulty__in=levels)
-            # blank when multi-level (choices only allow easy/medium/hard)
             preset = levels[0] if len(levels) == 1 else ""
-        elif level and level != "all":
+        elif mix_key:
+            preset = mix_key if mix_key in ("easy", "medium", "hard") else ""
+            # Keep full bank; ratios applied at pick time.
+        elif level and level != "all" and level in ("easy", "medium", "hard"):
             bank = bank.filter(difficulty=level)
             preset = level
         else:
             preset = ""
-        bank = bank.filter(lesson_id__in=lesson_ids)
 
-        seen_ids = _seen_question_ids(user, subject_id)
+        seen_ids = _seen_question_ids(user, subject_ids)
         if question_pool == "new":
             bank = bank.exclude(id__in=seen_ids)
         elif question_pool == "seen":
@@ -307,8 +451,9 @@ class StartSimulatorView(APIView):
 
         free = not user_has_full_content_access(user)
         if free:
+            # Free tier: only first lesson of the first selected subject, capped.
             first = (
-                Lesson.objects.filter(subject_id=subject_id, is_archived=False)
+                Lesson.objects.filter(subject_id=subject_ids[0], is_archived=False)
                 .order_by("order_number", "id")
                 .first()
             )
@@ -323,54 +468,161 @@ class StartSimulatorView(APIView):
                 )
             limit = free_question_limit()
             pick_n = limit if take_all else min(count, limit)
-            free_bank = bank.filter(free_order__isnull=False).order_by("free_order")
-            questions = list(free_bank[:pick_n]) or _pick(bank, pick_n)
+            if mix_key:
+                questions = _pick_mixed(bank, pick_n, mix_key)
+            else:
+                free_bank = bank.filter(free_order__isnull=False).order_by("free_order")
+                questions = list(free_bank[:pick_n]) or _pick(bank, pick_n)
         elif take_all:
-            questions = _pick(bank, bank.count())
+            if mix_key:
+                questions = _pick_mixed(bank, None, mix_key)
+            else:
+                questions = _pick(bank, bank.count())
         else:
-            questions = _pick(bank, count)
+            if mix_key:
+                questions = _pick_mixed(bank, count, mix_key)
+            else:
+                questions = _pick(bank, count)
 
         if not questions:
             if question_pool == "new":
                 detail = "لا توجد أسئلة جديدة لم ترَها من قبل بهذه الإعدادات"
             elif question_pool == "seen":
                 detail = "لا توجد أسئلة سابقة (مكررة) بهذه الإعدادات — جرّب «أسئلة جديدة» أو «الكل»"
+            elif years:
+                detail = "لا توجد أسئلة لهذه السنة/السنوات بهذه الإعدادات"
             else:
                 detail = "لا توجد أسئلة متاحة بهذه الإعدادات في بنك التجميعات"
             return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
 
         title_override = (request.data.get("title") or "").strip()[:200]
-        if not title_override and take_all and len(lesson_ids) == 1:
-            from catalog.models import Lesson
-
-            lesson_row = (
-                Lesson.objects.filter(id=lesson_ids[0])
-                .select_related("subject")
-                .first()
-            )
-            if lesson_row:
-                title_override = (
-                    f"تجميعات {lesson_row.subject.name} ( {lesson_row.title} )"
+        mix_labels = {
+            "easy": "سهل",
+            "medium": "متوسط",
+            "advanced": "متقدم",
+            "challenge": "تحدي",
+        }
+        if not title_override:
+            if take_all and len(lesson_ids) == 1:
+                lesson_row = (
+                    Lesson.objects.filter(id=lesson_ids[0])
+                    .select_related("subject")
+                    .first()
                 )
+                if lesson_row:
+                    title_override = (
+                        f"تجميعات {lesson_row.subject.name} ( {lesson_row.title} )"
+                    )
+            elif len(subject_ids) > 1:
+                title_override = "محاكي شخصي — عدة مواد"
+            else:
+                subj_name = (
+                    Subject.objects.filter(id=subject_ids[0])
+                    .values_list("name", flat=True)
+                    .first()
+                    or ""
+                )
+                title_override = f"محاكي شخصي — {subj_name}".strip(" —")
+        if mix_key and mix_key in mix_labels and title_override:
+            title_override = f"{title_override} · {mix_labels[mix_key]}"[:200]
+
+        # Store mix name when it fits the CharField (advanced/challenge need blank or expanded)
+        store_preset = preset
+        if mix_key in ("easy", "medium", "hard"):
+            store_preset = mix_key
+        elif mix_key in ("advanced", "challenge"):
+            store_preset = ""
 
         exam = Exam.objects.create(
             student=user,
-            subject_id=subject_id,
+            subject_id=subject_ids[0],
             group_id=group_ids[0] if group_ids else None,
             exam_type=Exam.Type.SIMULATOR,
-            difficulty_preset=preset if preset in ("easy", "medium", "hard", "") else "",
+            difficulty_preset=store_preset,
             review_mode=review_mode,
             question_count=len(questions),
             is_free_attempt=free,
             time_limit_minutes=time_limit,
             title_override=title_override,
         )
-        for lid in lesson_ids:
-            ExamLesson.objects.get_or_create(exam=exam, lesson_id=lid)
-        for i, q in enumerate(questions):
-            ExamAnswer.objects.create(exam=exam, question=q, order=i)
+        ExamLesson.objects.bulk_create(
+            [ExamLesson(exam=exam, lesson_id=lid) for lid in lesson_ids],
+            ignore_conflicts=True,
+        )
+        ExamAnswer.objects.bulk_create(
+            [
+                ExamAnswer(exam=exam, question=q, order=i)
+                for i, q in enumerate(questions)
+            ]
+        )
 
         return Response(_exam_payload(exam), status=201)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def simulator_options(request):
+    """
+    Lessons + distinct question years for simulator setup.
+    Query: ?subjects=1&subjects=2  (or subjects=1,2)
+    """
+    raw = request.query_params.getlist("subjects")
+    if len(raw) == 1 and "," in raw[0]:
+        raw = [x.strip() for x in raw[0].split(",") if x.strip()]
+    subject_ids = []
+    for x in raw:
+        try:
+            subject_ids.append(int(x))
+        except (TypeError, ValueError):
+            continue
+    if not subject_ids:
+        single = request.query_params.get("subject")
+        if single:
+            try:
+                subject_ids = [int(single)]
+            except (TypeError, ValueError):
+                subject_ids = []
+    if not subject_ids:
+        return Response(
+            {"detail": "subjects مطلوب"}, status=status.HTTP_400_BAD_REQUEST
+        )
+
+    lessons = list(
+        Lesson.objects.filter(subject_id__in=subject_ids, is_archived=False)
+        .select_related("subject")
+        .order_by("subject_id", "order_number", "id")
+        .values("id", "title", "order_number", "subject_id", "subject__name")
+    )
+    years = list(
+        CollectionQuestion.objects.filter(subject_id__in=subject_ids)
+        .exclude(question_year="")
+        .values_list("question_year", flat=True)
+        .distinct()
+    )
+    # Prefer numeric-looking years sorted desc, then other labels.
+    def year_key(y):
+        s = str(y).strip()
+        digits = "".join(ch for ch in s if ch.isdigit())
+        return (-int(digits) if digits else 0, s)
+
+    years = sorted(set(years), key=year_key)
+
+    return Response(
+        {
+            "subjects": subject_ids,
+            "lessons": [
+                {
+                    "id": row["id"],
+                    "title": row["title"],
+                    "order_number": row["order_number"],
+                    "subject": row["subject_id"],
+                    "subject_name": row["subject__name"],
+                }
+                for row in lessons
+            ],
+            "years": years,
+        }
+    )
 
 
 class StartTeacherTestView(APIView):
@@ -441,7 +693,7 @@ class StartTeacherTestView(APIView):
         preset = request.data.get("preset", "medium")
         review_mode = request.data.get("review_mode", "immediate")
 
-        base, group_ids = _student_question_bank(user, subject_id)
+        base, group_ids, _ = _student_question_bank(user, subject_id=subject_id)
         if lesson_id:
             base = base.filter(lesson_id=lesson_id)
 
@@ -511,22 +763,17 @@ class TeacherTestViewSet(viewsets.ViewSet):
 
     def list(self, request):
         subject_id = request.query_params.get("subject")
-        if not subject_id:
-            return Response(
-                {"detail": "subject مطلوب"}, status=status.HTTP_400_BAD_REQUEST
-            )
         user = request.user
-        qs = TeacherTest.objects.filter(subject_id=subject_id).select_related(
-            "created_by", "subject"
-        )
+        qs = TeacherTest.objects.select_related("created_by", "subject").all()
+        if subject_id:
+            qs = qs.filter(subject_id=subject_id)
         if user.is_admin_role:
             pass
         elif user.is_teacher:
-            # Own tests + published ones (to preview what students see)
             qs = qs.filter(Q(created_by=user) | Q(is_published=True))
         else:
             qs = qs.filter(is_published=True)
-        return Response(TeacherTestSerializer(qs, many=True).data)
+        return Response(TeacherTestSerializer(qs.order_by("-created_at", "-id"), many=True).data)
 
     def create(self, request):
         from core.access import assert_teacher_can_manage_subject
@@ -754,6 +1001,13 @@ class FinishView(APIView):
             return Response(status=status.HTTP_404_NOT_FOUND)
         if exam.status in (Exam.Status.FINISHED, Exam.Status.AUTO_SUBMITTED):
             return Response(ExamSerializer(exam).data)
+
+        # Unanswered rows become skipped so they don't count as wrong answers.
+        exam.answers.filter(Q(selected_answer="") | Q(selected_answer__isnull=True)).update(
+            skipped=True,
+            is_correct=False,
+        )
+
         total = exam.answers.count()
         correct = exam.answers.filter(is_correct=True).count()
         exam.score_percent = round((correct / total) * 100, 1) if total else 0
@@ -798,7 +1052,9 @@ class ExamReviewView(APIView):
             "question", "question__subject", "question__lesson"
         ).order_by("order")
         if request.query_params.get("filter") == "wrong":
-            answers = answers.filter(is_correct=False)
+            answers = answers.filter(is_correct=False, skipped=False).exclude(
+                selected_answer=""
+            )
         return Response(
             {
                 "exam": ExamSerializer(exam).data,

@@ -82,6 +82,10 @@ export default function TestRunner() {
     setVerdict(isCorrect ? "correct" : "wrong");
     verdictTimer.current = setTimeout(() => {
       setVerdict(null);
+      if (pendingFeedback.current) {
+        setFeedback(pendingFeedback.current);
+        setShowExplainVideo(false);
+      }
       after?.();
     }, 750);
   }
@@ -103,7 +107,15 @@ export default function TestRunner() {
   }
 
   async function finish(timedOut = false) {
-    if (finishing.current || verdict) return;
+    if (finishing.current) return;
+    if (!timedOut) {
+      const ok = window.confirm(
+        "إنهاء الاختبار الآن؟ ستظهر نتيجتك (المُجاب وغير المُجاب والصحيح والخطأ)."
+      );
+      if (!ok) return;
+    }
+    if (verdictTimer.current) clearTimeout(verdictTimer.current);
+    setVerdict(null);
     finishAfterVerdict(timedOut);
   }
 
@@ -111,11 +123,11 @@ export default function TestRunner() {
     if (finishing.current) return;
     finishing.current = true;
     try {
-      const { data } = await client.post(`/exams/${examId}/finish/`, {
+      await client.post(`/exams/${examId}/finish/`, {
         timed_out: timedOut,
         auto: timedOut,
       });
-      navigate(`/results/${examId}`, { state: { justFinished: data, timedOut } });
+      navigate(`/results/${examId}`, { state: { timedOut } });
     } catch {
       finishing.current = false;
     }
@@ -154,10 +166,13 @@ export default function TestRunner() {
       } else {
         setCheckByAnswer((m) => ({ ...m, [q.answer_id]: data }));
         pendingFeedback.current = data;
-        setFeedback(data);
         setShowExplainVideo(false);
         if (typeof data.is_correct === "boolean") {
+          // Flash first; explanation appears when the flash ends.
+          setFeedback(null);
           showVerdict(data.is_correct);
+        } else {
+          setFeedback(data);
         }
       }
     } catch {
@@ -220,12 +235,17 @@ export default function TestRunner() {
         {!timed && (
           <span style={{ color: "var(--text-muted)", fontSize: 13 }}>مدة مفتوحة</span>
         )}
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link to="/courses" className="btn btn-ghost btn-sm">
             الخروج للدورات
           </Link>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={() => finish(false)}>
-            إنهاء
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            disabled={answerBusy}
+            onClick={() => finish(false)}
+          >
+            إنهاء الاختبار
           </button>
         </div>
       </div>
@@ -402,6 +422,15 @@ export default function TestRunner() {
               ? "المراجعة نهائية: اختر إجاباتك دون معرفة الصح أو الخطأ، ثم تظهر النتيجة بعد إنهاء الاختبار."
               : "بعد اختيار الإجابة تظهر علامة الصح أو الخطأ، ثم شرح المدرس أو فيديو الشرح إن وُجد"}
           </p>
+          <button
+            type="button"
+            className="btn btn-primary btn-block"
+            style={{ marginTop: 16 }}
+            disabled={answerBusy}
+            onClick={() => finish(false)}
+          >
+            إنهاء الاختبار وعرض النتيجة
+          </button>
         </div>
       </div>
     </div>

@@ -52,7 +52,7 @@ export default function SubjectHub() {
           <strong>تأسيس</strong>: درس ← عناوين فرعية ← واجب لمجموعاتك · <strong>تجميع</strong>: دروس رئيسية فقط لكل الطلاب · ثم اختبارات.
         </div>
       )}
-      <div className="grid grid-3">
+      <div className="grid grid-2">
         <Link
           to={`/courses/${subjectId}/lessons`}
           className={`card path-card path-primary ${key ? `tone-${key}` : ""}`}
@@ -69,13 +69,10 @@ export default function SubjectHub() {
           <h3>تجميع</h3>
           <p>{canEdit ? "دروس + أسئلة للجميع (سهل/متوسط/صعب)" : "دروس — تدريب من بنك كل المدرسين"}</p>
         </Link>
-        <Link
-          to={`/courses/${subjectId}/tests`}
-          className={`card path-card path-dark ${key ? `tone-${key}` : ""}`}
-        >
-          <div className="path-icon">خ</div>
-          <h3>اختبارات</h3>
-          <p>محاكي شخصي أو اختبار مدرس</p>
+      </div>
+      <div style={{ marginTop: 16 }}>
+        <Link to="/tests" className="btn btn-secondary">
+          الذهاب للاختبارات (محاكي + اختبارات المدرسين) ←
         </Link>
       </div>
     </div>

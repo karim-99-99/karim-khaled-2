@@ -8,7 +8,7 @@ class VideoView(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="video_views", on_delete=models.CASCADE
     )
-    bunny_video_id = models.CharField(max_length=100)
+    bunny_video_id = models.CharField(max_length=500)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
     device_fingerprint = models.CharField(max_length=200, blank=True)
     viewed_at = models.DateTimeField(auto_now_add=True)

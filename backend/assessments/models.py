@@ -69,8 +69,8 @@ class QuestionBase(models.Model):
         max_length=10, choices=Difficulty.choices, default=Difficulty.MEDIUM
     )
 
-    # Single explanatory video with timing toggle.
-    video_bunny_id = models.CharField(max_length=100, blank=True)
+    # Bunny GUID or any external video URL (YouTube / Drive / cloud).
+    video_bunny_id = models.CharField(max_length=500, blank=True)
     video_timing = models.CharField(
         max_length=10, choices=VideoTiming.choices, default=VideoTiming.AFTER
     )

@@ -71,6 +71,48 @@ export default function Collections() {
     }
   }
 
+  async function deleteLesson(id, title) {
+    if (!confirm(`حذف الدرس «${title}»؟ لا يمكن التراجع.`)) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await client.delete(`/lessons/${id}/`);
+      setMsg("تم حذف الدرس");
+      load();
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر الحذف");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function moveLesson(id, dir) {
+    const idx = lessons.findIndex((l) => l.id === id);
+    if (idx < 0) return;
+    const j = dir === "up" ? idx - 1 : idx + 1;
+    if (j < 0 || j >= lessons.length) return;
+    const next = [...lessons];
+    const tmp = next[idx];
+    next[idx] = next[j];
+    next[j] = tmp;
+    setLessons(next);
+    setBusy(true);
+    setMsg("");
+    try {
+      await client.post("/lessons/reorder/", {
+        subject: Number(subjectId),
+        ordered_ids: next.map((l) => l.id),
+      });
+      setMsg("تم تحديث الترتيب ✓");
+      load();
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر تغيير الترتيب");
+      load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <div>
       <BackToCourses subjectId={subjectId} />
@@ -96,8 +138,19 @@ export default function Collections() {
       <div className="banner" style={{ marginBottom: 16 }}>
         {canEdit
           ? "أسئلة التجميع تظهر لكل طلاب المادة (ليس لمجموعتك فقط). أضف اسماً للدرس ثم ادخل لإضافة السؤال والفيديو والصور والمستوى."
-          : "اختر درساً ثم مستوى الأسئلة. أسئلة التجميع من كل المدرسين متاحة لجميع الطلاب."}
+          : "اختر درساً للتدريب السريع، أو خصّص مواداً ودروساً وسنة ومدة من الإعداد الكامل."}
       </div>
+
+      {!canEdit && (
+        <div style={{ marginBottom: 16 }}>
+          <Link
+            to={`/tests/simulator/${subjectId}?from=collections`}
+            className="btn btn-primary"
+          >
+            تدريب مخصص (مواد · دروس · سنة · مدة) ←
+          </Link>
+        </div>
+      )}
 
       {freeTier && (
         <div className="banner" style={{ marginBottom: 16 }}>
@@ -182,7 +235,7 @@ export default function Collections() {
                   </Link>
                 )}
 
-                {l.is_free_preview || l.order_number === 1 ? (
+                {freeTier && (l.is_free_preview || l.order_number === 1) ? (
                   <span className="badge badge-active">مجاني</span>
                 ) : locked ? (
                   <span className="badge badge-expired">يتطلب تفعيل</span>
@@ -197,12 +250,39 @@ export default function Collections() {
                     <button
                       type="button"
                       className="btn btn-ghost btn-sm"
+                      disabled={busy}
+                      onClick={() => moveLesson(l.id, "up")}
+                      title="للأعلى"
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={busy}
+                      onClick={() => moveLesson(l.id, "down")}
+                      title="للأسفل"
+                    >
+                      ↓
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
                       onClick={() => {
                         setRenameId(l.id);
                         setRenameTitle(l.title);
                       }}
                     >
                       تعديل الاسم
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ color: "var(--error)" }}
+                      disabled={busy}
+                      onClick={() => deleteLesson(l.id, l.title)}
+                    >
+                      حذف
                     </button>
                     <Link
                       to={`/courses/${subjectId}/collections/${l.id}`}

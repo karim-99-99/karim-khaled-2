@@ -27,6 +27,8 @@ class SessionSerializer(serializers.ModelSerializer):
             "start_time",
             "duration_minutes",
             "zoom_link",
+            "teacher_joined_zoom",
+            "teacher_joined_zoom_at",
             "status",
             "session_number",
             "my_attendance",
@@ -41,6 +43,8 @@ class SessionSerializer(serializers.ModelSerializer):
             "session_number",
             "my_attendance",
             "attendance_summary",
+            "teacher_joined_zoom",
+            "teacher_joined_zoom_at",
         ]
 
     def _build_session_numbers(self):
@@ -122,7 +126,7 @@ class SessionSerializer(serializers.ModelSerializer):
         user = getattr(request, "user", None)
         if not user or not user.is_authenticated:
             return
-        # Teachers may only write Zoom (+ status); schedule fields stay read-only.
+        # Teachers may only write Zoom (+ status + Zoom presence); schedule fields stay read-only.
         if user.is_teacher and not user.is_admin_role:
             for name in (
                 "title",
@@ -134,6 +138,8 @@ class SessionSerializer(serializers.ModelSerializer):
             ):
                 if name in self.fields:
                     self.fields[name].read_only = True
+            if "teacher_joined_zoom" in self.fields:
+                self.fields["teacher_joined_zoom"].read_only = False
 
 
 class SessionAttendanceRecordSerializer(serializers.Serializer):

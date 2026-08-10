@@ -57,6 +57,20 @@ export default function TeacherSchedule() {
     }
   }
 
+  async function toggleTeacherZoom(session, joined) {
+    setMsg("");
+    setBusyId(session.id);
+    try {
+      await client.post(`/sessions/${session.id}/teacher_zoom/`, { joined });
+      setMsg(joined ? "تم تسجيل دخولك إلى Zoom — يظهر للطلاب الآن" : "أُلغي تسجيل دخول Zoom");
+      loadSessions();
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر تحديث حالة Zoom");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function openAttendance(session) {
     setMsg("");
     setAttendanceSessionId(session.id);
@@ -236,6 +250,19 @@ export default function TeacherSchedule() {
                 <a className="btn btn-secondary btn-sm" href={draft.zoom_link} target="_blank" rel="noreferrer">
                   فتح Zoom ↗
                 </a>
+              )}
+              <button
+                type="button"
+                className={`btn btn-sm ${s.teacher_joined_zoom ? "btn-secondary" : "btn-primary"}`}
+                disabled={busyId === s.id}
+                onClick={() => toggleTeacherZoom(s, !s.teacher_joined_zoom)}
+              >
+                {s.teacher_joined_zoom ? "إلغاء دخول Zoom" : "سجّلت دخولي Zoom"}
+              </button>
+              {s.teacher_joined_zoom && (
+                <span className="badge badge-present" style={{ alignSelf: "center" }}>
+                  ظاهر للطلاب: دخل المدرس Zoom
+                </span>
               )}
               {s.group ? (
                 <button

@@ -40,6 +40,11 @@ class Session(models.Model):
     start_time = models.DateTimeField()
     duration_minutes = models.PositiveIntegerField(default=60)
     zoom_link = models.URLField(blank=True)
+    teacher_joined_zoom = models.BooleanField(
+        default=False,
+        help_text="هل سجّل المدرس دخوله إلى Zoom لهذه الحصة",
+    )
+    teacher_joined_zoom_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
         max_length=10, choices=Status.choices, default=Status.SCHEDULED
     )
@@ -76,11 +81,16 @@ def sync_session_statuses(queryset=None):
     """
     Persist time-based status for sessions that are still open.
     Marks ended sessions as done; marks in-progress ones as live.
+
+    Only inspects rows that could change (already started or marked live),
+    so listing the schedule stays cheap as the timetable grows.
     """
     now = timezone.now()
     qs = queryset if queryset is not None else Session.objects.all()
-    rows = qs.exclude(status=Session.Status.DONE).only(
-        "id", "start_time", "duration_minutes", "status"
+    rows = (
+        qs.exclude(status=Session.Status.DONE)
+        .filter(models.Q(start_time__lte=now) | models.Q(status=Session.Status.LIVE))
+        .only("id", "start_time", "duration_minutes", "status")
     )
     done_ids = []
     live_ids = []

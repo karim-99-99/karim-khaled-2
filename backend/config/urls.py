@@ -30,6 +30,7 @@ from assessments.views import (
     StartTeacherTestView,
     StudentHomeworkView,
     TeacherTestViewSet,
+    simulator_options,
 )
 from billing.views import (
     AdminPaymentViewSet,
@@ -90,6 +91,7 @@ api_patterns = [
     path("admin/users/<int:user_id>/grant-subscription/", admin_grant_subscription),
     # Exams
     path("exams/simulator/", StartSimulatorView.as_view()),
+    path("exams/simulator/options/", simulator_options),
     path("exams/teacher/", StartTeacherTestView.as_view()),
     path(
         "teacher-tests/question-bank/",

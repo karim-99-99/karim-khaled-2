@@ -352,12 +352,12 @@ export default function QuestionEditor() {
           </div>
 
           <div className="form-group">
-            <label>فيديو الشرح (Bunny video ID) — اختياري</label>
+            <label>فيديو الشرح — Bunny أو رابط YouTube / Drive — اختياري</label>
             <input
               className="form-control"
               value={form.video_bunny_id}
               onChange={(e) => setForm((f) => ({ ...f, video_bunny_id: e.target.value }))}
-              placeholder="مثال: 8f3a-1234-..."
+              placeholder="Bunny GUID أو https://youtube.com/... أو Drive"
             />
           </div>
           <div className="form-group">

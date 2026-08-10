@@ -165,7 +165,11 @@ def next_session(request):
     user = request.user
     now = timezone.now()
 
-    sync_session_statuses(Session.objects.all())
+    sync_session_statuses(
+        Session.objects.exclude(status=Session.Status.DONE).filter(
+            Q(start_time__lte=now) | Q(status=Session.Status.LIVE)
+        )
+    )
     qs = Session.objects.filter(
         Q(status=Session.Status.LIVE)
         | (Q(start_time__gte=now) & ~Q(status=Session.Status.DONE))
@@ -182,11 +186,9 @@ def next_session(request):
         my_subjects = sorted({l.subject.name for l in links})
         group_ids = list(links.values_list("group_id", flat=True))
         subject_ids = list(links.values_list("subject_id", flat=True))
-        # Sessions this teacher runs, or scheduled for their groups/subjects.
         qs = qs.filter(
             models.Q(teacher=user)
-            | models.Q(group_id__in=group_ids)
-            | models.Q(subject_id__in=subject_ids)
+            | (models.Q(group_id__in=group_ids) & models.Q(subject_id__in=subject_ids))
         ).distinct()
     # admin: no extra filter — nearest overall
 
