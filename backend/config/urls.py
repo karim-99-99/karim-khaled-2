@@ -21,6 +21,8 @@ from accounts.views import (
 from assessments.views import (
     AnswerView,
     CollectionQuestionViewSet,
+    ImportCollectionQuestionsView,
+    ImportHomeworkQuestionsView,
     ExamDetailView,
     ExamReviewView,
     FinishView,
@@ -89,6 +91,9 @@ api_patterns = [
     path("admin/users/<int:user_id>/set-password/", set_user_password),
     path("admin/users/<int:user_id>/delete/", delete_user),
     path("admin/users/<int:user_id>/grant-subscription/", admin_grant_subscription),
+    # Bulk question import (must precede the router's collection-questions/<pk>/)
+    path("collection-questions/import/", ImportCollectionQuestionsView.as_view()),
+    path("homework-questions/import/", ImportHomeworkQuestionsView.as_view()),
     # Exams
     path("exams/simulator/", StartSimulatorView.as_view()),
     path("exams/simulator/options/", simulator_options),

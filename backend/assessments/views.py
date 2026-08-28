@@ -4,6 +4,7 @@ from django.db.models import Exists, OuterRef, Q
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -27,6 +28,7 @@ from .models import (
     TeacherTestLesson,
     TeacherTestQuestion,
 )
+from .question_import import parse_upload
 from .serializers import (
     CollectionQuestionSerializer,
     ExamAnswerReviewSerializer,
@@ -151,6 +153,220 @@ class CollectionQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
         assert_teacher_can_manage_subject(user, subject_id)
         serializer.save(group=None)
 
+
+IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024  # 5MB
+
+
+class ImportCollectionQuestionsView(APIView):
+    """
+    رفع ملف أسئلة (Word .docx أو نصي .txt) إلى بنك تجميعات درس معيّن.
+
+    POST multipart:
+      file:   الملف
+      lesson: معرّف الدرس
+      mode:   preview (افتراضي — معاينة بدون حفظ) | commit (حفظ فعلي)
+
+    الأسئلة الناقصة تُحفظ بعلامة needs_review ولا تظهر للطلاب حتى يعتمدها المدرس.
+    """
+
+    permission_classes = [IsTeacherOrAdmin]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        lesson_id = request.data.get("lesson")
+        lesson = (
+            Lesson.objects.filter(id=lesson_id).select_related("subject").first()
+            if lesson_id
+            else None
+        )
+        if not lesson:
+            return Response(
+                {"detail": "الدرس غير موجود"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        assert_teacher_can_manage_subject(request.user, lesson.subject_id)
+
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return Response(
+                {"detail": "ارفع ملف Word (.docx) أو ملف نصي (.txt)"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if uploaded.size > IMPORT_MAX_FILE_BYTES:
+            return Response(
+                {"detail": "حجم الملف أكبر من 5MB"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            questions, errors = parse_upload(uploaded)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        summary = {
+            "total": len(questions) + len(errors),
+            "ready": sum(1 for q in questions if not q["needs_review"]),
+            "needs_review": sum(1 for q in questions if q["needs_review"]),
+            "rejected": len(errors),
+        }
+
+        mode = (request.data.get("mode") or "preview").strip().lower()
+        if mode != "commit":
+            return Response(
+                {"mode": "preview", "summary": summary, "questions": questions,
+                 "errors": errors}
+            )
+
+        if not questions:
+            return Response(
+                {"detail": "لا توجد أسئلة صالحة في الملف", "errors": errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        created = CollectionQuestion.objects.bulk_create(
+            [
+                CollectionQuestion(
+                    subject_id=lesson.subject_id,
+                    lesson=lesson,
+                    created_by=request.user,
+                    group=None,
+                    text=q["text"],
+                    options=q["options"],
+                    correct_answer=q["correct_answer"],
+                    difficulty=q["difficulty"],
+                    question_year=q["question_year"],
+                    explanation=q["explanation"],
+                    written_correction=q["explanation"],
+                    video_bunny_id=q["video_bunny_id"],
+                    needs_review=q["needs_review"],
+                    review_notes=q["review_notes"],
+                )
+                for q in questions
+            ]
+        )
+        return Response(
+            {
+                "mode": "commit",
+                "summary": summary,
+                "created": len(created),
+                "errors": errors,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class ImportHomeworkQuestionsView(APIView):
+    """
+    رفع ملف أسئلة واجب تأسيس (Word .docx أو نصي .txt).
+
+    POST multipart:
+      file:    الملف
+      lesson:  معرّف الدرس
+      section: معرّف الحصة/العنوان الفرعي (اختياري — للربط بدرس فرعي)
+      mode:    preview | commit
+    """
+
+    permission_classes = [IsTeacherOrAdmin]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def post(self, request):
+        lesson_id = request.data.get("lesson")
+        lesson = (
+            Lesson.objects.filter(id=lesson_id).select_related("subject").first()
+            if lesson_id
+            else None
+        )
+        if not lesson:
+            return Response(
+                {"detail": "الدرس غير موجود"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        assert_teacher_can_manage_subject(request.user, lesson.subject_id)
+
+        section_id = request.data.get("section")
+        section = None
+        if section_id not in (None, ""):
+            from catalog.models import LessonSection
+
+            section = LessonSection.objects.filter(
+                id=section_id, lesson_id=lesson.id
+            ).first()
+            if not section:
+                return Response(
+                    {"detail": "العنوان الفرعي لا ينتمي لهذا الدرس"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        uploaded = request.FILES.get("file")
+        if not uploaded:
+            return Response(
+                {"detail": "ارفع ملف Word (.docx) أو ملف نصي (.txt)"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if uploaded.size > IMPORT_MAX_FILE_BYTES:
+            return Response(
+                {"detail": "حجم الملف أكبر من 5MB"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            questions, errors = parse_upload(uploaded)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        summary = {
+            "total": len(questions) + len(errors),
+            "ready": sum(1 for q in questions if not q["needs_review"]),
+            "needs_review": sum(1 for q in questions if q["needs_review"]),
+            "rejected": len(errors),
+        }
+
+        mode = (request.data.get("mode") or "preview").strip().lower()
+        if mode != "commit":
+            return Response(
+                {
+                    "mode": "preview",
+                    "summary": summary,
+                    "questions": questions,
+                    "errors": errors,
+                }
+            )
+
+        if not questions:
+            return Response(
+                {"detail": "لا توجد أسئلة صالحة في الملف", "errors": errors},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        created = HomeworkQuestion.objects.bulk_create(
+            [
+                HomeworkQuestion(
+                    subject_id=lesson.subject_id,
+                    lesson=lesson,
+                    section=section,
+                    created_by=request.user,
+                    group=None,
+                    text=q["text"],
+                    options=q["options"],
+                    correct_answer=q["correct_answer"],
+                    difficulty=q["difficulty"],
+                    explanation=q["explanation"],
+                    video_bunny_id=q["video_bunny_id"],
+                    needs_review=q["needs_review"],
+                    review_notes=q["review_notes"],
+                )
+                for q in questions
+            ]
+        )
+        return Response(
+            {
+                "mode": "commit",
+                "summary": summary,
+                "created": len(created),
+                "errors": errors,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
 class StudentHomeworkView(APIView):
     """Homework authored by teachers assigned to the student's groups for that subject."""
 
@@ -163,15 +379,19 @@ class StudentHomeworkView(APIView):
         section_id = request.query_params.get("section")
 
         # Only teachers who teach the question's subject in one of the student's groups.
-        qs = HomeworkQuestion.objects.filter(
-            Exists(
-                GroupTeacher.objects.filter(
-                    teacher_id=OuterRef("created_by_id"),
-                    subject_id=OuterRef("subject_id"),
-                    group_id__in=group_ids,
+        qs = (
+            HomeworkQuestion.objects.filter(needs_review=False)
+            .filter(
+                Exists(
+                    GroupTeacher.objects.filter(
+                        teacher_id=OuterRef("created_by_id"),
+                        subject_id=OuterRef("subject_id"),
+                        group_id__in=group_ids,
+                    )
                 )
             )
-        ).filter(Q(group__isnull=True) | Q(group_id__in=group_ids))
+            .filter(Q(group__isnull=True) | Q(group_id__in=group_ids))
+        )
 
         if section_id:
             qs = qs.filter(section_id=section_id)
@@ -220,7 +440,8 @@ def _student_question_bank(user, subject_id=None, subject_ids=None):
         ids = [int(x) for x in subject_ids if str(x).isdigit() or isinstance(x, int)]
     elif subject_id:
         ids = [int(subject_id)]
-    qs = CollectionQuestion.objects.all()
+    # Imported-but-unreviewed questions are hidden from students.
+    qs = CollectionQuestion.objects.filter(needs_review=False)
     if ids:
         qs = qs.filter(subject_id__in=ids)
     return qs, group_ids, ids
@@ -606,7 +827,9 @@ def simulator_options(request):
         .order_by("subject_id", "order_number", "id")
         .values("id", "title", "order_number", "subject_id", "subject__name")
     )
-    bank = CollectionQuestion.objects.filter(subject_id__in=subject_ids)
+    bank = CollectionQuestion.objects.filter(
+        subject_id__in=subject_ids, needs_review=False
+    )
     if lesson_ids:
         bank = bank.filter(lesson_id__in=lesson_ids)
 
@@ -841,7 +1064,7 @@ class TeacherTestViewSet(viewsets.ViewSet):
 
         questions = list(
             CollectionQuestion.objects.filter(
-                subject_id=subject_id, id__in=question_ids
+                subject_id=subject_id, id__in=question_ids, needs_review=False
             )
         )
         by_id = {q.id: q for q in questions}
@@ -909,9 +1132,9 @@ class TeacherTestViewSet(viewsets.ViewSet):
 
         raw = request.query_params.get("lessons") or ""
         lesson_ids = [int(x) for x in raw.split(",") if x.strip().isdigit()]
-        qs = CollectionQuestion.objects.filter(subject_id=subject_id).select_related(
-            "lesson"
-        )
+        qs = CollectionQuestion.objects.filter(
+            subject_id=subject_id, needs_review=False
+        ).select_related("lesson")
         if lesson_ids:
             qs = qs.filter(lesson_id__in=lesson_ids)
         qs = qs.order_by("lesson__order_number", "difficulty", "id")

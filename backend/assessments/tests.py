@@ -248,3 +248,268 @@ class SimulatorAPITests(TestCase):
         self.assertIn(finish.status_code, (200, 201))
         exam = Exam.objects.get(id=exam_id)
         self.assertIn(exam.status, (Exam.Status.FINISHED, Exam.Status.AUTO_SUBMITTED))
+
+
+# ---------------------------------------------------------------------------
+# استيراد الأسئلة من ملف Word / نصي
+# ---------------------------------------------------------------------------
+
+SAMPLE_TXT = """
+تعليمات — هذا السطر يُتجاهل لأنه قبل أول س:
+
+س: ما ناتج $2x + 3 = 7$؟
+أ) 1
+ب) 2 *
+ج) 3
+د) 4
+السنة: 1446
+الصعوبة: سهل
+الشرح: ننقل ثم نقسم
+
+س: سؤال بدون إجابة محددة؟
+أ) خيار أول
+ب) خيار ثانٍ
+الصعوبة: غريبة
+
+س: سؤال ناقص الخيارات؟
+أ) خيار وحيد
+
+س: سؤال بسطر الإجابة؟
+أ) أول
+ب) ثانٍ
+ج) ثالث
+الإجابة: ج
+"""
+
+
+class QuestionImportParserTests(TestCase):
+    def test_parse_defaults_and_rejects(self):
+        from assessments.question_import import parse_question_blocks
+
+        questions, errors = parse_question_blocks(SAMPLE_TXT.splitlines())
+        self.assertEqual(len(questions), 3)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("الخيارات", errors[0]["reason"])
+
+        q1, q2, q3 = questions
+        # Complete question — star answer, no review needed.
+        self.assertEqual(q1["correct_answer"], "ب")
+        self.assertEqual(q1["difficulty"], "easy")
+        self.assertEqual(q1["question_year"], "1446")
+        self.assertFalse(q1["needs_review"])
+
+        # Missing answer → default أ + review; odd difficulty → medium + review.
+        self.assertEqual(q2["correct_answer"], "أ")
+        self.assertEqual(q2["difficulty"], "medium")
+        self.assertTrue(q2["needs_review"])
+        self.assertIn("إجابة", q2["review_notes"])
+
+        # الإجابة: line style.
+        self.assertEqual(q3["correct_answer"], "ج")
+        self.assertFalse(q3["needs_review"])
+
+    def test_docx_with_word_equation(self):
+        import io
+        import zipfile
+
+        from assessments.question_import import extract_docx_lines, parse_question_blocks
+
+        math = (
+            '<m:oMath><m:f><m:num><m:r><m:t>1</m:t></m:r></m:num>'
+            "<m:den><m:r><m:t>2</m:t></m:r></m:den></m:f></m:oMath>"
+        )
+
+        def p(text):
+            return f'<w:p><w:r><w:t xml:space="preserve">{text}</w:t></w:r></w:p>'
+
+        doc = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" '
+            'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"><w:body>'
+            + f'<w:p><w:r><w:t xml:space="preserve">س: ما ناتج </w:t></w:r>{math}'
+            + '<w:r><w:t xml:space="preserve"> ؟</w:t></w:r></w:p>'
+            + p("أ) نصف *")
+            + p("ب) ربع")
+            + "</w:body></w:document>"
+        )
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w") as zf:
+            zf.writestr("word/document.xml", doc)
+        buf.seek(0)
+
+        lines = extract_docx_lines(buf)
+        questions, errors = parse_question_blocks(lines)
+        self.assertEqual(errors, [])
+        self.assertEqual(len(questions), 1)
+        self.assertIn("$\\frac{1}{2}$", questions[0]["text"])
+        self.assertEqual(questions[0]["correct_answer"], "أ")
+
+
+class QuestionImportAPITests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.subject = Subject.objects.create(name="فيزياء-استيراد", slug="ph-imp", order=1)
+        self.admin = User.objects.create_user(
+            email="a-imp@test.local",
+            password="Passw0rd!",
+            full_name="A",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.lesson = Lesson.objects.create(
+            subject=self.subject, title="درس استيراد", order_number=1, created_by=self.admin
+        )
+        self.student = User.objects.create_user(
+            email="s-imp@test.local",
+            password="Passw0rd!",
+            full_name="S",
+            role=User.Role.STUDENT,
+        )
+        Subscription.objects.create(
+            student=self.student,
+            plan=Subscription.Plan.MONTHLY,
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date() + timedelta(days=30),
+        )
+
+    def _upload(self, mode):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        file = SimpleUploadedFile(
+            "questions.txt", SAMPLE_TXT.encode("utf-8"), content_type="text/plain"
+        )
+        return self.client.post(
+            "/api/collection-questions/import/",
+            {"file": file, "lesson": self.lesson.id, "mode": mode},
+            format="multipart",
+        )
+
+    def test_preview_does_not_save(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self._upload("preview")
+        self.assertEqual(res.status_code, 200, res.data)
+        self.assertEqual(res.data["summary"]["ready"], 2)
+        self.assertEqual(res.data["summary"]["needs_review"], 1)
+        self.assertEqual(res.data["summary"]["rejected"], 1)
+        self.assertEqual(CollectionQuestion.objects.count(), 0)
+
+    def test_commit_saves_and_hides_unreviewed_from_students(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self._upload("commit")
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(res.data["created"], 3)
+        self.assertEqual(
+            CollectionQuestion.objects.filter(needs_review=True).count(), 1
+        )
+
+        # Student simulator: only the 2 reviewed questions are reachable.
+        self.client.force_authenticate(user=self.student)
+        start = self.client.post(
+            "/api/exams/simulator/",
+            {
+                "subjects": [self.subject.id],
+                "lessons": [self.lesson.id],
+                "take_all": True,
+                "levels": ["easy", "medium", "hard"],
+            },
+            format="json",
+        )
+        self.assertEqual(start.status_code, 201, start.data)
+        self.assertEqual(len(start.data["questions"]), 2)
+
+        # Teacher approves the flagged question → becomes visible.
+        flagged = CollectionQuestion.objects.get(needs_review=True)
+        self.client.force_authenticate(user=self.admin)
+        patch = self.client.patch(
+            f"/api/collection-questions/{flagged.id}/",
+            {"needs_review": False, "review_notes": ""},
+            format="json",
+        )
+        self.assertEqual(patch.status_code, 200, patch.data)
+
+        self.client.force_authenticate(user=self.student)
+        start2 = self.client.post(
+            "/api/exams/simulator/",
+            {
+                "subjects": [self.subject.id],
+                "lessons": [self.lesson.id],
+                "take_all": True,
+                "levels": ["easy", "medium", "hard"],
+            },
+            format="json",
+        )
+        self.assertEqual(start2.status_code, 201, start2.data)
+        self.assertEqual(len(start2.data["questions"]), 3)
+
+    def test_student_cannot_import(self):
+        self.client.force_authenticate(user=self.student)
+        res = self._upload("commit")
+        self.assertEqual(res.status_code, 403)
+
+
+class HomeworkImportAPITests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.subject = Subject.objects.create(name="كيم-استيراد", slug="chem-hw", order=1)
+        self.admin = User.objects.create_user(
+            email="a-hw@test.local",
+            password="Passw0rd!",
+            full_name="A",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.lesson = Lesson.objects.create(
+            subject=self.subject, title="درس تأسيس", order_number=1, created_by=self.admin
+        )
+        from catalog.models import LessonSection
+
+        self.section = LessonSection.objects.create(
+            lesson=self.lesson, title="حصة 1", order_number=1
+        )
+        self.student = User.objects.create_user(
+            email="s-hw@test.local",
+            password="Passw0rd!",
+            full_name="S",
+            role=User.Role.STUDENT,
+        )
+        self.group = StudyGroup.objects.create(name="HwG", created_by=self.admin)
+        GroupStudent.objects.create(group=self.group, student=self.student)
+        from groups.models import GroupTeacher
+
+        GroupTeacher.objects.create(
+            group=self.group, teacher=self.admin, subject=self.subject
+        )
+        Subscription.objects.create(
+            student=self.student,
+            plan=Subscription.Plan.MONTHLY,
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date() + timedelta(days=30),
+        )
+
+    def _upload(self, mode):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        file = SimpleUploadedFile(
+            "homework.txt", SAMPLE_TXT.encode("utf-8"), content_type="text/plain"
+        )
+        return self.client.post(
+            "/api/homework-questions/import/",
+            {
+                "file": file,
+                "lesson": self.lesson.id,
+                "section": self.section.id,
+                "mode": mode,
+            },
+            format="multipart",
+        )
+
+    def test_commit_hides_unreviewed_from_students(self):
+        self.client.force_authenticate(user=self.admin)
+        res = self._upload("commit")
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(res.data["created"], 3)
+
+        self.client.force_authenticate(user=self.student)
+        hw = self.client.get(f"/api/my-homework/?section={self.section.id}")
+        self.assertEqual(hw.status_code, 200)
+        self.assertEqual(len(hw.data), 2)

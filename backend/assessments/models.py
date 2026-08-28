@@ -91,6 +91,8 @@ class HomeworkQuestion(QuestionBase):
         null=True,
         blank=True,
     )
+    needs_review = models.BooleanField(default=False)
+    review_notes = models.TextField(blank=True, default="")
 
     class Meta:
         ordering = ["lesson", "section", "id"]
@@ -108,6 +110,11 @@ class CollectionQuestion(QuestionBase):
     written_correction = models.TextField(blank=True)
     # Optional year label (e.g. 1445 or 2024) — shown to students when set.
     question_year = models.CharField(max_length=20, blank=True, default="")
+    # Imported questions with missing/uncertain data stay hidden from students
+    # until the teacher reviews and approves them (needs_review=False).
+    needs_review = models.BooleanField(default=False)
+    # Human-readable reasons filled by the file importer (for the review UI).
+    review_notes = models.TextField(blank=True, default="")
     # free_order 1..N marks a question as part of the free preview (first 10).
     free_order = models.PositiveIntegerField(null=True, blank=True)
 

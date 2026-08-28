@@ -120,7 +120,7 @@ class LessonSerializer(LessonListSerializer):
         from assessments.models import CollectionQuestion
 
         rows = (
-            CollectionQuestion.objects.filter(lesson_id=obj.id)
+            CollectionQuestion.objects.filter(lesson_id=obj.id, needs_review=False)
             .values("difficulty")
             .annotate(c=Count("id"))
         )
@@ -134,21 +134,31 @@ class LessonSerializer(LessonListSerializer):
 
 def annotate_lesson_list(qs):
     """Annotate section + collection difficulty counts in one SQL query."""
+    # Counts exclude imported questions still pending teacher review.
     return qs.annotate(
         _sections_count=Count("sections", distinct=True),
         _cq_easy=Count(
             "collectionquestions",
-            filter=Q(collectionquestions__difficulty="easy"),
+            filter=Q(
+                collectionquestions__difficulty="easy",
+                collectionquestions__needs_review=False,
+            ),
             distinct=True,
         ),
         _cq_medium=Count(
             "collectionquestions",
-            filter=Q(collectionquestions__difficulty="medium"),
+            filter=Q(
+                collectionquestions__difficulty="medium",
+                collectionquestions__needs_review=False,
+            ),
             distinct=True,
         ),
         _cq_hard=Count(
             "collectionquestions",
-            filter=Q(collectionquestions__difficulty="hard"),
+            filter=Q(
+                collectionquestions__difficulty="hard",
+                collectionquestions__needs_review=False,
+            ),
             distinct=True,
         ),
     )

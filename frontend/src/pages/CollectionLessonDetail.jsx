@@ -5,6 +5,7 @@ import { canEditSubject } from "../auth/teacherScope";
 import client from "../api/client";
 import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
+import QuestionImportPanel from "../components/QuestionImportPanel";
 import TeacherQuestionForm from "../components/TeacherQuestionForm";
 import VideoPlayer from "../components/VideoPlayer";
 
@@ -40,6 +41,7 @@ export default function CollectionLessonDetail() {
   const [yearStats, setYearStats] = useState([]);
   const [selectedYears, setSelectedYears] = useState([]);
   const [reviewMode, setReviewMode] = useState("immediate");
+  const [showImport, setShowImport] = useState(false);
 
   const canEdit = canEditSubject(user, subjectId || lesson?.subject);
   const canRenameLesson =
@@ -110,6 +112,7 @@ export default function CollectionLessonDetail() {
     setMsg("");
     setSelectedLevels([]);
     setSelectedYears([]);
+    setShowImport(false);
     loadLesson()
       .then((data) => {
         if (cancelled) return;
@@ -162,6 +165,20 @@ export default function CollectionLessonDetail() {
       setMsg(e.response?.data?.detail || "تعذّر الحفظ");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function approveQuestion(id) {
+    try {
+      await client.patch(`/collection-questions/${id}/`, {
+        needs_review: false,
+        review_notes: "",
+      });
+      setMsg("تم اعتماد السؤال — أصبح ظاهراً للطلاب ✓");
+      loadQuestions();
+      loadLesson();
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر الاعتماد");
     }
   }
 
@@ -231,8 +248,13 @@ export default function CollectionLessonDetail() {
     );
   }
 
+  const reviewCount = qList.filter((q) => q.needs_review).length;
   const visibleQs =
-    filterLevel === "all" ? qList : qList.filter((q) => q.difficulty === filterLevel);
+    filterLevel === "all"
+      ? qList
+      : filterLevel === "review"
+        ? qList.filter((q) => q.needs_review)
+        : qList.filter((q) => q.difficulty === filterLevel);
 
   const levelLabel = (d) => LEVELS.find((x) => x.id === d)?.label || d;
 
@@ -517,17 +539,51 @@ export default function CollectionLessonDetail() {
                 <div className="section-title" style={{ margin: 0 }}>
                   إدارة أسئلة التجميع (للجميع)
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => {
-                    setEditingQ(null);
-                    setShowForm((v) => !v);
-                  }}
-                >
-                  {showForm && !editingQ ? "إخفاء النموذج" : "+ إضافة سؤال"}
-                </button>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={() => {
+                      setShowImport((v) => !v);
+                      setShowForm(false);
+                      setEditingQ(null);
+                    }}
+                  >
+                    {showImport ? "إخفاء الرفع" : "⬆ رفع ملف Word"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setEditingQ(null);
+                      setShowImport(false);
+                      setShowForm((v) => !v);
+                    }}
+                  >
+                    {showForm && !editingQ ? "إخفاء النموذج" : "+ إضافة سؤال"}
+                  </button>
+                </div>
               </div>
+
+              {showImport && (
+                <QuestionImportPanel
+                  importUrl="/collection-questions/import/"
+                  lessonId={lessonId}
+                  showYearHint
+                  templateDownloadName="نموذج-أسئلة-التجميعات.docx"
+                  onImported={async (data) => {
+                    setMsg(
+                      `تم استيراد ${data.created} سؤال ✓` +
+                        (data.summary?.needs_review
+                          ? ` — منها ${data.summary.needs_review} بحاجة لمراجعتك قبل الظهور للطلاب`
+                          : "")
+                    );
+                    setShowImport(false);
+                    await loadQuestions();
+                    await loadLesson();
+                  }}
+                />
+              )}
 
               <div className="filter-row" style={{ marginBottom: 12 }}>
                 <span
@@ -549,6 +605,17 @@ export default function CollectionLessonDetail() {
                     {lv.label} ({qList.filter((q) => q.difficulty === lv.id).length})
                   </span>
                 ))}
+                {reviewCount > 0 && (
+                  <span
+                    className={`chip ${filterLevel === "review" ? "active" : ""}`}
+                    onClick={() => setFilterLevel("review")}
+                    role="button"
+                    tabIndex={0}
+                    style={{ background: filterLevel === "review" ? undefined : "#fef3c7", color: filterLevel === "review" ? undefined : "#92400e" }}
+                  >
+                    بحاجة لمراجعة ({reviewCount})
+                  </span>
+                )}
               </div>
 
               {(showForm || editingQ) && (
@@ -588,7 +655,20 @@ export default function CollectionLessonDetail() {
                         س{i + 1} · {levelLabel(item.difficulty)}
                         {item.question_year ? ` · ${item.question_year}` : ""}:
                       </strong>{" "}
+                      {item.needs_review && (
+                        <span
+                          className="chip"
+                          style={{ background: "#fef3c7", color: "#92400e", marginInlineEnd: 6 }}
+                        >
+                          بحاجة لمراجعة — مخفي عن الطلاب
+                        </span>
+                      )}
                       <MathText>{item.text}</MathText>
+                      {item.needs_review && item.review_notes && (
+                        <div style={{ color: "#b45309", fontSize: 13, marginTop: 4 }}>
+                          ملاحظات الاستيراد: {item.review_notes}
+                        </div>
+                      )}
                       {item.text_image && (
                         <img
                           src={item.text_image}
@@ -613,6 +693,15 @@ export default function CollectionLessonDetail() {
                       </div>
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
+                      {item.needs_review && (
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => approveQuestion(item.id)}
+                        >
+                          اعتماد
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"

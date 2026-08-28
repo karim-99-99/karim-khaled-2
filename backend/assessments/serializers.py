@@ -27,6 +27,8 @@ class HomeworkQuestionSerializer(serializers.ModelSerializer):
             "explanation_image",
             "video_bunny_id",
             "video_timing",
+            "needs_review",
+            "review_notes",
             "created_at",
         ]
         read_only_fields = ["id", "created_at"]
@@ -52,6 +54,8 @@ class CollectionQuestionSerializer(serializers.ModelSerializer):
             "video_bunny_id",
             "video_timing",
             "free_order",
+            "needs_review",
+            "review_notes",
             "created_at",
         ]
         read_only_fields = ["id", "created_at"]

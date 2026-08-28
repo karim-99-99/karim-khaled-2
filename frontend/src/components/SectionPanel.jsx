@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import client from "../api/client";
 import MathText from "./MathText";
 import TeacherQuestionForm from "./TeacherQuestionForm";
+import QuestionImportPanel from "./QuestionImportPanel";
 import VideoPlayer from "./VideoPlayer";
 import { useAuth } from "../auth/AuthContext";
 import { canEditSubject } from "../auth/teacherScope";
@@ -19,6 +20,7 @@ export default function SectionPanel({ sectionId, onUpdated }) {
   const [hwIndex, setHwIndex] = useState(0);
   const [answers, setAnswers] = useState({});
   const [showAddQ, setShowAddQ] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingQ, setEditingQ] = useState(null);
   const [editVideo, setEditVideo] = useState("");
   const [editPdf, setEditPdf] = useState("");
@@ -64,6 +66,7 @@ export default function SectionPanel({ sectionId, onUpdated }) {
     setHwIndex(0);
     setAnswers({});
     setShowAddQ(false);
+    setShowImport(false);
     setEditingQ(null);
     setMsg("");
     setSection(null);
@@ -91,6 +94,19 @@ export default function SectionPanel({ sectionId, onUpdated }) {
       setMsg(e.response?.data?.detail || "تعذّر الحفظ");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function approveQuestion(id) {
+    try {
+      await client.patch(`/homework-questions/${id}/`, {
+        needs_review: false,
+        review_notes: "",
+      });
+      setMsg("تم اعتماد السؤال — أصبح ظاهراً للطلاب ✓");
+      loadHomework(true);
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر الاعتماد");
     }
   }
 
@@ -122,6 +138,7 @@ export default function SectionPanel({ sectionId, onUpdated }) {
 
   const q = homework[hwIndex];
   const answeredCount = Object.keys(answers).length;
+  const reviewCount = teacherQs.filter((item) => item.needs_review).length;
 
   return (
     <div className="section-panel">
@@ -239,9 +256,21 @@ export default function SectionPanel({ sectionId, onUpdated }) {
             <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
               <button
                 type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => {
+                  setShowImport((v) => !v);
+                  setShowAddQ(false);
+                  setEditingQ(null);
+                }}
+              >
+                {showImport ? "إخفاء الرفع" : "⬆ رفع ملف Word"}
+              </button>
+              <button
+                type="button"
                 className="btn btn-primary btn-sm"
                 onClick={() => {
                   setEditingQ(null);
+                  setShowImport(false);
                   setShowAddQ((v) => !v);
                 }}
               >
@@ -249,8 +278,28 @@ export default function SectionPanel({ sectionId, onUpdated }) {
               </button>
               <span style={{ color: "var(--text-muted)", alignSelf: "center", fontSize: 13 }}>
                 عدد الأسئلة: {teacherQs.length}
+                {reviewCount > 0 ? ` · ${reviewCount} بانتظار المراجعة` : ""}
               </span>
             </div>
+          )}
+
+          {canEdit && showImport && (
+            <QuestionImportPanel
+              importUrl="/homework-questions/import/"
+              lessonId={section.lesson}
+              sectionId={section.id}
+              templateDownloadName="نموذج-أسئلة-التأسيس.docx"
+              onImported={(data) => {
+                setMsg(
+                  `تم استيراد ${data.created} سؤال ✓` +
+                    (data.summary?.needs_review
+                      ? ` — منها ${data.summary.needs_review} بحاجة لمراجعتك`
+                      : "")
+                );
+                setShowImport(false);
+                loadHomework(true);
+              }}
+            />
           )}
 
           {canEdit && (showAddQ || editingQ) && (
@@ -279,9 +328,32 @@ export default function SectionPanel({ sectionId, onUpdated }) {
                 <div key={item.id} className="card" style={{ padding: 12, marginTop: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                     <div style={{ flex: 1 }}>
-                      <strong>س{i + 1}:</strong> <MathText>{item.text}</MathText>
+                      <strong>س{i + 1}:</strong>{" "}
+                      {item.needs_review && (
+                        <span
+                          className="chip"
+                          style={{ background: "#fef3c7", color: "#92400e", marginInlineEnd: 6 }}
+                        >
+                          بحاجة لمراجعة
+                        </span>
+                      )}
+                      <MathText>{item.text}</MathText>
+                      {item.needs_review && item.review_notes && (
+                        <div style={{ color: "#b45309", fontSize: 13, marginTop: 4 }}>
+                          {item.review_notes}
+                        </div>
+                      )}
                     </div>
                     <div style={{ display: "flex", gap: 6 }}>
+                      {item.needs_review && (
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => approveQuestion(item.id)}
+                        >
+                          اعتماد
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="btn btn-secondary btn-sm"
