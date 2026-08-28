@@ -44,6 +44,7 @@ class CollectionQuestionSerializer(serializers.ModelSerializer):
             "lesson",
             "difficulty",
             "question_year",
+            "teacher_tier",
             "text",
             "text_image",
             "options",
@@ -95,6 +96,7 @@ class QuestionPublicSerializer(serializers.ModelSerializer):
             "subject_name",
             "lesson_title",
             "question_year",
+            "teacher_tier",
         ]
 
     def get_video_before(self, obj):

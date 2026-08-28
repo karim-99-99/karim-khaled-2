@@ -13,7 +13,7 @@ from catalog.models import Lesson, Subject
 from groups.models import GroupStudent, StudyGroup
 
 
-def _make_question(subject, lesson, teacher, difficulty, idx):
+def _make_question(subject, lesson, teacher, difficulty, idx, teacher_tier="", question_year="1446"):
     return CollectionQuestion.objects.create(
         subject=subject,
         lesson=lesson,
@@ -27,7 +27,8 @@ def _make_question(subject, lesson, teacher, difficulty, idx):
         ],
         correct_answer="أ",
         difficulty=difficulty,
-        question_year="1446",
+        question_year=question_year,
+        teacher_tier=teacher_tier,
     )
 
 
@@ -191,6 +192,67 @@ class SimulatorAPITests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertTrue(len(res.data["lessons"]) >= 2)
         self.assertIn("1446", res.data["years"])
+
+    def test_teacher_tier_filter_on_start(self):
+        tier_lesson = Lesson.objects.create(
+            subject=self.subject,
+            title="ترشيحات",
+            order_number=3,
+            created_by=self.teacher,
+        )
+        for i in range(5):
+            _make_question(
+                self.subject, tier_lesson, self.teacher, "medium", i, teacher_tier="gold"
+            )
+        for i in range(5):
+            _make_question(
+                self.subject,
+                tier_lesson,
+                self.teacher,
+                "medium",
+                100 + i,
+                teacher_tier="silver",
+            )
+        for i in range(5):
+            _make_question(
+                self.subject,
+                tier_lesson,
+                self.teacher,
+                "medium",
+                200 + i,
+                teacher_tier="bronze",
+            )
+
+        self.client.force_authenticate(user=self.student)
+        opts = self.client.get(
+            f"/api/exams/simulator/options/?subjects={self.subject.id}"
+            f"&lessons={tier_lesson.id}"
+        )
+        self.assertEqual(opts.status_code, 200)
+        tiers = {row["tier"] for row in opts.data.get("tier_stats") or []}
+        self.assertEqual(tiers, {"gold", "silver", "bronze"})
+
+        start = self.client.post(
+            "/api/exams/simulator/",
+            {
+                "subjects": [self.subject.id],
+                "lessons": [tier_lesson.id],
+                "count": 10,
+                "levels": ["medium"],
+                "tiers": ["gold", "silver"],
+                "review_mode": "final",
+            },
+            format="json",
+        )
+        self.assertEqual(start.status_code, 201, start.data)
+        q_ids = [q["id"] for q in start.data.get("questions") or []]
+        tiers_in_exam = set(
+            CollectionQuestion.objects.filter(id__in=q_ids).values_list(
+                "teacher_tier", flat=True
+            )
+        )
+        self.assertTrue(tiers_in_exam.issubset({"gold", "silver"}))
+        self.assertFalse("bronze" in tiers_in_exam)
 
     def test_heavy_bulk_exam_create(self):
         """Create a large exam quickly via mix take-all path."""

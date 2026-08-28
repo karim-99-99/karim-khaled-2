@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import client from "../api/client";
 import MathText from "./MathText";
+import { tierLabel } from "../constants/teacherTiers";
 
 /**
  * معاينة واستيراد أسئلة من ملف Word (.docx) أو نصي (.txt).
@@ -64,7 +65,7 @@ export default function QuestionImportPanel({
       </div>
       <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 8 }}>
         اكتب كل سؤال أسفل الآخر واترك سطراً فارغاً بين الأسئلة. النجمة * بعد الخيار
-        تحدد الإجابة الصحيحة، والسطور «الصعوبة / الشرح / فيديو»
+        تحدد الإجابة الصحيحة، والسطور «الصعوبة / الشرح / فيديو / الترشيح»
         {showYearHint ? " / السنة" : ""} اختيارية. المعادلات بين $...$ أو بمحرر
         معادلات Word. أي سؤال ناقص يُستورد بعلامة «بحاجة لمراجعة» ولا يظهر للطلاب
         حتى تعتمده.
@@ -156,6 +157,7 @@ export default function QuestionImportPanel({
                 الصعوبة:{" "}
                 {q.difficulty === "easy" ? "سهل" : q.difficulty === "hard" ? "صعب" : "متوسط"}
                 {showYearHint && q.question_year ? ` · السنة: ${q.question_year}` : ""}
+                {q.teacher_tier ? ` · الترشيح: ${tierLabel(q.teacher_tier)}` : ""}
                 {q.review_notes ? (
                   <span style={{ color: "#b45309" }}> · {q.review_notes}</span>
                 ) : null}

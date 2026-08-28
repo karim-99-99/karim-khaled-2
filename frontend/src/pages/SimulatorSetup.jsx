@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { filterSubjectsForUser } from "../auth/teacherScope";
 import client from "../api/client";
 import BackToCourses from "../components/BackToCourses";
+import YearScrollPicker, { expandYearRange } from "../components/YearScrollPicker";
 import {
   lockSubjectTheme,
   resolveSubjectKey,
@@ -78,8 +79,9 @@ export default function SimulatorSetup() {
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [lessons, setLessons] = useState([]);
   const [years, setYears] = useState([]);
+  const [yearStats, setYearStats] = useState([]);
   const [selectedLessons, setSelectedLessons] = useState([]);
-  const [selectedYears, setSelectedYears] = useState([]);
+  const [yearRange, setYearRange] = useState(null);
   const [count, setCount] = useState(8);
   const [takeAll, setTakeAll] = useState(false);
   const [difficultyMix, setDifficultyMix] = useState("medium");
@@ -140,7 +142,9 @@ export default function SimulatorSetup() {
     if (!selectedSubjects.length) {
       setLessons([]);
       setYears([]);
+      setYearStats([]);
       setSelectedLessons([]);
+      setYearRange(null);
       return;
     }
     let cancelled = false;
@@ -154,6 +158,7 @@ export default function SimulatorSetup() {
         const rows = res.data.lessons || [];
         setLessons(rows);
         setYears(res.data.years || []);
+        setYearStats(res.data.year_stats || []);
         setSelectedLessons((prev) => {
           const allowed = new Set(rows.map((l) => l.id));
           const kept = prev.filter((id) => allowed.has(id));
@@ -167,12 +172,17 @@ export default function SimulatorSetup() {
           }
           return rows.map((l) => l.id);
         });
-        setSelectedYears((prev) => prev.filter((y) => (res.data.years || []).includes(y)));
+        setYearRange((prev) => {
+          if (!prev) return null;
+          const expanded = expandYearRange(res.data.years || [], prev);
+          return expanded.length ? prev : null;
+        });
       })
       .catch(() => {
         if (!cancelled) {
           setLessons([]);
           setYears([]);
+          setYearStats([]);
         }
       })
       .finally(() => {
@@ -225,12 +235,6 @@ export default function SimulatorSetup() {
     setSelectedLessons([]);
   }
 
-  function toggleYear(y) {
-    setSelectedYears((prev) =>
-      prev.includes(y) ? prev.filter((x) => x !== y) : [...prev, y]
-    );
-  }
-
   function resolveTimeLimit() {
     if (timePreset === "custom") {
       const n = Number(customMinutes);
@@ -266,7 +270,10 @@ export default function SimulatorSetup() {
         question_pool: questionPool,
         time_limit_minutes: resolveTimeLimit(),
       };
-      if (selectedYears.length) payload.years = selectedYears;
+      if (yearRange) {
+        const expanded = expandYearRange(years, yearRange);
+        if (expanded.length) payload.years = expanded;
+      }
       if (selectedSubjects.length > 1) {
         lockSubjectTheme("multi");
       } else if (selectedSubjects.length === 1) {
@@ -302,7 +309,7 @@ export default function SimulatorSetup() {
           {fromCollections ? "تدريب التجميعات" : "المحاكي الشخصي"}
         </h2>
         <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>
-          اختر مادة أو أكثر، ثم الدروس داخل كل مادة، وسنة الأسئلة إن رغبت، ومدة الاختبار أو اتركها بدون زمن.
+          اختر مادة أو أكثر، ثم الدروس داخل كل مادة، ومرّر قائمة السنوات لاختيار الفترة، ومدة الاختبار أو اتركها بدون زمن.
         </p>
 
         <div className="form-group">
@@ -397,36 +404,14 @@ export default function SimulatorSetup() {
         </div>
 
         <div className="form-group">
-          <label>سنة الأسئلة (اختياري)</label>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 0 }}>
-            اتركها فارغة لكل السنوات، أو اختر سنة أو أكثر
-          </p>
-          <div className="filter-row">
-            <span
-              className={`chip ${selectedYears.length === 0 ? "active" : ""}`}
-              onClick={() => setSelectedYears([])}
-              role="button"
-              tabIndex={0}
-            >
-              كل السنوات
-            </span>
-            {years.map((y) => (
-              <span
-                key={y}
-                className={`chip ${selectedYears.includes(y) ? "active" : ""}`}
-                onClick={() => toggleYear(y)}
-                role="button"
-                tabIndex={0}
-              >
-                {y}
-              </span>
-            ))}
-          </div>
-          {!years.length && (
-            <p style={{ color: "var(--text-muted)", fontSize: 13 }}>
-              لا توجد سنوات مسجّلة على الأسئلة بعد — سيُؤخذ الكل.
-            </p>
-          )}
+          <label>سنة / تاريخ الأسئلة — اختياري</label>
+          <YearScrollPicker
+            years={years}
+            value={yearRange}
+            onChange={setYearRange}
+            yearStats={yearStats}
+            emptyMessage="لا توجد سنوات مسجّلة على الأسئلة بعد — سيُؤخذ الكل."
+          />
         </div>
 
         <div className="form-group">

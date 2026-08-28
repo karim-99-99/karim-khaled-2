@@ -117,6 +117,15 @@ class CollectionQuestion(QuestionBase):
     review_notes = models.TextField(blank=True, default="")
     # free_order 1..N marks a question as part of the free preview (first 10).
     free_order = models.PositiveIntegerField(null=True, blank=True)
+    # Teacher recommendation tier for collections (student filter).
+    class TeacherTier(models.TextChoices):
+        GOLD = "gold", "ذهبي"
+        SILVER = "silver", "فضي"
+        BRONZE = "bronze", "برونزي"
+
+    teacher_tier = models.CharField(
+        max_length=10, choices=TeacherTier.choices, blank=True, default=""
+    )
 
     class Meta:
         ordering = ["lesson", "difficulty", "id"]

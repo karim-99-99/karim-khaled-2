@@ -8,6 +8,8 @@ import MathText from "../components/MathText";
 import QuestionImportPanel from "../components/QuestionImportPanel";
 import TeacherQuestionForm from "../components/TeacherQuestionForm";
 import VideoPlayer from "../components/VideoPlayer";
+import YearScrollPicker, { expandYearRange } from "../components/YearScrollPicker";
+import { TEACHER_TIERS, tierLabel } from "../constants/teacherTiers";
 
 const LEVELS = [
   { id: "easy", label: "سهل" },
@@ -39,7 +41,10 @@ export default function CollectionLessonDetail() {
   const [selectedLevels, setSelectedLevels] = useState([]);
   const [years, setYears] = useState([]);
   const [yearStats, setYearStats] = useState([]);
-  const [selectedYears, setSelectedYears] = useState([]);
+  const [yearRange, setYearRange] = useState(null);
+  const [tierStats, setTierStats] = useState([]);
+  const [filterBreakdown, setFilterBreakdown] = useState([]);
+  const [selectedTiers, setSelectedTiers] = useState([]);
   const [reviewMode, setReviewMode] = useState("immediate");
   const [showImport, setShowImport] = useState(false);
 
@@ -57,8 +62,13 @@ export default function CollectionLessonDetail() {
     (Number(levelCounts.medium) || 0) +
     (Number(levelCounts.hard) || 0);
 
+  const allowedYears = useMemo(() => {
+    if (!yearRange) return null;
+    return new Set(expandYearRange(years, yearRange));
+  }, [years, yearRange]);
+
   const filteredLevelCounts = useMemo(() => {
-    if (!selectedYears.length) {
+    if (!allowedYears && !selectedTiers.length) {
       return {
         easy: Number(levelCounts.easy) || 0,
         medium: Number(levelCounts.medium) || 0,
@@ -66,14 +76,52 @@ export default function CollectionLessonDetail() {
       };
     }
     const out = { easy: 0, medium: 0, hard: 0 };
+    if (filterBreakdown.length) {
+      for (const row of filterBreakdown) {
+        if (allowedYears && !allowedYears.has(row.question_year || "")) {
+          continue;
+        }
+        if (selectedTiers.length && !selectedTiers.includes(row.teacher_tier || "")) {
+          continue;
+        }
+        const d = row.difficulty;
+        if (d in out) out[d] += Number(row.count) || 0;
+      }
+      return out;
+    }
+    // Fallback when breakdown unavailable.
     for (const row of yearStats) {
-      if (!selectedYears.includes(row.year)) continue;
+      if (allowedYears && !allowedYears.has(row.year)) continue;
       out.easy += Number(row.easy) || 0;
       out.medium += Number(row.medium) || 0;
       out.hard += Number(row.hard) || 0;
     }
     return out;
-  }, [selectedYears, yearStats, levelCounts.easy, levelCounts.medium, levelCounts.hard]);
+  }, [
+    allowedYears,
+    selectedTiers,
+    filterBreakdown,
+    yearStats,
+    levelCounts.easy,
+    levelCounts.medium,
+    levelCounts.hard,
+  ]);
+
+  const tierCountsForFilter = useMemo(() => {
+    const out = Object.fromEntries(TEACHER_TIERS.map((t) => [t.id, 0]));
+    for (const row of filterBreakdown) {
+      if (allowedYears && !allowedYears.has(row.question_year || "")) continue;
+      if (row.teacher_tier && row.teacher_tier in out) {
+        out[row.teacher_tier] += Number(row.count) || 0;
+      }
+    }
+    if (!filterBreakdown.length) {
+      for (const row of tierStats) {
+        if (row.tier in out) out[row.tier] = Number(row.total) || 0;
+      }
+    }
+    return out;
+  }, [filterBreakdown, tierStats, allowedYears]);
 
   const selectedCount = useMemo(() => {
     if (!selectedLevels.length) return 0;
@@ -83,15 +131,15 @@ export default function CollectionLessonDetail() {
     );
   }, [selectedLevels, filteredLevelCounts]);
 
-  function toggleLevel(id) {
-    setSelectedLevels((prev) =>
+  function toggleTier(id) {
+    setSelectedTiers((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   }
 
-  function toggleYear(y) {
-    setSelectedYears((prev) =>
-      prev.includes(y) ? prev.filter((x) => x !== y) : [...prev, y]
+  function toggleLevel(id) {
+    setSelectedLevels((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   }
 
@@ -111,7 +159,8 @@ export default function CollectionLessonDetail() {
     setEditingQ(null);
     setMsg("");
     setSelectedLevels([]);
-    setSelectedYears([]);
+    setYearRange(null);
+    setSelectedTiers([]);
     setShowImport(false);
     loadLesson()
       .then((data) => {
@@ -126,11 +175,15 @@ export default function CollectionLessonDetail() {
             if (cancelled) return;
             setYears(res.data.years || []);
             setYearStats(res.data.year_stats || []);
+            setTierStats(res.data.tier_stats || []);
+            setFilterBreakdown(res.data.filter_breakdown || []);
           })
           .catch(() => {
             if (!cancelled) {
               setYears([]);
               setYearStats([]);
+              setTierStats([]);
+              setFilterBreakdown([]);
             }
           })
           .then(() => {
@@ -200,7 +253,7 @@ export default function CollectionLessonDetail() {
       return;
     }
     if (selectedCount < 1) {
-      setMsg("لا توجد أسئلة بالمستويات/السنوات المختارة");
+      setMsg("لا توجد أسئلة بالمستويات/السنوات/الترشيحات المختارة");
       return;
     }
     setStartBusy(true);
@@ -217,8 +270,12 @@ export default function CollectionLessonDetail() {
           .replace(/\s+/g, " ")
           .trim(),
       };
-      if (selectedYears.length) {
-        payload.years = selectedYears;
+      if (yearRange) {
+        const expanded = expandYearRange(years, yearRange);
+        if (expanded.length) payload.years = expanded;
+      }
+      if (selectedTiers.length) {
+        payload.tiers = selectedTiers;
       }
       const { data } = await client.post("/exams/simulator/", payload);
       navigate(`/exam/${data.exam.id}`);
@@ -448,34 +505,44 @@ export default function CollectionLessonDetail() {
               </p>
             </div>
             <div className="form-group" style={{ marginBottom: 16 }}>
-              <label>سنة / تاريخ الاختبار — اختياري (واحد أو أكثر، أو بدون فلتر)</label>
+              <label>سنة / تاريخ الاختبار — اختياري</label>
+              <YearScrollPicker
+                years={years}
+                value={yearRange}
+                onChange={setYearRange}
+                yearStats={yearStats}
+                emptyMessage="لا توجد سنوات مسجّلة على أسئلة هذا الدرس بعد."
+              />
+            </div>
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label>ترشيحات المدرسين — اختياري (واحد أو أكثر، أو الكل)</label>
               <div className="filter-row" style={{ marginBottom: 8 }}>
                 <span
-                  className={`chip ${selectedYears.length === 0 ? "active" : ""}`}
-                  onClick={() => setSelectedYears([])}
+                  className={`chip ${selectedTiers.length === 0 ? "active" : ""}`}
+                  onClick={() => setSelectedTiers([])}
                   role="button"
                   tabIndex={0}
                 >
-                  كل السنوات
+                  كل الترشيحات
                 </span>
-                {years.map((y) => (
+                {TEACHER_TIERS.map((t) => (
                   <span
-                    key={y}
-                    className={`chip ${selectedYears.includes(y) ? "active" : ""}`}
-                    onClick={() => toggleYear(y)}
+                    key={t.id}
+                    className={`chip ${selectedTiers.includes(t.id) ? "active" : ""}`}
+                    onClick={() => toggleTier(t.id)}
                     role="button"
                     tabIndex={0}
                     onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") toggleYear(y);
+                      if (e.key === "Enter" || e.key === " ") toggleTier(t.id);
                     }}
                   >
-                    {y}
+                    {t.label} ({tierCountsForFilter[t.id] || 0})
                   </span>
                 ))}
               </div>
-              {!years.length && (
+              {!tierStats.length && !filterBreakdown.some((r) => r.teacher_tier) && (
                 <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>
-                  لا توجد سنوات مسجّلة على أسئلة هذا الدرس بعد.
+                  لا توجد ترشيحات مسجّلة على أسئلة هذا الدرس بعد.
                 </p>
               )}
             </div>
@@ -653,7 +720,8 @@ export default function CollectionLessonDetail() {
                     <div style={{ flex: 1 }}>
                       <strong>
                         س{i + 1} · {levelLabel(item.difficulty)}
-                        {item.question_year ? ` · ${item.question_year}` : ""}:
+                        {item.question_year ? ` · ${item.question_year}` : ""}
+                        {item.teacher_tier ? ` · ${tierLabel(item.teacher_tier)}` : ""}:
                       </strong>{" "}
                       {item.needs_review && (
                         <span

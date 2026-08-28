@@ -234,6 +234,7 @@ class ImportCollectionQuestionsView(APIView):
                     correct_answer=q["correct_answer"],
                     difficulty=q["difficulty"],
                     question_year=q["question_year"],
+                    teacher_tier=q.get("teacher_tier") or "",
                     explanation=q["explanation"],
                     written_correction=q["explanation"],
                     video_bunny_id=q["video_bunny_id"],
@@ -589,6 +590,13 @@ class StartSimulatorView(APIView):
         if single_year and single_year not in years:
             years.append(single_year)
 
+        raw_tiers = request.data.get("tiers") or request.data.get("teacher_tiers")
+        tiers = []
+        if isinstance(raw_tiers, list):
+            tiers = [x for x in raw_tiers if x in ("gold", "silver", "bronze")]
+        elif isinstance(raw_tiers, str) and raw_tiers in ("gold", "silver", "bronze"):
+            tiers = [raw_tiers]
+
         take_all = bool(request.data.get("take_all"))
         try:
             count = int(request.data.get("count", 8))
@@ -650,6 +658,8 @@ class StartSimulatorView(APIView):
         bank = bank.filter(lesson_id__in=lesson_ids)
         if years:
             bank = bank.filter(question_year__in=years)
+        if tiers:
+            bank = bank.filter(teacher_tier__in=tiers)
 
         # Legacy multi-select of raw difficulties (teacher tools / old clients)
         if levels and not mix_key:
@@ -712,6 +722,8 @@ class StartSimulatorView(APIView):
                 detail = "لا توجد أسئلة سابقة (مكررة) بهذه الإعدادات — جرّب «أسئلة جديدة» أو «الكل»"
             elif years:
                 detail = "لا توجد أسئلة لهذه السنة/السنوات بهذه الإعدادات"
+            elif tiers:
+                detail = "لا توجد أسئلة بهذا الترشيح/الترشيحات بهذه الإعدادات"
             else:
                 detail = "لا توجد أسئلة متاحة بهذه الإعدادات في بنك التجميعات"
             return Response({"detail": detail}, status=status.HTTP_400_BAD_REQUEST)
@@ -865,6 +877,42 @@ def simulator_options(request):
 
     year_stats_list = sorted(year_stats.values(), key=lambda r: year_key(r["year"]))
 
+    tier_order = {"gold": 0, "silver": 1, "bronze": 2}
+    tier_labels = dict(CollectionQuestion.TeacherTier.choices)
+    tier_stats = {}
+    for row in bank.exclude(teacher_tier="").values("teacher_tier", "difficulty").annotate(
+        count=Count("id")
+    ):
+        t = row["teacher_tier"]
+        bucket = tier_stats.setdefault(
+            t,
+            {
+                "tier": t,
+                "label": tier_labels.get(t, t),
+                "easy": 0,
+                "medium": 0,
+                "hard": 0,
+                "total": 0,
+            },
+        )
+        diff = row["difficulty"]
+        if diff in ("easy", "medium", "hard"):
+            bucket[diff] = row["count"]
+            bucket["total"] += row["count"]
+    tier_stats_list = sorted(tier_stats.values(), key=lambda r: tier_order.get(r["tier"], 9))
+
+    filter_breakdown = [
+        {
+            "question_year": row["question_year"] or "",
+            "teacher_tier": row["teacher_tier"] or "",
+            "difficulty": row["difficulty"],
+            "count": row["count"],
+        }
+        for row in bank.values("question_year", "teacher_tier", "difficulty").annotate(
+            count=Count("id")
+        )
+    ]
+
     return Response(
         {
             "subjects": subject_ids,
@@ -880,6 +928,9 @@ def simulator_options(request):
             ],
             "years": years,
             "year_stats": year_stats_list,
+            "teacher_tiers": [r["tier"] for r in tier_stats_list],
+            "tier_stats": tier_stats_list,
+            "filter_breakdown": filter_breakdown,
         }
     )
 

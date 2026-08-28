@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import EquationEditor from "../components/EquationEditor";
 import ImagePicker from "../components/ImagePicker";
 import MathText from "../components/MathText";
+import { TEACHER_TIERS } from "../constants/teacherTiers";
 
 const OPTION_KEYS = ["أ", "ب", "ج", "د"];
 
@@ -27,6 +28,8 @@ export default function QuestionEditor() {
     lesson: "",
     difficulty: "medium",
     kind: "collection",
+    teacher_tier: "",
+    question_year: "",
     text: "",
     text_image: "",
     options: emptyOptions(),
@@ -125,6 +128,10 @@ export default function QuestionEditor() {
       setMsg("اكتب نص السؤال أو أضف صورة له");
       return;
     }
+    if (form.kind === "collection" && !form.teacher_tier) {
+      setMsg("اختر ترشيح المدرس (ذهبي / فضي / برونزي)");
+      return;
+    }
     const url = form.kind === "homework" ? "/homework-questions/" : "/collection-questions/";
     const payload = {
       subject: subjectId,
@@ -144,6 +151,10 @@ export default function QuestionEditor() {
       video_bunny_id: form.video_bunny_id,
       video_timing: form.video_timing,
     };
+    if (form.kind === "collection") {
+      payload.question_year = (form.question_year || "").trim();
+      payload.teacher_tier = form.teacher_tier;
+    }
     try {
       await client.post(url, payload);
       setMsg("تم حفظ السؤال ✓ — سيظهر للطلبة في مجموعاتك لنفس المادة");
@@ -300,6 +311,34 @@ export default function QuestionEditor() {
               ))}
             </div>
           </div>
+
+          {form.kind === "collection" && (
+            <>
+              <div className="form-group">
+                <label>ترشيح المدرس (إجباري)</label>
+                <div className="filter-row">
+                  {TEACHER_TIERS.map((t) => (
+                    <span
+                      key={t.id}
+                      className={`chip ${form.teacher_tier === t.id ? "active" : ""}`}
+                      onClick={() => setForm((f) => ({ ...f, teacher_tier: t.id }))}
+                    >
+                      {t.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="form-group">
+                <label>سنة السؤال (اختياري)</label>
+                <input
+                  className="form-control"
+                  value={form.question_year}
+                  onChange={(e) => setForm((f) => ({ ...f, question_year: e.target.value }))}
+                  placeholder="مثال: 1446"
+                />
+              </div>
+            </>
+          )}
 
           <div className="form-group">
             <label>نص السؤال</label>

@@ -259,7 +259,12 @@ def decode_txt(data: bytes):
 
 _Q_START = re.compile(r"^\s*س(?:ؤال)?\s*\d*\s*[:：.\-\)]\s*(.*)$")
 _OPTION = re.compile(r"^\s*([أاإبجدهـو]|[a-hA-H]|[١٢٣٤٥٦]|[1-6])\s*[\)\-.:\/؍]\s+?(.*)$")
-_META = re.compile(r"^\s*(الإجابة الصحيحة|الاجابة الصحيحة|الإجابة|الاجابة|جواب|الجواب|السنة|سنة|التاريخ|العام|الصعوبة|المستوى|المستوي|الشرح|شرح|التعليل|فيديو|الفيديو)\s*[:：]\s*(.*)$")
+_META = re.compile(
+    r"^\s*(الإجابة الصحيحة|الاجابة الصحيحة|الإجابة|الاجابة|جواب|الجواب|"
+    r"السنة|سنة|التاريخ|العام|الصعوبة|المستوى|المستوي|"
+    r"الترشيح|ترشيح|ترشيح المدرس|ترشيحات المدرسين|"
+    r"الشرح|شرح|التعليل|فيديو|الفيديو)\s*[:：]\s*(.*)$"
+)
 
 _DIFFICULTY_MAP = {
     "سهل": "easy",
@@ -271,6 +276,15 @@ _DIFFICULTY_MAP = {
     "صعب": "hard",
     "صعبة": "hard",
     "hard": "hard",
+}
+
+_TIER_MAP = {
+    "ذهبي": "gold",
+    "gold": "gold",
+    "فضي": "silver",
+    "silver": "silver",
+    "برونزي": "bronze",
+    "bronze": "bronze",
 }
 
 _ANSWER_ALIASES = {
@@ -301,6 +315,10 @@ _META_CANON = {
     "التعليل": "explanation",
     "فيديو": "video",
     "الفيديو": "video",
+    "الترشيح": "tier",
+    "ترشيح": "tier",
+    "ترشيح المدرس": "tier",
+    "ترشيحات المدرسين": "tier",
 }
 
 
@@ -318,6 +336,7 @@ def _new_block(line_no):
         "options": [],  # list of {"text": str, "starred": bool}
         "answer_raw": "",
         "year": "",
+        "tier_raw": "",
         "difficulty_raw": "",
         "explanation": "",
         "video": "",
@@ -363,6 +382,9 @@ def parse_question_blocks(lines):
                 current["_last"] = None
             elif key == "year":
                 current["year"] = value[:20]
+                current["_last"] = None
+            elif key == "tier":
+                current["tier_raw"] = value
                 current["_last"] = None
             elif key == "difficulty":
                 current["difficulty_raw"] = value
@@ -473,6 +495,11 @@ def _finalize_block(block):
     ):
         reasons.append("علامات $ للمعادلات غير متوازنة — راجع المعادلات")
 
+    tier_raw = (block.get("tier_raw") or "").strip().lower()
+    teacher_tier = _TIER_MAP.get(tier_raw, "")
+    if tier_raw and not teacher_tier:
+        reasons.append(f"الترشيح «{block['tier_raw']}» غير مفهوم — اختر ذهبي/فضي/برونزي")
+
     return {
         "rejected": False,
         "question": {
@@ -482,6 +509,7 @@ def _finalize_block(block):
             "correct_answer": keyed_options[correct_idx]["key"],
             "difficulty": difficulty,
             "question_year": (block["year"] or "").strip()[:20],
+            "teacher_tier": teacher_tier,
             "explanation": (block["explanation"] or "").strip(),
             "video_bunny_id": (block["video"] or "").strip()[:500],
             "needs_review": bool(reasons),

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import client from "../api/client";
+import { TEACHER_TIERS } from "../constants/teacherTiers";
 import EquationEditor from "./EquationEditor";
 import ImagePicker from "./ImagePicker";
 
@@ -25,6 +26,7 @@ function formFromQuestion(q, defaultDifficulty) {
     return {
       difficulty: defaultDifficulty,
       question_year: "",
+      teacher_tier: "",
       text: "",
       text_image: "",
       options: emptyOptions(),
@@ -38,6 +40,7 @@ function formFromQuestion(q, defaultDifficulty) {
   return {
     difficulty: q.difficulty || defaultDifficulty,
     question_year: q.question_year || "",
+    teacher_tier: q.teacher_tier || "",
     text: q.text || "",
     text_image: q.text_image || "",
     options: normalizeOptions(q.options),
@@ -87,6 +90,10 @@ export default function TeacherQuestionForm({
       setMsg("اكتب نص السؤال أو أضف صورة");
       return;
     }
+    if (kind === "collection" && !form.teacher_tier) {
+      setMsg("اختر ترشيح المدرس (ذهبي / فضي / برونزي)");
+      return;
+    }
     setBusy(true);
     const base = kind === "homework" ? "/homework-questions/" : "/collection-questions/";
     const payload = {
@@ -111,6 +118,7 @@ export default function TeacherQuestionForm({
     if (kind === "collection") {
       payload.group = null;
       payload.question_year = (form.question_year || "").trim();
+      payload.teacher_tier = form.teacher_tier;
     }
     if (kind === "homework" && sectionId) {
       payload.section = Number(sectionId);
@@ -161,6 +169,27 @@ export default function TeacherQuestionForm({
               <option value="medium">متوسط</option>
               <option value="hard">صعب</option>
             </select>
+          </div>
+          <div className="form-group">
+            <label>ترشيح المدرس</label>
+            <div className="filter-row">
+              {TEACHER_TIERS.map((t) => (
+                <span
+                  key={t.id}
+                  className={`chip ${form.teacher_tier === t.id ? "active" : ""}`}
+                  onClick={() => setForm((f) => ({ ...f, teacher_tier: t.id }))}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      setForm((f) => ({ ...f, teacher_tier: t.id }));
+                    }
+                  }}
+                >
+                  {t.label}
+                </span>
+              ))}
+            </div>
           </div>
           <div className="form-group">
             <label>سنة السؤال (اختياري)</label>
