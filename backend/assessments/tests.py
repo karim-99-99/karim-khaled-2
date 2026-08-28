@@ -575,3 +575,57 @@ class HomeworkImportAPITests(TestCase):
         hw = self.client.get(f"/api/my-homework/?section={self.section.id}")
         self.assertEqual(hw.status_code, 200)
         self.assertEqual(len(hw.data), 2)
+
+
+class QuestionDeleteAPITests(TestCase):
+    def setUp(self):
+        from groups.models import GroupTeacher
+
+        self.client = APIClient()
+        self.subject = Subject.objects.create(name="حذف-أسئلة", slug="del-q", order=1)
+        self.admin = User.objects.create_user(
+            email="a-del@test.local",
+            password="Passw0rd!",
+            full_name="A",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.teacher = User.objects.create_user(
+            email="t-del@test.local",
+            password="Passw0rd!",
+            full_name="T",
+            role=User.Role.TEACHER,
+            taught_subject=self.subject,
+        )
+        self.other = User.objects.create_user(
+            email="t2-del@test.local",
+            password="Passw0rd!",
+            full_name="T2",
+            role=User.Role.TEACHER,
+        )
+        self.lesson = Lesson.objects.create(
+            subject=self.subject, title="درس", order_number=1, created_by=self.admin
+        )
+        self.group = StudyGroup.objects.create(name="DelG", created_by=self.admin)
+        GroupTeacher.objects.create(
+            group=self.group, teacher=self.teacher, subject=self.subject
+        )
+        GroupTeacher.objects.create(
+            group=self.group, teacher=self.other, subject=self.subject
+        )
+        self.q = _make_question(self.subject, self.lesson, self.teacher, "easy", 1)
+
+    def test_teacher_deletes_own_collection_question(self):
+        self.client.force_authenticate(user=self.teacher)
+        res = self.client.delete(f"/api/collection-questions/{self.q.id}/")
+        self.assertEqual(res.status_code, 204)
+        self.assertFalse(CollectionQuestion.objects.filter(id=self.q.id).exists())
+        listing = self.client.get(f"/api/collection-questions/?lesson={self.lesson.id}")
+        self.assertEqual(listing.status_code, 200)
+        self.assertEqual(len(listing.data), 0)
+
+    def test_teacher_cannot_delete_other_teachers_collection_question(self):
+        self.client.force_authenticate(user=self.other)
+        res = self.client.delete(f"/api/collection-questions/{self.q.id}/")
+        self.assertEqual(res.status_code, 403)
+        self.assertTrue(CollectionQuestion.objects.filter(id=self.q.id).exists())

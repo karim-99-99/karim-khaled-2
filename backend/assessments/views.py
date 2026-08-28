@@ -14,6 +14,7 @@ from core.access import (
     assert_teacher_can_manage_subject,
     free_question_limit,
     lesson_is_free_preview,
+    teacher_subject_ids,
     user_has_full_content_access,
 )
 from core.permissions import IsTeacherOrAdmin
@@ -87,6 +88,15 @@ class TeacherQuestionMixin:
         assert_teacher_can_manage_subject(user, subject_id)
         serializer.save()
 
+    def perform_destroy(self, instance):
+        user = self.request.user
+        assert_teacher_can_manage_subject(user, instance.subject_id)
+        if not user.is_admin_role and instance.created_by_id not in (None, user.id):
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied("لا يمكنك حذف سؤال أنشأه مدرس آخر")
+        instance.delete()
+
 
 class HomeworkQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
     """تأسيس: أسئلة الواجب تظهر فقط لطلاب مجموعات المدرس."""
@@ -137,6 +147,17 @@ class CollectionQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
     model = CollectionQuestion
     serializer_class = CollectionQuestionSerializer
     pagination_class = None
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = self.model.objects.all()
+        if not user.is_admin_role:
+            qs = qs.filter(subject_id__in=teacher_subject_ids(user))
+        for field in ("group", "subject", "lesson", "section", "difficulty"):
+            val = self.request.query_params.get(field)
+            if val and field in [f.name for f in self.model._meta.get_fields()]:
+                qs = qs.filter(**{field: val})
+        return qs
 
     def perform_create(self, serializer):
         user = self.request.user

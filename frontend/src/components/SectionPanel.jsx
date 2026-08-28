@@ -114,8 +114,14 @@ export default function SectionPanel({ sectionId, onUpdated }) {
     if (!confirm("حذف هذا السؤال؟")) return;
     try {
       await client.delete(`/homework-questions/${id}/`);
+      setTeacherQs((prev) => prev.filter((q) => q.id !== id));
+      setHomework((prev) => prev.filter((q) => q.id !== id));
+      if (editingQ?.id === id) {
+        setEditingQ(null);
+        setShowAddQ(false);
+      }
       setMsg("تم حذف السؤال");
-      loadHomework(canEdit);
+      await loadHomework(canEdit);
     } catch (e) {
       setMsg(e.response?.data?.detail || "تعذّر الحذف");
     }

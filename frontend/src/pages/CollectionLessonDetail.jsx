@@ -239,8 +239,14 @@ export default function CollectionLessonDetail() {
     if (!confirm("حذف هذا السؤال؟")) return;
     try {
       await client.delete(`/collection-questions/${id}/`);
+      setQList((prev) => prev.filter((q) => q.id !== id));
+      if (editingQ?.id === id) {
+        setEditingQ(null);
+        setShowForm(false);
+      }
       setMsg("تم حذف السؤال");
-      loadQuestions();
+      await loadQuestions();
+      loadLesson();
     } catch (e) {
       setMsg(e.response?.data?.detail || "تعذّر الحذف");
     }
