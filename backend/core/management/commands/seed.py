@@ -1,4 +1,5 @@
 from datetime import timedelta
+import os
 
 from django.core.management.base import BaseCommand
 from django.utils import timezone
@@ -23,7 +24,29 @@ LESSONS = ["المعادلات الخطية", "حل المعادلات", "تطب
 class Command(BaseCommand):
     help = "Seed demo data: subjects, users, a group, lessons and questions."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--only-if-empty",
+            action="store_true",
+            help="Do nothing if subjects already exist.",
+        )
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help="Run even on Render when data already exists.",
+        )
+
     def handle(self, *args, **options):
+        on_render = os.environ.get("RENDER", "").lower() in ("1", "true", "yes")
+        # On Render, seed runs on every boot — skip once real data exists so
+        # duplicate lessons cannot crash the process before gunicorn starts.
+        only_if_empty = options["only_if_empty"] or (on_render and not options["force"])
+        if only_if_empty and Subject.objects.exists():
+            self.stdout.write(
+                self.style.WARNING("Seed skipped (database already has subjects).")
+            )
+            return
+
         # Subjects
         subjects = {}
         for i, (name, slug, grad) in enumerate(SUBJECTS):
@@ -34,10 +57,26 @@ class Command(BaseCommand):
         math = subjects["math"]
 
         # Users
-        admin = self._user("admin@platform.test", "مدير المنصة", "01000000001", User.Role.ADMIN, staff=True, superuser=True)
-        teacher = self._user("teacher@platform.test", "الأستاذ أحمد", "01000000002", User.Role.TEACHER)
-        student = self._user("student@platform.test", "طالب مشترك", "01000000003", User.Role.STUDENT)
-        free_student = self._user("free@platform.test", "طالب بدون اشتراك", "01000000004", User.Role.STUDENT)
+        admin = self._user(
+            "admin@platform.test",
+            "مدير المنصة",
+            "01000000001",
+            User.Role.ADMIN,
+            staff=True,
+            superuser=True,
+        )
+        teacher = self._user(
+            "teacher@platform.test", "الأستاذ أحمد", "01000000002", User.Role.TEACHER
+        )
+        student = self._user(
+            "student@platform.test", "طالب مشترك", "01000000003", User.Role.STUDENT
+        )
+        free_student = self._user(
+            "free@platform.test",
+            "طالب بدون اشتراك",
+            "01000000004",
+            User.Role.STUDENT,
+        )
 
         # Active subscription for the subscribed student
         if not student.subscriptions.exists():
@@ -49,24 +88,34 @@ class Command(BaseCommand):
             )
 
         # Group with teacher (math) + both students
-        group, _ = StudyGroup.objects.get_or_create(
-            name="مجموعة الصف الثالث - أ", defaults={"created_by": admin}
-        )
+        group = StudyGroup.objects.filter(name="مجموعة الصف الثالث - أ").order_by("id").first()
+        if not group:
+            group = StudyGroup.objects.create(
+                name="مجموعة الصف الثالث - أ", created_by=admin
+            )
         GroupTeacher.objects.get_or_create(group=group, teacher=teacher, subject=math)
         GroupStudent.objects.get_or_create(group=group, student=student)
         GroupStudent.objects.get_or_create(group=group, student=free_student)
 
-        # Lessons (shared per subject)
+        # Lessons (shared per subject) — tolerate duplicates from prior seeds.
         lessons = []
         for i, title in enumerate(LESSONS, start=1):
-            lesson, _ = Lesson.objects.get_or_create(
-                subject=math,
-                order_number=i,
-                defaults={"title": title, "is_free_preview": i == 1},
+            lesson = (
+                Lesson.objects.filter(subject=math, order_number=i)
+                .order_by("id")
+                .first()
             )
+            if not lesson:
+                lesson = Lesson.objects.create(
+                    subject=math,
+                    order_number=i,
+                    title=title,
+                    is_free_preview=(i == 1),
+                    created_by=teacher,
+                )
             lessons.append(lesson)
 
-        # Collection questions (group-scoped) across difficulties
+        # Collection questions across difficulties
         difficulties = ["easy", "medium", "hard"]
         created = 0
         for lesson in lessons:
@@ -118,21 +167,31 @@ class Command(BaseCommand):
         now = timezone.now()
         if not Session.objects.exists():
             Session.objects.create(
-                subject=math, group=group, teacher=teacher, teacher_name="الأستاذ أحمد",
-                start_time=now + timedelta(hours=2), duration_minutes=60,
-                status=Session.Status.LIVE, zoom_link="https://zoom.us/j/example",
+                subject=math,
+                group=group,
+                teacher=teacher,
+                teacher_name="الأستاذ أحمد",
+                start_time=now + timedelta(hours=2),
+                duration_minutes=60,
+                status=Session.Status.LIVE,
+                zoom_link="https://zoom.us/j/example",
             )
             Session.objects.create(
-                subject=subjects["physics"], teacher_name="الأستاذة سارة",
-                start_time=now + timedelta(days=1, hours=1), duration_minutes=45,
-                status=Session.Status.SCHEDULED, zoom_link="https://zoom.us/j/example2",
+                subject=subjects["physics"],
+                teacher_name="الأستاذة سارة",
+                start_time=now + timedelta(days=1, hours=1),
+                duration_minutes=45,
+                status=Session.Status.SCHEDULED,
+                zoom_link="https://zoom.us/j/example2",
             )
 
-        self.stdout.write(self.style.SUCCESS(
-            f"Seeded. Collection questions created this run: {created}"
-        ))
+        self.stdout.write(
+            self.style.SUCCESS(f"Seeded. Collection questions created this run: {created}")
+        )
         self.stdout.write("Demo logins (password: Passw0rd!):")
-        self.stdout.write("  admin@platform.test / teacher@platform.test / student@platform.test / free@platform.test")
+        self.stdout.write(
+            "  admin@platform.test / teacher@platform.test / student@platform.test / free@platform.test"
+        )
 
     def _user(self, email, name, phone, role, staff=False, superuser=False):
         user = User.objects.filter(email=email).first()
