@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { canEditSubject } from "../auth/teacherScope";
@@ -47,6 +47,8 @@ export default function CollectionLessonDetail() {
   const [selectedTiers, setSelectedTiers] = useState([]);
   const [reviewMode, setReviewMode] = useState("immediate");
   const [showImport, setShowImport] = useState(false);
+  /** After save/cancel, scroll back so this question stays in view. */
+  const [scrollBackToQId, setScrollBackToQId] = useState(null);
 
   const canEdit = canEditSubject(user, subjectId || lesson?.subject);
   const canRenameLesson =
@@ -206,6 +208,24 @@ export default function CollectionLessonDetail() {
       .then((res) => setQList(res.data.results || res.data || []))
       .catch(() => setQList([]));
   }
+
+  /** Close the inline editor and keep the same question visible on screen. */
+  function closeQuestionEdit(questionId, okMsg) {
+    if (okMsg) setMsg(okMsg);
+    setEditingQ(null);
+    setShowForm(false);
+    setScrollBackToQId(questionId);
+  }
+
+  useLayoutEffect(() => {
+    if (!scrollBackToQId || editingQ) return;
+    const id = scrollBackToQId;
+    const el = document.getElementById(`collection-q-${id}`);
+    if (!el) return;
+    const top = window.scrollY + el.getBoundingClientRect().top - 16;
+    window.scrollTo({ top: Math.max(0, top), behavior: "auto" });
+    setScrollBackToQId(null);
+  }, [scrollBackToQId, editingQ, qList, msg]);
 
   async function saveLessonPatch(patch, okMsg) {
     setBusy(true);
@@ -824,9 +844,13 @@ export default function CollectionLessonDetail() {
                           type="button"
                           className="btn btn-secondary btn-sm"
                           onClick={() => {
+                            if (isEditing) {
+                              closeQuestionEdit(item.id);
+                              return;
+                            }
                             setShowForm(false);
                             setShowImport(false);
-                            setEditingQ(isEditing ? null : item);
+                            setEditingQ(item);
                           }}
                         >
                           {isEditing ? "إغلاق التعديل" : "تعديل"}
@@ -849,21 +873,10 @@ export default function CollectionLessonDetail() {
                           kind="collection"
                           defaultDifficulty={item.difficulty || "medium"}
                           initialQuestion={editingQ}
-                          onCancel={() => setEditingQ(null)}
+                          onCancel={() => closeQuestionEdit(item.id)}
                           onSaved={() => {
-                            const anchorId = `collection-q-${item.id}`;
-                            const y = window.scrollY;
                             loadQuestions().then(() => {
-                              setEditingQ(null);
-                              setMsg("تم تعديل السؤال ✓");
-                              requestAnimationFrame(() => {
-                                const el = document.getElementById(anchorId);
-                                if (el) {
-                                  el.scrollIntoView({ block: "center", behavior: "auto" });
-                                } else {
-                                  window.scrollTo(0, y);
-                                }
-                              });
+                              closeQuestionEdit(item.id, "تم تعديل السؤال ✓");
                             });
                           }}
                         />
