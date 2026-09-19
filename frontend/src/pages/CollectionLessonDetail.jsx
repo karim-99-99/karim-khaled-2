@@ -691,112 +691,187 @@ export default function CollectionLessonDetail() {
                 )}
               </div>
 
-              {(showForm || editingQ) && (
+              {showForm && !editingQ && (
                 <TeacherQuestionForm
                   subjectId={lesson.subject}
                   lessonId={lesson.id}
                   kind="collection"
                   defaultDifficulty={
-                    filterLevel !== "all" ? filterLevel : editingQ?.difficulty || "medium"
+                    filterLevel !== "all" ? filterLevel : "medium"
                   }
-                  initialQuestion={editingQ}
-                  onCancel={() => {
-                    setEditingQ(null);
-                    setShowForm(false);
-                  }}
+                  initialQuestion={null}
+                  onCancel={() => setShowForm(false)}
                   onSaved={() => {
                     loadQuestions();
                     setShowForm(false);
-                    setEditingQ(null);
-                    setMsg(editingQ ? "تم تعديل السؤال ✓" : "تم إضافة السؤال ✓");
+                    setMsg("تم إضافة السؤال ✓");
                   }}
                 />
               )}
 
-              {visibleQs.map((item, i) => (
-                <div key={item.id} className="card" style={{ padding: 14, marginTop: 8 }}>
+              {visibleQs.map((item, i) => {
+                const isEditing = editingQ?.id === item.id;
+                const options = Array.isArray(item.options) ? item.options : [];
+                return (
                   <div
+                    key={item.id}
+                    id={`collection-q-${item.id}`}
+                    className="card"
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 8,
-                      flexWrap: "wrap",
+                      padding: 14,
+                      marginTop: 8,
+                      outline: isEditing ? "2px solid var(--primary, #2563eb)" : undefined,
                     }}
                   >
-                    <div style={{ flex: 1 }}>
-                      <strong>
-                        س{i + 1} · {levelLabel(item.difficulty)}
-                        {item.question_year ? ` · ${item.question_year}` : ""}
-                        {item.teacher_tier ? ` · ${tierLabel(item.teacher_tier)}` : ""}:
-                      </strong>{" "}
-                      {item.needs_review && (
-                        <span
-                          className="chip"
-                          style={{ background: "#fef3c7", color: "#92400e", marginInlineEnd: 6 }}
-                        >
-                          بحاجة لمراجعة — مخفي عن الطلاب
-                        </span>
-                      )}
-                      <MathText>{item.text}</MathText>
-                      {item.needs_review && item.review_notes && (
-                        <div style={{ color: "#b45309", fontSize: 13, marginTop: 4 }}>
-                          ملاحظات الاستيراد: {item.review_notes}
-                        </div>
-                      )}
-                      {item.text_image && (
-                        <img
-                          src={item.text_image}
-                          alt=""
-                          style={{ display: "block", maxWidth: "100%", marginTop: 8, borderRadius: 8 }}
-                        />
-                      )}
-                      <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
-                        الإجابة: {item.correct_answer}
-                        {(item.explanation || item.written_correction) && (
-                          <>
-                            {" · "}
-                            شرح: <MathText>{item.explanation || item.written_correction}</MathText>
-                          </>
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        gap: 8,
+                        flexWrap: "wrap",
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <strong>
+                          س{i + 1} · {levelLabel(item.difficulty)}
+                          {item.question_year ? ` · ${item.question_year}` : ""}
+                          {item.teacher_tier ? ` · ${tierLabel(item.teacher_tier)}` : ""}:
+                        </strong>{" "}
+                        {item.needs_review && (
+                          <span
+                            className="chip"
+                            style={{ background: "#fef3c7", color: "#92400e", marginInlineEnd: 6 }}
+                          >
+                            بحاجة لمراجعة — مخفي عن الطلاب
+                          </span>
                         )}
-                        {item.video_bunny_id && (
-                          <>
-                            {" · "}
-                            فيديو ({item.video_timing === "before" ? "قبل" : "بعد"})
-                          </>
+                        <MathText>{item.text}</MathText>
+                        {item.needs_review && item.review_notes && (
+                          <div style={{ color: "#b45309", fontSize: 13, marginTop: 4 }}>
+                            ملاحظات الاستيراد: {item.review_notes}
+                          </div>
+                        )}
+                        {item.text_image && (
+                          <img
+                            src={item.text_image}
+                            alt=""
+                            style={{ display: "block", maxWidth: "100%", marginTop: 8, borderRadius: 8 }}
+                          />
+                        )}
+                        {!isEditing && options.length > 0 && (
+                          <ul
+                            style={{
+                              margin: "8px 0 0",
+                              paddingInlineStart: 18,
+                              fontSize: 14,
+                              lineHeight: 1.7,
+                            }}
+                          >
+                            {options.map((o) => (
+                              <li key={o.key || o.text}>
+                                <strong>{o.key})</strong>{" "}
+                                <MathText>{o.text || ""}</MathText>
+                                {o.image && (
+                                  <img
+                                    src={o.image}
+                                    alt=""
+                                    style={{
+                                      display: "block",
+                                      maxWidth: 160,
+                                      marginTop: 4,
+                                      borderRadius: 6,
+                                    }}
+                                  />
+                                )}
+                                {item.correct_answer === o.key && (
+                                  <span style={{ color: "var(--success, #15803d)", marginInlineStart: 6 }}>
+                                    ✓ صحيح
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {!isEditing && (
+                          <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
+                            الإجابة: {item.correct_answer}
+                            {(item.explanation || item.written_correction) && (
+                              <>
+                                {" · "}
+                                شرح: <MathText>{item.explanation || item.written_correction}</MathText>
+                              </>
+                            )}
+                            {item.video_bunny_id && (
+                              <>
+                                {" · "}
+                                فيديو ({item.video_timing === "before" ? "قبل" : "بعد"})
+                              </>
+                            )}
+                          </div>
                         )}
                       </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      {item.needs_review && (
+                      <div style={{ display: "flex", gap: 6 }}>
+                        {item.needs_review && (
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={() => approveQuestion(item.id)}
+                          >
+                            اعتماد
+                          </button>
+                        )}
                         <button
                           type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={() => approveQuestion(item.id)}
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            setShowForm(false);
+                            setShowImport(false);
+                            setEditingQ(isEditing ? null : item);
+                          }}
                         >
-                          اعتماد
+                          {isEditing ? "إغلاق التعديل" : "تعديل"}
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => {
-                          setShowForm(false);
-                          setEditingQ(item);
-                        }}
-                      >
-                        تعديل
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        onClick={() => deleteQuestion(item.id)}
-                      >
-                        حذف
-                      </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => deleteQuestion(item.id)}
+                        >
+                          حذف
+                        </button>
+                      </div>
                     </div>
+
+                    {isEditing && (
+                      <div id={`collection-q-edit-${item.id}`} style={{ marginTop: 12 }}>
+                        <TeacherQuestionForm
+                          subjectId={lesson.subject}
+                          lessonId={lesson.id}
+                          kind="collection"
+                          defaultDifficulty={item.difficulty || "medium"}
+                          initialQuestion={editingQ}
+                          onCancel={() => setEditingQ(null)}
+                          onSaved={() => {
+                            const anchorId = `collection-q-${item.id}`;
+                            const y = window.scrollY;
+                            loadQuestions().then(() => {
+                              setEditingQ(null);
+                              setMsg("تم تعديل السؤال ✓");
+                              requestAnimationFrame(() => {
+                                const el = document.getElementById(anchorId);
+                                if (el) {
+                                  el.scrollIntoView({ block: "center", behavior: "auto" });
+                                } else {
+                                  window.scrollTo(0, y);
+                                }
+                              });
+                            });
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {visibleQs.length === 0 && !showForm && !editingQ && (
                 <p style={{ color: "var(--text-muted)" }}>لا توجد أسئلة بعد — أضف سؤالاً أعلاه.</p>
