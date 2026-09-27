@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from .models import (
     CollectionQuestion,
+    CollectionSubLesson,
     Exam,
     ExamAnswer,
     HomeworkQuestion,
@@ -34,6 +35,20 @@ class HomeworkQuestionSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "created_at"]
 
 
+class CollectionSubLessonSerializer(serializers.ModelSerializer):
+    question_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CollectionSubLesson
+        fields = ["id", "lesson", "order_number", "title", "question_count", "created_at"]
+        read_only_fields = ["id", "created_at", "question_count"]
+
+    def get_question_count(self, obj):
+        if hasattr(obj, "_question_count"):
+            return obj._question_count
+        return obj.questions.filter(needs_review=False).count()
+
+
 class CollectionQuestionSerializer(serializers.ModelSerializer):
     class Meta:
         model = CollectionQuestion
@@ -42,6 +57,7 @@ class CollectionQuestionSerializer(serializers.ModelSerializer):
             "group",
             "subject",
             "lesson",
+            "sub_lesson",
             "difficulty",
             "question_year",
             "teacher_tier",
@@ -60,6 +76,16 @@ class CollectionQuestionSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "created_at"]
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+        sub_lesson = attrs.get("sub_lesson", getattr(self.instance, "sub_lesson", None))
+        lesson = attrs.get("lesson", getattr(self.instance, "lesson", None))
+        if sub_lesson is not None and lesson is not None and sub_lesson.lesson_id != lesson.id:
+            raise serializers.ValidationError(
+                {"sub_lesson": "الدرس الفرعي لا ينتمي لهذا الدرس"}
+            )
+        return attrs
 
     def create(self, validated_data):
         explanation = validated_data.get("explanation") or ""

@@ -38,7 +38,14 @@ function toMathBody(raw) {
   return `\\text{${escapeLatexText(t)}}`;
 }
 
-export default function EquationEditor({ value, onChange, placeholder, rows = 3 }) {
+export default function EquationEditor({
+  value,
+  onChange,
+  placeholder,
+  rows = 3,
+  onPasteImage,
+  onUndoImage,
+}) {
   const fieldApi = useRef(null);
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState(null);
@@ -305,12 +312,15 @@ export default function EquationEditor({ value, onChange, placeholder, rows = 3 
 
       <label style={{ fontSize: 13, color: "var(--text-muted)", display: "block", marginBottom: 6 }}>
         تحرير النص — نفس شكل المعاينة. لنقل الأس: اضغط على المعادلة ثم «جهة الأس ⇄»
+        {onPasteImage ? " · الصق صورة هنا بـ Ctrl+V لإضافتها مباشرة" : ""}
       </label>
       <VisualMathField
         value={body}
         onChange={onChange}
         placeholder={placeholder}
         minRows={rows}
+        onPasteImage={onPasteImage}
+        onUndoImage={onUndoImage}
         onReady={(api) => {
           fieldApi.current = api;
         }}

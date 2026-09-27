@@ -101,12 +101,43 @@ class HomeworkQuestion(QuestionBase):
         return f"Homework Q{self.id} - {self.lesson.title}"
 
 
+class CollectionSubLesson(models.Model):
+    """
+    درس فرعي اختياري داخل درس تجميعات رئيسي.
+    الأسئلة إمّا مباشرة تحت الدرس الرئيسي (sub_lesson فارغ) أو داخل درس فرعي.
+    منفصل عن LessonSection لأن دروس التأسيس والتجميعات تتشارك نفس Lesson.
+    """
+
+    lesson = models.ForeignKey(
+        "catalog.Lesson",
+        related_name="collection_sub_lessons",
+        on_delete=models.CASCADE,
+    )
+    order_number = models.PositiveIntegerField(default=1)
+    title = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["lesson", "order_number", "id"]
+
+    def __str__(self):
+        return f"{self.lesson.title} › {self.title}"
+
+
 class CollectionQuestion(QuestionBase):
     """
     بنك التجميعات — يظهر لكل طلاب المادة (ليس مقيداً بمجموعة المدرس).
     المحاكي واختبار المدرس يسحبان من هذه الأسئلة مع فلتر difficulty.
     """
 
+    # Deleting a sub-lesson keeps its questions under the main lesson.
+    sub_lesson = models.ForeignKey(
+        CollectionSubLesson,
+        related_name="questions",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
     written_correction = models.TextField(blank=True)
     # Optional year label (e.g. 1445 or 2024) — shown to students when set.
     question_year = models.CharField(max_length=20, blank=True, default="")

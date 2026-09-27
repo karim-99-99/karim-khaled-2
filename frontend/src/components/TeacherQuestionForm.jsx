@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import client from "../api/client";
 import { TEACHER_TIERS } from "../constants/teacherTiers";
 import EquationEditor from "./EquationEditor";
@@ -21,9 +21,10 @@ function normalizeOptions(options) {
   }));
 }
 
-function formFromQuestion(q, defaultDifficulty) {
+function formFromQuestion(q, defaultDifficulty, defaultSubLessonId = null) {
   if (!q) {
     return {
+      sub_lesson: defaultSubLessonId,
       difficulty: defaultDifficulty,
       question_year: "",
       teacher_tier: "",
@@ -38,6 +39,7 @@ function formFromQuestion(q, defaultDifficulty) {
     };
   }
   return {
+    sub_lesson: q.sub_lesson ?? null,
     difficulty: q.difficulty || defaultDifficulty,
     question_year: q.question_year || "",
     teacher_tier: q.teacher_tier || "",
@@ -62,19 +64,37 @@ export default function TeacherQuestionForm({
   kind = "homework", // homework | collection
   defaultDifficulty = "medium",
   initialQuestion = null, // when set → edit mode (PATCH)
+  subLessons = [], // collection only: optional sub-lessons of this lesson
+  defaultSubLessonId = null,
   onSaved,
   onCancel,
 }) {
   const editing = Boolean(initialQuestion?.id);
-  const [form, setForm] = useState(() => formFromQuestion(initialQuestion, defaultDifficulty));
+  const [form, setForm] = useState(() =>
+    formFromQuestion(initialQuestion, defaultDifficulty, defaultSubLessonId),
+  );
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
+  const imageApis = useRef({});
   const radioName = `correct-${kind}-${initialQuestion?.id || "new"}-${lessonId}-${sectionId || "x"}`;
 
   useEffect(() => {
-    setForm(formFromQuestion(initialQuestion, defaultDifficulty));
+    setForm(formFromQuestion(initialQuestion, defaultDifficulty, defaultSubLessonId));
     setMsg("");
-  }, [initialQuestion, defaultDifficulty, lessonId, sectionId, kind]);
+  }, [initialQuestion, defaultDifficulty, defaultSubLessonId, lessonId, sectionId, kind]);
+
+  /** One stable ref object per image field, so a text field can paste into its image box. */
+  function imageApiRef(key) {
+    if (!imageApis.current[key]) imageApis.current[key] = { current: null };
+    return imageApis.current[key];
+  }
+
+  function pasteProps(key) {
+    return {
+      onPasteImage: (file) => imageApiRef(key).current?.applyFile(file),
+      onUndoImage: () => imageApiRef(key).current?.undo(),
+    };
+  }
 
   function setOption(i, patch) {
     setForm((f) => {
@@ -119,6 +139,7 @@ export default function TeacherQuestionForm({
       payload.group = null;
       payload.question_year = (form.question_year || "").trim();
       payload.teacher_tier = form.teacher_tier;
+      payload.sub_lesson = form.sub_lesson || null;
     }
     if (kind === "homework" && sectionId) {
       payload.section = Number(sectionId);
@@ -130,7 +151,7 @@ export default function TeacherQuestionForm({
       } else {
         await client.post(base, payload);
         setMsg("تم حفظ السؤال ✓");
-        setForm(formFromQuestion(null, defaultDifficulty));
+        setForm(formFromQuestion(null, defaultDifficulty, defaultSubLessonId));
       }
       onSaved?.();
     } catch (e) {
@@ -158,6 +179,28 @@ export default function TeacherQuestionForm({
 
       {kind === "collection" && (
         <>
+          {subLessons.length > 0 && (
+            <div className="form-group">
+              <label>الدرس الفرعي (اختياري)</label>
+              <select
+                className="form-control"
+                value={form.sub_lesson ?? ""}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    sub_lesson: e.target.value ? Number(e.target.value) : null,
+                  }))
+                }
+              >
+                <option value="">— بدون (مباشرة في الدرس الرئيسي) —</option>
+                {subLessons.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="form-group">
             <label>المستوى</label>
             <select
@@ -209,12 +252,14 @@ export default function TeacherQuestionForm({
           value={form.text}
           onChange={(text) => setForm((f) => ({ ...f, text }))}
           placeholder="اكتب السؤال…"
+          {...pasteProps("text")}
         />
       </div>
       <ImagePicker
         label="صورة السؤال (اختياري)"
         value={form.text_image}
         onChange={(text_image) => setForm((f) => ({ ...f, text_image }))}
+        apiRef={imageApiRef("text")}
       />
 
       <div className="section-title" style={{ marginTop: 12 }}>الاختيارات</div>
@@ -235,11 +280,13 @@ export default function TeacherQuestionForm({
             onChange={(text) => setOption(i, { text })}
             rows={2}
             placeholder={`نص الاختيار ${o.key}`}
+            {...pasteProps(`option-${i}`)}
           />
           <ImagePicker
             label={`صورة ${o.key}`}
             value={o.image}
             onChange={(image) => setOption(i, { image })}
+            apiRef={imageApiRef(`option-${i}`)}
           />
         </div>
       ))}
@@ -250,12 +297,14 @@ export default function TeacherQuestionForm({
           value={form.explanation}
           onChange={(explanation) => setForm((f) => ({ ...f, explanation }))}
           rows={2}
+          {...pasteProps("explanation")}
         />
       </div>
       <ImagePicker
         label="صورة الشرح"
         value={form.explanation_image}
         onChange={(explanation_image) => setForm((f) => ({ ...f, explanation_image }))}
+        apiRef={imageApiRef("explanation")}
       />
 
       <div className="form-group">

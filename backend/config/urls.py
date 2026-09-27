@@ -21,6 +21,7 @@ from accounts.views import (
 from assessments.views import (
     AnswerView,
     CollectionQuestionViewSet,
+    CollectionSubLessonViewSet,
     ImportCollectionQuestionsView,
     ImportHomeworkQuestionsView,
     ExamDetailView,
@@ -60,6 +61,9 @@ router.register("lesson-sections", LessonSectionViewSet, basename="lesson-sectio
 router.register("sessions", SessionViewSet, basename="session")
 router.register("homework-questions", HomeworkQuestionViewSet, basename="homework")
 router.register("collection-questions", CollectionQuestionViewSet, basename="collection")
+router.register(
+    "collection-sub-lessons", CollectionSubLessonViewSet, basename="collection-sub-lesson"
+)
 router.register("admin/groups", AdminGroupViewSet, basename="admin-group")
 router.register("teacher/groups", TeacherGroupViewSet, basename="teacher-group")
 router.register("admin/subscriptions", AdminSubscriptionViewSet, basename="admin-sub")

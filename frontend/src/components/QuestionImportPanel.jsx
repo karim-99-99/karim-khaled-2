@@ -11,6 +11,8 @@ export default function QuestionImportPanel({
   importUrl,
   lessonId,
   sectionId,
+  subLessonId,
+  targetLabel,
   templateDownloadName = "نموذج-أسئلة.docx",
   showYearHint = false,
   onImported,
@@ -40,6 +42,7 @@ export default function QuestionImportPanel({
       fd.append("file", importFile);
       fd.append("lesson", String(lessonId));
       if (sectionId) fd.append("section", String(sectionId));
+      if (subLessonId) fd.append("sub_lesson", String(subLessonId));
       fd.append("mode", mode);
       const { data } = await client.post(importUrl, fd);
       if (mode === "preview") {
@@ -63,6 +66,9 @@ export default function QuestionImportPanel({
       <div className="section-title" style={{ marginTop: 0, fontSize: 17 }}>
         رفع ملف أسئلة — Word (.docx) أو نصي (.txt)
       </div>
+      {targetLabel && (
+        <p style={{ fontWeight: 600, marginBottom: 8 }}>سيتم الرفع إلى: {targetLabel}</p>
+      )}
       <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 8 }}>
         اكتب كل سؤال أسفل الآخر واترك سطراً فارغاً بين الأسئلة. النجمة * بعد الخيار
         تحدد الإجابة الصحيحة، والسطور «الصعوبة / الشرح / فيديو / الترشيح»

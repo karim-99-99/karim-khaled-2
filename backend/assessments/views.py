@@ -1,9 +1,10 @@
 import random
 
-from django.db.models import Exists, OuterRef, Q
+from django.db import transaction
+from django.db.models import Count, Exists, OuterRef, Q
 from django.utils import timezone
 from rest_framework import status, viewsets
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -21,6 +22,7 @@ from core.permissions import IsTeacherOrAdmin
 from groups.models import GroupStudent, GroupTeacher
 from .models import (
     CollectionQuestion,
+    CollectionSubLesson,
     Exam,
     ExamAnswer,
     ExamLesson,
@@ -32,6 +34,7 @@ from .models import (
 from .question_import import parse_upload
 from .serializers import (
     CollectionQuestionSerializer,
+    CollectionSubLessonSerializer,
     ExamAnswerReviewSerializer,
     ExamSerializer,
     HomeworkPublicSerializer,
@@ -157,6 +160,11 @@ class CollectionQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
             val = self.request.query_params.get(field)
             if val and field in [f.name for f in self.model._meta.get_fields()]:
                 qs = qs.filter(**{field: val})
+        sub_lesson = self.request.query_params.get("sub_lesson")
+        if sub_lesson == "none":
+            qs = qs.filter(sub_lesson__isnull=True)
+        elif sub_lesson and sub_lesson.isdigit():
+            qs = qs.filter(sub_lesson_id=int(sub_lesson))
         return qs
 
     def perform_create(self, serializer):
@@ -175,6 +183,86 @@ class CollectionQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
         serializer.save(group=None)
 
 
+class CollectionSubLessonViewSet(viewsets.ModelViewSet):
+    """دروس فرعية اختيارية داخل درس تجميعات: ?lesson=<id>"""
+
+    serializer_class = CollectionSubLessonSerializer
+    pagination_class = None
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve"):
+            return [IsAuthenticated()]
+        return [IsTeacherOrAdmin()]
+
+    def get_queryset(self):
+        qs = CollectionSubLesson.objects.select_related("lesson").annotate(
+            _question_count=Count(
+                "questions", filter=Q(questions__needs_review=False), distinct=True
+            )
+        )
+        lesson = self.request.query_params.get("lesson")
+        if lesson and lesson.isdigit():
+            qs = qs.filter(lesson_id=int(lesson))
+        return qs.order_by("order_number", "id")
+
+    def perform_create(self, serializer):
+        lesson = serializer.validated_data["lesson"]
+        assert_teacher_can_manage_subject(self.request.user, lesson.subject_id)
+        if serializer.validated_data.get("order_number"):
+            serializer.save()
+        else:
+            serializer.save(order_number=lesson.collection_sub_lessons.count() + 1)
+
+    def perform_update(self, serializer):
+        instance = serializer.instance
+        assert_teacher_can_manage_subject(self.request.user, instance.lesson.subject_id)
+        new_lesson = serializer.validated_data.get("lesson")
+        if new_lesson is not None and new_lesson.id != instance.lesson_id:
+            from rest_framework.exceptions import ValidationError
+
+            raise ValidationError({"lesson": "لا يمكن نقل الدرس الفرعي لدرس آخر"})
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        assert_teacher_can_manage_subject(self.request.user, instance.lesson.subject_id)
+        instance.delete()
+
+    @action(detail=False, methods=["post"])
+    def reorder(self, request):
+        """{ lesson, ordered_ids: [id, ...] }"""
+        lesson_id = request.data.get("lesson")
+        ordered_ids = request.data.get("ordered_ids") or []
+        if not lesson_id or not isinstance(ordered_ids, list) or not ordered_ids:
+            return Response(
+                {"detail": "أرسل lesson و ordered_ids"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        lesson = Lesson.objects.filter(id=lesson_id).first()
+        if not lesson:
+            return Response({"detail": "الدرس غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+        assert_teacher_can_manage_subject(request.user, lesson.subject_id)
+        try:
+            ids = [int(x) for x in ordered_ids]
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "ordered_ids غير صالحة"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        found = set(
+            CollectionSubLesson.objects.filter(lesson_id=lesson.id, id__in=ids).values_list(
+                "id", flat=True
+            )
+        )
+        if len(found) != len(ids):
+            return Response(
+                {"detail": "بعض الدروس الفرعية غير موجودة في هذا الدرس"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        with transaction.atomic():
+            for i, sid in enumerate(ids):
+                CollectionSubLesson.objects.filter(id=sid).update(order_number=i + 1)
+        return Response(self.get_serializer(self.get_queryset().filter(lesson_id=lesson.id), many=True).data)
+
+
 IMPORT_MAX_FILE_BYTES = 5 * 1024 * 1024  # 5MB
 
 
@@ -183,9 +271,10 @@ class ImportCollectionQuestionsView(APIView):
     رفع ملف أسئلة (Word .docx أو نصي .txt) إلى بنك تجميعات درس معيّن.
 
     POST multipart:
-      file:   الملف
-      lesson: معرّف الدرس
-      mode:   preview (افتراضي — معاينة بدون حفظ) | commit (حفظ فعلي)
+      file:       الملف
+      lesson:     معرّف الدرس
+      sub_lesson: معرّف الدرس الفرعي (اختياري)
+      mode:       preview (افتراضي — معاينة بدون حفظ) | commit (حفظ فعلي)
 
     الأسئلة الناقصة تُحفظ بعلامة needs_review ولا تظهر للطلاب حتى يعتمدها المدرس.
     """
@@ -205,6 +294,18 @@ class ImportCollectionQuestionsView(APIView):
                 {"detail": "الدرس غير موجود"}, status=status.HTTP_400_BAD_REQUEST
             )
         assert_teacher_can_manage_subject(request.user, lesson.subject_id)
+
+        sub_lesson_id = request.data.get("sub_lesson")
+        sub_lesson = None
+        if sub_lesson_id not in (None, ""):
+            sub_lesson = CollectionSubLesson.objects.filter(
+                id=sub_lesson_id, lesson_id=lesson.id
+            ).first()
+            if not sub_lesson:
+                return Response(
+                    {"detail": "الدرس الفرعي لا ينتمي لهذا الدرس"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         uploaded = request.FILES.get("file")
         if not uploaded:
@@ -248,6 +349,7 @@ class ImportCollectionQuestionsView(APIView):
                 CollectionQuestion(
                     subject_id=lesson.subject_id,
                     lesson=lesson,
+                    sub_lesson=sub_lesson,
                     created_by=request.user,
                     group=None,
                     text=q["text"],
@@ -675,8 +777,37 @@ class StartSimulatorView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Optional sub-lesson narrowing; 0 = questions directly under the main lesson.
+        raw_subs = request.data.get("sub_lessons") or []
+        if not isinstance(raw_subs, list):
+            raw_subs = [raw_subs]
+        try:
+            sub_ids = list(dict.fromkeys(int(x) for x in raw_subs))
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "قائمة الدروس الفرعية غير صالحة"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        real_sub_ids = [s for s in sub_ids if s > 0]
+        if real_sub_ids:
+            valid_subs = set(
+                CollectionSubLesson.objects.filter(
+                    id__in=real_sub_ids, lesson_id__in=lesson_ids
+                ).values_list("id", flat=True)
+            )
+            if set(real_sub_ids) - valid_subs:
+                return Response(
+                    {"detail": "بعض الدروس الفرعية لا تنتمي للدروس المختارة"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
         bank, group_ids, _ = _student_question_bank(user, subject_ids=subject_ids)
         bank = bank.filter(lesson_id__in=lesson_ids)
+        if sub_ids:
+            sub_q = Q(sub_lesson_id__in=real_sub_ids)
+            if 0 in sub_ids:
+                sub_q |= Q(sub_lesson__isnull=True)
+            bank = bank.filter(sub_q)
         if years:
             bank = bank.filter(question_year__in=years)
         if tiers:
@@ -767,6 +898,14 @@ class StartSimulatorView(APIView):
                     title_override = (
                         f"تجميعات {lesson_row.subject.name} ( {lesson_row.title} )"
                     )
+                    if real_sub_ids and 0 not in sub_ids:
+                        sub_titles = list(
+                            CollectionSubLesson.objects.filter(id__in=real_sub_ids)
+                            .order_by("order_number", "id")
+                            .values_list("title", flat=True)
+                        )
+                        if sub_titles:
+                            title_override = f"{title_override} › {'، '.join(sub_titles)}"[:200]
             elif len(subject_ids) > 1:
                 title_override = "محاكي شخصي — عدة مواد"
             else:
@@ -927,12 +1066,32 @@ def simulator_options(request):
             "question_year": row["question_year"] or "",
             "teacher_tier": row["teacher_tier"] or "",
             "difficulty": row["difficulty"],
+            "sub_lesson": row["sub_lesson_id"],
             "count": row["count"],
         }
-        for row in bank.values("question_year", "teacher_tier", "difficulty").annotate(
-            count=Count("id")
-        )
+        for row in bank.values(
+            "question_year", "teacher_tier", "difficulty", "sub_lesson_id"
+        ).annotate(count=Count("id"))
     ]
+
+    sub_lessons = []
+    if lesson_ids:
+        sub_lessons = [
+            {
+                "id": s.id,
+                "lesson": s.lesson_id,
+                "title": s.title,
+                "order_number": s.order_number,
+                "question_count": s._question_count,
+            }
+            for s in CollectionSubLesson.objects.filter(lesson_id__in=lesson_ids)
+            .annotate(
+                _question_count=Count(
+                    "questions", filter=Q(questions__needs_review=False), distinct=True
+                )
+            )
+            .order_by("lesson_id", "order_number", "id")
+        ]
 
     return Response(
         {
@@ -952,6 +1111,7 @@ def simulator_options(request):
             "teacher_tiers": [r["tier"] for r in tier_stats_list],
             "tier_stats": tier_stats_list,
             "filter_breakdown": filter_breakdown,
+            "sub_lessons": sub_lessons,
         }
     )
 

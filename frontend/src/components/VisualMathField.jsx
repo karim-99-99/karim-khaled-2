@@ -145,10 +145,13 @@ export default function VisualMathField({
   placeholder,
   minRows = 3,
   onReady,
+  onPasteImage,
+  onUndoImage,
 }) {
   const editorRef = useRef(null);
   const lastEmitted = useRef(null);
   const readyRef = useRef(false);
+  const lastPasteWasImageRef = useRef(false);
 
   function emit() {
     const editor = editorRef.current;
@@ -218,18 +221,35 @@ export default function VisualMathField({
   }, []);
 
   function onInput() {
+    lastPasteWasImageRef.current = false;
     emit();
   }
 
   function onPaste(e) {
     e.preventDefault();
+    const imageItem = onPasteImage
+      ? [...(e.clipboardData?.items || [])].find((it) => it.type.startsWith("image/"))
+      : null;
     const text = e.clipboardData.getData("text/plain");
+    if (imageItem && !text) {
+      lastPasteWasImageRef.current = true;
+      onPasteImage(imageItem.getAsFile());
+      return;
+    }
     if (!text) return;
+    lastPasteWasImageRef.current = false;
     insertNodeAtCaret(editorRef.current, document.createTextNode(text));
     emit();
   }
 
   function onKeyDown(e) {
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && !e.shiftKey && e.key.toLowerCase() === "z" && lastPasteWasImageRef.current) {
+      e.preventDefault();
+      lastPasteWasImageRef.current = false;
+      onUndoImage?.();
+      return;
+    }
     if (e.key === "Enter") {
       e.preventDefault();
       insertNodeAtCaret(editorRef.current, document.createElement("br"));

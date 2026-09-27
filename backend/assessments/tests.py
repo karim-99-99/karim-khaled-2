@@ -629,3 +629,179 @@ class QuestionDeleteAPITests(TestCase):
         res = self.client.delete(f"/api/collection-questions/{self.q.id}/")
         self.assertEqual(res.status_code, 403)
         self.assertTrue(CollectionQuestion.objects.filter(id=self.q.id).exists())
+
+
+class CollectionSubLessonAPITests(TestCase):
+    def setUp(self):
+        from groups.models import GroupTeacher
+
+        self.client = APIClient()
+        self.subject = Subject.objects.create(name="فرعي-مادة", slug="sub-l", order=1)
+        self.admin = User.objects.create_user(
+            email="a-sub@test.local",
+            password="Passw0rd!",
+            full_name="A",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.teacher = User.objects.create_user(
+            email="t-sub@test.local",
+            password="Passw0rd!",
+            full_name="T",
+            role=User.Role.TEACHER,
+            taught_subject=self.subject,
+        )
+        self.outsider = User.objects.create_user(
+            email="t-out@test.local",
+            password="Passw0rd!",
+            full_name="O",
+            role=User.Role.TEACHER,
+        )
+        self.lesson = Lesson.objects.create(
+            subject=self.subject, title="الحركة", order_number=1, created_by=self.admin
+        )
+        self.other_lesson = Lesson.objects.create(
+            subject=self.subject, title="الطاقة", order_number=2, created_by=self.admin
+        )
+        self.group = StudyGroup.objects.create(name="SubG", created_by=self.admin)
+        GroupTeacher.objects.create(
+            group=self.group, teacher=self.teacher, subject=self.subject
+        )
+        self.student = User.objects.create_user(
+            email="s-sub@test.local",
+            password="Passw0rd!",
+            full_name="S",
+            role=User.Role.STUDENT,
+        )
+        GroupStudent.objects.create(group=self.group, student=self.student)
+        Subscription.objects.create(
+            student=self.student,
+            plan=Subscription.Plan.MONTHLY,
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date() + timedelta(days=30),
+        )
+
+    def _create_sub(self, title, lesson=None):
+        self.client.force_authenticate(user=self.teacher)
+        res = self.client.post(
+            "/api/collection-sub-lessons/",
+            {"lesson": (lesson or self.lesson).id, "title": title},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201, res.data)
+        return res.data
+
+    def test_create_list_and_auto_order(self):
+        a = self._create_sub("السرعة")
+        b = self._create_sub("التسارع")
+        self.assertEqual((a["order_number"], b["order_number"]), (1, 2))
+        self.client.force_authenticate(user=self.student)
+        res = self.client.get(f"/api/collection-sub-lessons/?lesson={self.lesson.id}")
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual([r["title"] for r in res.data], ["السرعة", "التسارع"])
+
+    def test_outsider_teacher_cannot_create(self):
+        self.client.force_authenticate(user=self.outsider)
+        res = self.client.post(
+            "/api/collection-sub-lessons/",
+            {"lesson": self.lesson.id, "title": "x"},
+            format="json",
+        )
+        self.assertEqual(res.status_code, 403)
+
+    def test_question_sub_lesson_must_match_lesson(self):
+        foreign = self._create_sub("خارجي", lesson=self.other_lesson)
+        res = self.client.post(
+            "/api/collection-questions/",
+            {
+                "subject": self.subject.id,
+                "lesson": self.lesson.id,
+                "sub_lesson": foreign["id"],
+                "text": "س",
+                "options": [{"key": "أ", "text": "1"}, {"key": "ب", "text": "2"}],
+                "correct_answer": "أ",
+                "difficulty": "easy",
+                "teacher_tier": "gold",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("sub_lesson", res.data)
+
+    def test_filter_questions_and_delete_keeps_questions(self):
+        sub = self._create_sub("السرعة")
+        in_sub = _make_question(self.subject, self.lesson, self.teacher, "easy", 1)
+        in_sub.sub_lesson_id = sub["id"]
+        in_sub.save()
+        direct = _make_question(self.subject, self.lesson, self.teacher, "easy", 2)
+
+        base = f"/api/collection-questions/?lesson={self.lesson.id}"
+        only_sub = self.client.get(f"{base}&sub_lesson={sub['id']}")
+        self.assertEqual([q["id"] for q in only_sub.data], [in_sub.id])
+        only_direct = self.client.get(f"{base}&sub_lesson=none")
+        self.assertEqual([q["id"] for q in only_direct.data], [direct.id])
+
+        res = self.client.delete(f"/api/collection-sub-lessons/{sub['id']}/")
+        self.assertEqual(res.status_code, 204)
+        in_sub.refresh_from_db()
+        self.assertIsNone(in_sub.sub_lesson_id)
+
+    def test_student_exam_narrowed_to_sub_lessons(self):
+        sub = self._create_sub("السرعة")
+        sub_q_ids = set()
+        for i in range(3):
+            q = _make_question(self.subject, self.lesson, self.teacher, "easy", i)
+            q.sub_lesson_id = sub["id"]
+            q.save()
+            sub_q_ids.add(q.id)
+        direct_ids = {
+            _make_question(self.subject, self.lesson, self.teacher, "easy", 10 + i).id
+            for i in range(4)
+        }
+
+        self.client.force_authenticate(user=self.student)
+        opts = self.client.get(
+            f"/api/exams/simulator/options/?subjects={self.subject.id}&lessons={self.lesson.id}"
+        )
+        self.assertEqual(opts.status_code, 200)
+        self.assertEqual([s["id"] for s in opts.data["sub_lessons"]], [sub["id"]])
+        self.assertEqual(opts.data["sub_lessons"][0]["question_count"], 3)
+        self.assertTrue(any(r["sub_lesson"] == sub["id"] for r in opts.data["filter_breakdown"]))
+
+        payload = {
+            "subjects": [self.subject.id],
+            "lessons": [self.lesson.id],
+            "levels": ["easy"],
+            "take_all": True,
+        }
+        only_sub = self.client.post(
+            "/api/exams/simulator/", {**payload, "sub_lessons": [sub["id"]]}, format="json"
+        )
+        self.assertEqual(only_sub.status_code, 201, only_sub.data)
+        self.assertEqual({q["id"] for q in only_sub.data["questions"]}, sub_q_ids)
+
+        only_direct = self.client.post(
+            "/api/exams/simulator/", {**payload, "sub_lessons": [0]}, format="json"
+        )
+        self.assertEqual(only_direct.status_code, 201, only_direct.data)
+        self.assertEqual({q["id"] for q in only_direct.data["questions"]}, direct_ids)
+
+        everything = self.client.post("/api/exams/simulator/", payload, format="json")
+        self.assertEqual(everything.data["exam"]["question_count"], 7)
+
+    def test_start_rejects_sub_lesson_from_other_lesson(self):
+        foreign = self._create_sub("خارجي", lesson=self.other_lesson)
+        _make_question(self.subject, self.lesson, self.teacher, "easy", 1)
+        self.client.force_authenticate(user=self.student)
+        res = self.client.post(
+            "/api/exams/simulator/",
+            {
+                "subjects": [self.subject.id],
+                "lessons": [self.lesson.id],
+                "levels": ["easy"],
+                "take_all": True,
+                "sub_lessons": [foreign["id"]],
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 400)

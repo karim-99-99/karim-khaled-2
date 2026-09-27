@@ -49,6 +49,14 @@ export default function CollectionLessonDetail() {
   const [showImport, setShowImport] = useState(false);
   /** After save/cancel, scroll back so this question stays in view. */
   const [scrollBackToQId, setScrollBackToQId] = useState(null);
+  const [subLessons, setSubLessons] = useState([]);
+  /** Teacher view scope: "all" | "none" (direct questions) | sub-lesson id */
+  const [activeSub, setActiveSub] = useState("all");
+  const [newSubTitle, setNewSubTitle] = useState("");
+  const [renameSubId, setRenameSubId] = useState(null);
+  const [renameSubTitle, setRenameSubTitle] = useState("");
+  /** Student filter: sub-lesson ids; 0 = questions directly under the main lesson. */
+  const [selectedSubs, setSelectedSubs] = useState([]);
 
   const canEdit = canEditSubject(user, subjectId || lesson?.subject);
   const canRenameLesson =
@@ -70,7 +78,7 @@ export default function CollectionLessonDetail() {
   }, [years, yearRange]);
 
   const filteredLevelCounts = useMemo(() => {
-    if (!allowedYears && !selectedTiers.length) {
+    if (!allowedYears && !selectedTiers.length && !selectedSubs.length) {
       return {
         easy: Number(levelCounts.easy) || 0,
         medium: Number(levelCounts.medium) || 0,
@@ -84,6 +92,9 @@ export default function CollectionLessonDetail() {
           continue;
         }
         if (selectedTiers.length && !selectedTiers.includes(row.teacher_tier || "")) {
+          continue;
+        }
+        if (selectedSubs.length && !selectedSubs.includes(row.sub_lesson ?? 0)) {
           continue;
         }
         const d = row.difficulty;
@@ -102,6 +113,7 @@ export default function CollectionLessonDetail() {
   }, [
     allowedYears,
     selectedTiers,
+    selectedSubs,
     filterBreakdown,
     yearStats,
     levelCounts.easy,
@@ -113,6 +125,7 @@ export default function CollectionLessonDetail() {
     const out = Object.fromEntries(TEACHER_TIERS.map((t) => [t.id, 0]));
     for (const row of filterBreakdown) {
       if (allowedYears && !allowedYears.has(row.question_year || "")) continue;
+      if (selectedSubs.length && !selectedSubs.includes(row.sub_lesson ?? 0)) continue;
       if (row.teacher_tier && row.teacher_tier in out) {
         out[row.teacher_tier] += Number(row.count) || 0;
       }
@@ -123,7 +136,25 @@ export default function CollectionLessonDetail() {
       }
     }
     return out;
-  }, [filterBreakdown, tierStats, allowedYears]);
+  }, [filterBreakdown, tierStats, allowedYears, selectedSubs]);
+
+  /** Student chip counts per sub-lesson (0 = direct), respecting year + tier filters. */
+  const subCountsForFilter = useMemo(() => {
+    const out = {};
+    for (const row of filterBreakdown) {
+      if (allowedYears && !allowedYears.has(row.question_year || "")) continue;
+      if (selectedTiers.length && !selectedTiers.includes(row.teacher_tier || "")) continue;
+      const key = row.sub_lesson ?? 0;
+      out[key] = (out[key] || 0) + (Number(row.count) || 0);
+    }
+    return out;
+  }, [filterBreakdown, allowedYears, selectedTiers]);
+
+  function toggleSub(id) {
+    setSelectedSubs((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  }
 
   const selectedCount = useMemo(() => {
     if (!selectedLevels.length) return 0;
@@ -164,6 +195,10 @@ export default function CollectionLessonDetail() {
     setYearRange(null);
     setSelectedTiers([]);
     setShowImport(false);
+    setActiveSub("all");
+    setSelectedSubs([]);
+    setSubLessons([]);
+    loadSubLessons();
     loadLesson()
       .then((data) => {
         if (cancelled) return;
@@ -207,6 +242,92 @@ export default function CollectionLessonDetail() {
       .get(`/collection-questions/?lesson=${lessonId}`)
       .then((res) => setQList(res.data.results || res.data || []))
       .catch(() => setQList([]));
+  }
+
+  function loadSubLessons() {
+    return client
+      .get(`/collection-sub-lessons/?lesson=${lessonId}`)
+      .then((res) => setSubLessons(res.data.results || res.data || []))
+      .catch(() => setSubLessons([]));
+  }
+
+  async function createSubLesson() {
+    const title = newSubTitle.trim();
+    if (!title) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const { data } = await client.post("/collection-sub-lessons/", {
+        lesson: Number(lessonId),
+        title,
+      });
+      setNewSubTitle("");
+      await loadSubLessons();
+      setActiveSub(data.id);
+      setMsg(`تم إنشاء الدرس الفرعي «${data.title}» ✓ — أضف أسئلته الآن`);
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر إنشاء الدرس الفرعي");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveSubRename(id) {
+    const title = renameSubTitle.trim();
+    if (!title) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      await client.patch(`/collection-sub-lessons/${id}/`, { title });
+      setRenameSubId(null);
+      await loadSubLessons();
+      setMsg("تم تعديل اسم الدرس الفرعي ✓");
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر التعديل");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteSubLesson(sub) {
+    if (
+      !confirm(
+        `حذف الدرس الفرعي «${sub.title}»؟\nأسئلته لن تُحذف — ستنتقل مباشرة إلى الدرس الرئيسي.`
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    try {
+      await client.delete(`/collection-sub-lessons/${sub.id}/`);
+      if (activeSub === sub.id) setActiveSub("all");
+      await Promise.all([loadSubLessons(), loadQuestions()]);
+      setMsg("تم حذف الدرس الفرعي — أسئلته أصبحت في الدرس الرئيسي");
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر الحذف");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function moveSubLesson(id, dir) {
+    const idx = subLessons.findIndex((s) => s.id === id);
+    const j = dir === "up" ? idx - 1 : idx + 1;
+    if (idx < 0 || j < 0 || j >= subLessons.length) return;
+    const next = [...subLessons];
+    [next[idx], next[j]] = [next[j], next[idx]];
+    setSubLessons(next);
+    try {
+      const { data } = await client.post("/collection-sub-lessons/reorder/", {
+        lesson: Number(lessonId),
+        ordered_ids: next.map((s) => s.id),
+      });
+      setSubLessons(data);
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر تغيير الترتيب");
+      loadSubLessons();
+    }
   }
 
   /** Close the inline editor and keep the same question visible on screen. */
@@ -303,6 +424,14 @@ export default function CollectionLessonDetail() {
       if (selectedTiers.length) {
         payload.tiers = selectedTiers;
       }
+      if (selectedSubs.length) {
+        payload.sub_lessons = selectedSubs;
+        const names = subLessons
+          .filter((s) => selectedSubs.includes(s.id))
+          .map((s) => s.title);
+        if (selectedSubs.includes(0)) names.push("أسئلة عامة");
+        if (names.length) payload.title = `${payload.title} › ${names.join("، ")}`.slice(0, 200);
+      }
       const { data } = await client.post("/exams/simulator/", payload);
       navigate(`/exam/${data.exam.id}`);
     } catch (e) {
@@ -331,13 +460,24 @@ export default function CollectionLessonDetail() {
     );
   }
 
-  const reviewCount = qList.filter((q) => q.needs_review).length;
+  const subTitleById = Object.fromEntries(subLessons.map((s) => [s.id, s.title]));
+  const activeSubObj =
+    typeof activeSub === "number" ? subLessons.find((s) => s.id === activeSub) : null;
+  const directQCount = qList.filter((q) => !q.sub_lesson).length;
+  const subScopedQs =
+    activeSub === "all"
+      ? qList
+      : activeSub === "none"
+        ? qList.filter((q) => !q.sub_lesson)
+        : qList.filter((q) => q.sub_lesson === activeSub);
+  const reviewCount = subScopedQs.filter((q) => q.needs_review).length;
   const visibleQs =
     filterLevel === "all"
-      ? qList
+      ? subScopedQs
       : filterLevel === "review"
-        ? qList.filter((q) => q.needs_review)
-        : qList.filter((q) => q.difficulty === filterLevel);
+        ? subScopedQs.filter((q) => q.needs_review)
+        : subScopedQs.filter((q) => q.difficulty === filterLevel);
+  const studentHasDirect = filterBreakdown.some((r) => r.sub_lesson == null);
 
   const levelLabel = (d) => LEVELS.find((x) => x.id === d)?.label || d;
 
@@ -508,6 +648,48 @@ export default function CollectionLessonDetail() {
                 المحاكي الشخصي (نسب صعوبة · عدة مواد · زمن) ←
               </Link>
             </div>
+            {subLessons.length > 0 && (
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label>الدروس الفرعية — اختياري (واحد أو أكثر، أو الدرس كاملاً)</label>
+                <div className="filter-row" style={{ marginBottom: 8 }}>
+                  <span
+                    className={`chip ${selectedSubs.length === 0 ? "active" : ""}`}
+                    onClick={() => setSelectedSubs([])}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    الدرس كاملاً
+                  </span>
+                  {subLessons.map((s) => (
+                    <span
+                      key={s.id}
+                      className={`chip ${selectedSubs.includes(s.id) ? "active" : ""}`}
+                      onClick={() => toggleSub(s.id)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") toggleSub(s.id);
+                      }}
+                    >
+                      {s.title} ({subCountsForFilter[s.id] || 0})
+                    </span>
+                  ))}
+                  {studentHasDirect && (
+                    <span
+                      className={`chip ${selectedSubs.includes(0) ? "active" : ""}`}
+                      onClick={() => toggleSub(0)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") toggleSub(0);
+                      }}
+                    >
+                      أسئلة عامة ({subCountsForFilter[0] || 0})
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="form-group" style={{ marginBottom: 16 }}>
               <label>مستوى الصعوبة — يمكن اختيار أكثر من مستوى</label>
               <div className="filter-row" style={{ marginBottom: 8 }}>
@@ -653,7 +835,155 @@ export default function CollectionLessonDetail() {
                       setShowForm((v) => !v);
                     }}
                   >
-                    {showForm && !editingQ ? "إخفاء النموذج" : "+ إضافة سؤال"}
+                    {showForm && !editingQ
+                      ? "إخفاء النموذج"
+                      : activeSubObj
+                        ? `+ إضافة سؤال في «${activeSubObj.title}»`
+                        : "+ إضافة سؤال"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="card" style={{ padding: 16, marginBottom: 16 }}>
+                <div className="section-title" style={{ marginTop: 0, fontSize: 17 }}>
+                  الدروس الفرعية (اختياري)
+                </div>
+                <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 10 }}>
+                  يمكنك إضافة الأسئلة مباشرة في هذا الدرس، أو تقسيمه إلى دروس فرعية وإضافة
+                  أسئلة كل درس فرعي بداخله. اختر درساً فرعياً لعرض أسئلته وإضافة أسئلة جديدة إليه.
+                </p>
+                <div className="filter-row" style={{ marginBottom: 10 }}>
+                  <span
+                    className={`chip ${activeSub === "all" ? "active" : ""}`}
+                    onClick={() => setActiveSub("all")}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    كل أسئلة الدرس ({qList.length})
+                  </span>
+                  {subLessons.length > 0 && (
+                    <span
+                      className={`chip ${activeSub === "none" ? "active" : ""}`}
+                      onClick={() => setActiveSub("none")}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      مباشرة في الدرس الرئيسي ({directQCount})
+                    </span>
+                  )}
+                  {subLessons.map((s) => (
+                    <span
+                      key={s.id}
+                      className={`chip ${activeSub === s.id ? "active" : ""}`}
+                      onClick={() => setActiveSub(s.id)}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      {s.title} ({qList.filter((q) => q.sub_lesson === s.id).length})
+                    </span>
+                  ))}
+                </div>
+
+                {activeSubObj && (
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 6,
+                      flexWrap: "wrap",
+                      alignItems: "center",
+                      marginBottom: 10,
+                    }}
+                  >
+                    {renameSubId === activeSubObj.id ? (
+                      <>
+                        <input
+                          className="form-control"
+                          style={{ flex: 1, minWidth: 180 }}
+                          value={renameSubTitle}
+                          onChange={(e) => setRenameSubTitle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveSubRename(activeSubObj.id);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          disabled={busy}
+                          onClick={() => saveSubRename(activeSubObj.id)}
+                        >
+                          حفظ
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => setRenameSubId(null)}
+                        >
+                          إلغاء
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <strong style={{ flex: 1 }}>الدرس الفرعي: {activeSubObj.title}</strong>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          disabled={busy || subLessons[0]?.id === activeSubObj.id}
+                          onClick={() => moveSubLesson(activeSubObj.id, "up")}
+                          title="للأعلى"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          disabled={busy || subLessons[subLessons.length - 1]?.id === activeSubObj.id}
+                          onClick={() => moveSubLesson(activeSubObj.id, "down")}
+                          title="للأسفل"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => {
+                            setRenameSubId(activeSubObj.id);
+                            setRenameSubTitle(activeSubObj.title);
+                          }}
+                        >
+                          تعديل الاسم
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          style={{ color: "var(--error)" }}
+                          disabled={busy}
+                          onClick={() => deleteSubLesson(activeSubObj)}
+                        >
+                          حذف
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <input
+                    className="form-control"
+                    style={{ flex: 1, minWidth: 200 }}
+                    placeholder="اسم درس فرعي جديد (مثال: السرعة)"
+                    value={newSubTitle}
+                    onChange={(e) => setNewSubTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") createSubLesson();
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    disabled={busy || !newSubTitle.trim()}
+                    onClick={createSubLesson}
+                  >
+                    + درس فرعي
                   </button>
                 </div>
               </div>
@@ -662,6 +992,12 @@ export default function CollectionLessonDetail() {
                 <QuestionImportPanel
                   importUrl="/collection-questions/import/"
                   lessonId={lessonId}
+                  subLessonId={activeSubObj?.id}
+                  targetLabel={
+                    activeSubObj
+                      ? `الدرس الفرعي «${activeSubObj.title}»`
+                      : `الدرس الرئيسي «${lesson.title}»`
+                  }
                   showYearHint
                   templateDownloadName="نموذج-أسئلة-التجميعات.docx"
                   onImported={async (data) => {
@@ -685,7 +1021,7 @@ export default function CollectionLessonDetail() {
                   role="button"
                   tabIndex={0}
                 >
-                  الكل ({qList.length})
+                  الكل ({subScopedQs.length})
                 </span>
                 {LEVELS.map((lv) => (
                   <span
@@ -695,7 +1031,7 @@ export default function CollectionLessonDetail() {
                     role="button"
                     tabIndex={0}
                   >
-                    {lv.label} ({qList.filter((q) => q.difficulty === lv.id).length})
+                    {lv.label} ({subScopedQs.filter((q) => q.difficulty === lv.id).length})
                   </span>
                 ))}
                 {reviewCount > 0 && (
@@ -717,9 +1053,11 @@ export default function CollectionLessonDetail() {
                   lessonId={lesson.id}
                   kind="collection"
                   defaultDifficulty={
-                    filterLevel !== "all" ? filterLevel : "medium"
+                    ["easy", "medium", "hard"].includes(filterLevel) ? filterLevel : "medium"
                   }
                   initialQuestion={null}
+                  subLessons={subLessons}
+                  defaultSubLessonId={activeSubObj?.id ?? null}
                   onCancel={() => setShowForm(false)}
                   onSaved={() => {
                     loadQuestions();
@@ -757,6 +1095,11 @@ export default function CollectionLessonDetail() {
                           {item.question_year ? ` · ${item.question_year}` : ""}
                           {item.teacher_tier ? ` · ${tierLabel(item.teacher_tier)}` : ""}:
                         </strong>{" "}
+                        {activeSub === "all" && item.sub_lesson && subTitleById[item.sub_lesson] && (
+                          <span className="chip" style={{ marginInlineEnd: 6 }}>
+                            {subTitleById[item.sub_lesson]}
+                          </span>
+                        )}
                         {item.needs_review && (
                           <span
                             className="chip"
@@ -873,6 +1216,7 @@ export default function CollectionLessonDetail() {
                           kind="collection"
                           defaultDifficulty={item.difficulty || "medium"}
                           initialQuestion={editingQ}
+                          subLessons={subLessons}
                           onCancel={() => closeQuestionEdit(item.id)}
                           onSaved={() => {
                             loadQuestions().then(() => {
@@ -887,7 +1231,11 @@ export default function CollectionLessonDetail() {
               })}
 
               {visibleQs.length === 0 && !showForm && !editingQ && (
-                <p style={{ color: "var(--text-muted)" }}>لا توجد أسئلة بعد — أضف سؤالاً أعلاه.</p>
+                <p style={{ color: "var(--text-muted)" }}>
+                  {activeSubObj
+                    ? `لا توجد أسئلة في «${activeSubObj.title}» بعد — اضغط «+ إضافة سؤال» أو ارفع ملف Word.`
+                    : "لا توجد أسئلة بعد — أضف سؤالاً أعلاه."}
+                </p>
               )}
             </>
           )}
