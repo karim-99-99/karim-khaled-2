@@ -203,7 +203,10 @@ class CollectionSubLessonViewSet(viewsets.ModelViewSet):
         lesson = self.request.query_params.get("lesson")
         if lesson and lesson.isdigit():
             qs = qs.filter(lesson_id=int(lesson))
-        return qs.order_by("order_number", "id")
+        subject = self.request.query_params.get("subject")
+        if subject and subject.isdigit():
+            qs = qs.filter(lesson__subject_id=int(subject))
+        return qs.order_by("lesson__order_number", "lesson_id", "order_number", "id")
 
     def perform_create(self, serializer):
         lesson = serializer.validated_data["lesson"]

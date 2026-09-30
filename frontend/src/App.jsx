@@ -48,6 +48,7 @@ export default function App() {
           <Route path="/courses/:subjectId" element={<RequireAuth><SubjectHub /></RequireAuth>} />
           <Route path="/courses/:subjectId/lessons" element={<RequireAuth><Lessons /></RequireAuth>} />
           <Route path="/courses/:subjectId/collections" element={<RequireAuth><Collections /></RequireAuth>} />
+          <Route path="/courses/:subjectId/collections/:lessonId/sub/:subLessonId" element={<RequireAuth><CollectionLessonDetail /></RequireAuth>} />
           <Route path="/courses/:subjectId/collections/:lessonId" element={<RequireAuth><CollectionLessonDetail /></RequireAuth>} />
           <Route path="/lessons/:lessonId" element={<RequireAuth><LessonDetail /></RequireAuth>} />
           <Route path="/sections/:sectionId" element={<RequireAuth><SectionDetail /></RequireAuth>} />

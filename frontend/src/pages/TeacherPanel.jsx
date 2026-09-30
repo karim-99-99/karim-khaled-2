@@ -71,7 +71,7 @@ export default function TeacherPanel() {
       </div>
 
       <div className="banner" style={{ marginBottom: 20 }}>
-        من <strong>دورات</strong>: تأسيس = واجب لمجموعاتك فقط · تجميع = دروس وأسئلة لكل الطلاب ·
+        من <strong>دورات</strong>: تأسيس = واجب لمجموعاتك فقط · تجميع = دروس (+ فرعية اختيارية) وأسئلة لكل الطلاب ·
         اختبارات.
       </div>
 

@@ -23,9 +23,10 @@ const LEVELS = [
  * للمدرس: فيديو / PDF / إدارة بنك الأسئلة.
  */
 export default function CollectionLessonDetail() {
-  const { subjectId, lessonId } = useParams();
+  const { subjectId, lessonId, subLessonId: subLessonIdParam } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const focusedSubId = subLessonIdParam ? Number(subLessonIdParam) : null;
   const [lesson, setLesson] = useState(null);
   const [tab, setTab] = useState("questions");
   const [filterLevel, setFilterLevel] = useState("all");
@@ -50,13 +51,15 @@ export default function CollectionLessonDetail() {
   /** After save/cancel, scroll back so this question stays in view. */
   const [scrollBackToQId, setScrollBackToQId] = useState(null);
   const [subLessons, setSubLessons] = useState([]);
-  /** Teacher view scope: "all" | "none" (direct questions) | sub-lesson id */
-  const [activeSub, setActiveSub] = useState("all");
-  const [newSubTitle, setNewSubTitle] = useState("");
-  const [renameSubId, setRenameSubId] = useState(null);
-  const [renameSubTitle, setRenameSubTitle] = useState("");
+  /**
+   * Teacher view scope on the main lesson page: "all" | "none" (direct) | sub-lesson id.
+   * When focusedSubId is set (sub route), scope is locked to that sub-lesson.
+   */
+  const [activeSub, setActiveSub] = useState(focusedSubId ?? "all");
   /** Student filter: sub-lesson ids; 0 = questions directly under the main lesson. */
-  const [selectedSubs, setSelectedSubs] = useState([]);
+  const [selectedSubs, setSelectedSubs] = useState(
+    focusedSubId ? [focusedSubId] : []
+  );
 
   const canEdit = canEditSubject(user, subjectId || lesson?.subject);
   const canRenameLesson =
@@ -67,10 +70,6 @@ export default function CollectionLessonDetail() {
     medium: 0,
     hard: 0,
   };
-  const bankTotal =
-    (Number(levelCounts.easy) || 0) +
-    (Number(levelCounts.medium) || 0) +
-    (Number(levelCounts.hard) || 0);
 
   const allowedYears = useMemo(() => {
     if (!yearRange) return null;
@@ -195,8 +194,9 @@ export default function CollectionLessonDetail() {
     setYearRange(null);
     setSelectedTiers([]);
     setShowImport(false);
-    setActiveSub("all");
-    setSelectedSubs([]);
+    setTab("questions");
+    setActiveSub(focusedSubId ?? "all");
+    setSelectedSubs(focusedSubId ? [focusedSubId] : []);
     setSubLessons([]);
     loadSubLessons();
     loadLesson()
@@ -235,11 +235,13 @@ export default function CollectionLessonDetail() {
     return () => {
       cancelled = true;
     };
-  }, [lessonId, user, subjectId]);
+  }, [lessonId, focusedSubId, user, subjectId]);
 
   function loadQuestions() {
+    const params = new URLSearchParams({ lesson: String(lessonId) });
+    if (focusedSubId) params.set("sub_lesson", String(focusedSubId));
     return client
-      .get(`/collection-questions/?lesson=${lessonId}`)
+      .get(`/collection-questions/?${params.toString()}`)
       .then((res) => setQList(res.data.results || res.data || []))
       .catch(() => setQList([]));
   }
@@ -247,87 +249,19 @@ export default function CollectionLessonDetail() {
   function loadSubLessons() {
     return client
       .get(`/collection-sub-lessons/?lesson=${lessonId}`)
-      .then((res) => setSubLessons(res.data.results || res.data || []))
+      .then((res) => {
+        const rows = res.data.results || res.data || [];
+        setSubLessons(rows);
+        if (focusedSubId && !rows.some((s) => s.id === focusedSubId)) {
+          setMsg("الدرس الفرعي غير موجود — تم التحويل للدرس الرئيسي");
+          navigate(`/courses/${subjectId}/collections/${lessonId}`, { replace: true });
+          return;
+        }
+        if (!focusedSubId) {
+          setActiveSub(rows.length ? "none" : "all");
+        }
+      })
       .catch(() => setSubLessons([]));
-  }
-
-  async function createSubLesson() {
-    const title = newSubTitle.trim();
-    if (!title) return;
-    setBusy(true);
-    setMsg("");
-    try {
-      const { data } = await client.post("/collection-sub-lessons/", {
-        lesson: Number(lessonId),
-        title,
-      });
-      setNewSubTitle("");
-      await loadSubLessons();
-      setActiveSub(data.id);
-      setMsg(`تم إنشاء الدرس الفرعي «${data.title}» ✓ — أضف أسئلته الآن`);
-    } catch (e) {
-      setMsg(e.response?.data?.detail || "تعذّر إنشاء الدرس الفرعي");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function saveSubRename(id) {
-    const title = renameSubTitle.trim();
-    if (!title) return;
-    setBusy(true);
-    setMsg("");
-    try {
-      await client.patch(`/collection-sub-lessons/${id}/`, { title });
-      setRenameSubId(null);
-      await loadSubLessons();
-      setMsg("تم تعديل اسم الدرس الفرعي ✓");
-    } catch (e) {
-      setMsg(e.response?.data?.detail || "تعذّر التعديل");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function deleteSubLesson(sub) {
-    if (
-      !confirm(
-        `حذف الدرس الفرعي «${sub.title}»؟\nأسئلته لن تُحذف — ستنتقل مباشرة إلى الدرس الرئيسي.`
-      )
-    ) {
-      return;
-    }
-    setBusy(true);
-    setMsg("");
-    try {
-      await client.delete(`/collection-sub-lessons/${sub.id}/`);
-      if (activeSub === sub.id) setActiveSub("all");
-      await Promise.all([loadSubLessons(), loadQuestions()]);
-      setMsg("تم حذف الدرس الفرعي — أسئلته أصبحت في الدرس الرئيسي");
-    } catch (e) {
-      setMsg(e.response?.data?.detail || "تعذّر الحذف");
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function moveSubLesson(id, dir) {
-    const idx = subLessons.findIndex((s) => s.id === id);
-    const j = dir === "up" ? idx - 1 : idx + 1;
-    if (idx < 0 || j < 0 || j >= subLessons.length) return;
-    const next = [...subLessons];
-    [next[idx], next[j]] = [next[j], next[idx]];
-    setSubLessons(next);
-    try {
-      const { data } = await client.post("/collection-sub-lessons/reorder/", {
-        lesson: Number(lessonId),
-        ordered_ids: next.map((s) => s.id),
-      });
-      setSubLessons(data);
-    } catch (e) {
-      setMsg(e.response?.data?.detail || "تعذّر تغيير الترتيب");
-      loadSubLessons();
-    }
   }
 
   /** Close the inline editor and keep the same question visible on screen. */
@@ -461,15 +395,20 @@ export default function CollectionLessonDetail() {
   }
 
   const subTitleById = Object.fromEntries(subLessons.map((s) => [s.id, s.title]));
+  const focusedSubObj = focusedSubId
+    ? subLessons.find((s) => s.id === focusedSubId) || null
+    : null;
+  const effectiveActiveSub = focusedSubId ?? activeSub;
   const activeSubObj =
-    typeof activeSub === "number" ? subLessons.find((s) => s.id === activeSub) : null;
-  const directQCount = qList.filter((q) => !q.sub_lesson).length;
+    typeof effectiveActiveSub === "number"
+      ? subLessons.find((s) => s.id === effectiveActiveSub)
+      : null;
   const subScopedQs =
-    activeSub === "all"
+    effectiveActiveSub === "all"
       ? qList
-      : activeSub === "none"
+      : effectiveActiveSub === "none"
         ? qList.filter((q) => !q.sub_lesson)
-        : qList.filter((q) => q.sub_lesson === activeSub);
+        : qList.filter((q) => q.sub_lesson === effectiveActiveSub);
   const reviewCount = subScopedQs.filter((q) => q.needs_review).length;
   const visibleQs =
     filterLevel === "all"
@@ -480,6 +419,9 @@ export default function CollectionLessonDetail() {
   const studentHasDirect = filterBreakdown.some((r) => r.sub_lesson == null);
 
   const levelLabel = (d) => LEVELS.find((x) => x.id === d)?.label || d;
+  const pageTitle = focusedSubObj
+    ? focusedSubObj.title
+    : lesson.title;
 
   return (
     <div>
@@ -491,10 +433,18 @@ export default function CollectionLessonDetail() {
       </div>
 
       <div className="breadcrumb">
-        تجميع &gt; <span>{lesson.title}</span>
+        تجميع &gt;{" "}
+        {focusedSubObj ? (
+          <>
+            <Link to={listUrl + `/${lessonId}`}>{lesson.title}</Link> &gt;{" "}
+            <span>{focusedSubObj.title}</span>
+          </>
+        ) : (
+          <span>{lesson.title}</span>
+        )}
       </div>
 
-      {canRenameLesson ? (
+      {canRenameLesson && !focusedSubId ? (
         <div
           className="card"
           style={{
@@ -522,12 +472,34 @@ export default function CollectionLessonDetail() {
           </button>
         </div>
       ) : (
-        <h1 style={{ fontSize: 28, marginBottom: 16 }}>{lesson.title}</h1>
+        <h1 style={{ fontSize: 28, marginBottom: 8 }}>{pageTitle}</h1>
       )}
 
-      {canEdit && (
+      {focusedSubObj && (
+        <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>
+          درس فرعي من «{lesson.title}» — أضف الأسئلة هنا مباشرة.
+        </p>
+      )}
+
+      {canEdit && !focusedSubId && subLessons.length === 0 && (
         <div className="banner" style={{ marginBottom: 16 }}>
           أسئلة هذا الدرس تظهر لكل طلاب المادة — وليست لمجموعتك فقط (عكس تأسيس).
+          لإضافة دروس فرعية اضغط + بجانب الدرس من{" "}
+          <Link to={listUrl}>قائمة التجميعات</Link>.
+        </div>
+      )}
+
+      {canEdit && !focusedSubId && subLessons.length > 0 && (
+        <div className="banner" style={{ marginBottom: 16 }}>
+          لهذا الدرس دروس فرعية — أدرها من{" "}
+          <Link to={listUrl}>قائمة التجميعات</Link>، أو اضغط على درس فرعي لإضافة أسئلته.
+          الأسئلة هنا تُضاف مباشرة تحت الدرس الرئيسي (بدون فرع).
+        </div>
+      )}
+
+      {canEdit && focusedSubId && (
+        <div className="banner" style={{ marginBottom: 16 }}>
+          أسئلة هذا الدرس الفرعي تظهر لكل طلاب المادة مع أسئلة التجميع.
         </div>
       )}
 
@@ -537,7 +509,7 @@ export default function CollectionLessonDetail() {
         </div>
       )}
 
-      {canEdit && (
+      {canEdit && !focusedSubId && (
         <div className="filter-row" style={{ marginBottom: 16 }}>
           <span
             className={`chip ${tab === "questions" ? "active" : ""}`}
@@ -566,7 +538,7 @@ export default function CollectionLessonDetail() {
         </div>
       )}
 
-      {canEdit && tab === "video" && (
+      {canEdit && !focusedSubId && tab === "video" && (
         <div className="card" style={{ padding: 20, marginBottom: 20 }}>
           <div className="form-group">
             <label>فيديو الدرس — Bunny أو رابط (YouTube / Drive / أي رابط)</label>
@@ -598,7 +570,7 @@ export default function CollectionLessonDetail() {
         </div>
       )}
 
-      {canEdit && tab === "pdf" && (
+      {canEdit && !focusedSubId && tab === "pdf" && (
         <div className="card" style={{ padding: 20, marginBottom: 20 }}>
           <div className="form-group">
             <label>رابط PDF</label>
@@ -637,8 +609,9 @@ export default function CollectionLessonDetail() {
               ابدأ بالتدريب
             </div>
             <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 12 }}>
-              اختر المستويات وسنة الاختبار (اختياري) — يظهر لك كل الأسئلة المطابقة في هذا الدرس.
-              نسب المزج موجودة في المحاكي الشخصي فقط.
+              {focusedSubObj
+                ? `اختر المستويات وسنة الاختبار — كل الأسئلة المطابقة في «${focusedSubObj.title}».`
+                : "اختر المستويات وسنة الاختبار (اختياري) — يظهر لك كل الأسئلة المطابقة في هذا الدرس. نسب المزج موجودة في المحاكي الشخصي فقط."}
             </p>
             <div style={{ marginBottom: 16 }}>
               <Link
@@ -648,7 +621,15 @@ export default function CollectionLessonDetail() {
                 المحاكي الشخصي (نسب صعوبة · عدة مواد · زمن) ←
               </Link>
             </div>
-            {subLessons.length > 0 && (
+            {focusedSubObj ? (
+              <div className="form-group" style={{ marginBottom: 16 }}>
+                <label>نطاق التدريب</label>
+                <div className="filter-row">
+                  <span className="chip active">{focusedSubObj.title}</span>
+                </div>
+              </div>
+            ) : (
+              subLessons.length > 0 && (
               <div className="form-group" style={{ marginBottom: 16 }}>
                 <label>الدروس الفرعية — اختياري (واحد أو أكثر، أو الدرس كاملاً)</label>
                 <div className="filter-row" style={{ marginBottom: 8 }}>
@@ -689,6 +670,7 @@ export default function CollectionLessonDetail() {
                   )}
                 </div>
               </div>
+              )
             )}
             <div className="form-group" style={{ marginBottom: 16 }}>
               <label>مستوى الصعوبة — يمكن اختيار أكثر من مستوى</label>
@@ -786,10 +768,14 @@ export default function CollectionLessonDetail() {
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={startBusy || !selectedLevels.length || selectedCount < 1 || bankTotal < 1}
+                disabled={startBusy || !selectedLevels.length || selectedCount < 1}
                 onClick={startExam}
               >
-                {startBusy ? "جاري البدء…" : "ابدأ هذا الدرس"}
+                {startBusy
+                  ? "جاري البدء…"
+                  : focusedSubObj
+                    ? `ابدأ «${focusedSubObj.title}»`
+                    : "ابدأ هذا الدرس"}
               </button>
               <span style={{ fontWeight: 700, fontSize: 15 }}>
                 {!selectedLevels.length
@@ -844,158 +830,35 @@ export default function CollectionLessonDetail() {
                 </div>
               </div>
 
-              <div className="card" style={{ padding: 16, marginBottom: 16 }}>
-                <div className="section-title" style={{ marginTop: 0, fontSize: 17 }}>
-                  الدروس الفرعية (اختياري)
-                </div>
-                <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 10 }}>
-                  يمكنك إضافة الأسئلة مباشرة في هذا الدرس، أو تقسيمه إلى دروس فرعية وإضافة
-                  أسئلة كل درس فرعي بداخله. اختر درساً فرعياً لعرض أسئلته وإضافة أسئلة جديدة إليه.
-                </p>
-                <div className="filter-row" style={{ marginBottom: 10 }}>
-                  <span
-                    className={`chip ${activeSub === "all" ? "active" : ""}`}
-                    onClick={() => setActiveSub("all")}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    كل أسئلة الدرس ({qList.length})
-                  </span>
-                  {subLessons.length > 0 && (
-                    <span
-                      className={`chip ${activeSub === "none" ? "active" : ""}`}
-                      onClick={() => setActiveSub("none")}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      مباشرة في الدرس الرئيسي ({directQCount})
-                    </span>
-                  )}
-                  {subLessons.map((s) => (
-                    <span
-                      key={s.id}
-                      className={`chip ${activeSub === s.id ? "active" : ""}`}
-                      onClick={() => setActiveSub(s.id)}
-                      role="button"
-                      tabIndex={0}
-                    >
-                      {s.title} ({qList.filter((q) => q.sub_lesson === s.id).length})
-                    </span>
-                  ))}
-                </div>
-
-                {activeSubObj && (
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 6,
-                      flexWrap: "wrap",
-                      alignItems: "center",
-                      marginBottom: 10,
-                    }}
-                  >
-                    {renameSubId === activeSubObj.id ? (
-                      <>
-                        <input
-                          className="form-control"
-                          style={{ flex: 1, minWidth: 180 }}
-                          value={renameSubTitle}
-                          onChange={(e) => setRenameSubTitle(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") saveSubRename(activeSubObj.id);
-                          }}
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          disabled={busy}
-                          onClick={() => saveSubRename(activeSubObj.id)}
-                        >
-                          حفظ
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => setRenameSubId(null)}
-                        >
-                          إلغاء
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <strong style={{ flex: 1 }}>الدرس الفرعي: {activeSubObj.title}</strong>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          disabled={busy || subLessons[0]?.id === activeSubObj.id}
-                          onClick={() => moveSubLesson(activeSubObj.id, "up")}
-                          title="للأعلى"
-                        >
-                          ↑
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          disabled={busy || subLessons[subLessons.length - 1]?.id === activeSubObj.id}
-                          onClick={() => moveSubLesson(activeSubObj.id, "down")}
-                          title="للأسفل"
-                        >
-                          ↓
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => {
-                            setRenameSubId(activeSubObj.id);
-                            setRenameSubTitle(activeSubObj.title);
-                          }}
-                        >
-                          تعديل الاسم
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-sm"
-                          style={{ color: "var(--error)" }}
-                          disabled={busy}
-                          onClick={() => deleteSubLesson(activeSubObj)}
-                        >
-                          حذف
-                        </button>
-                      </>
-                    )}
+              {!focusedSubId && subLessons.length > 0 && (
+                <div className="card" style={{ padding: 14, marginBottom: 16 }}>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>الدروس الفرعية</div>
+                  <div className="filter-row" style={{ marginBottom: 0 }}>
+                    {subLessons.map((s) => (
+                      <Link
+                        key={s.id}
+                        to={`${listUrl}/${lessonId}/sub/${s.id}`}
+                        className="chip"
+                        style={{ textDecoration: "none" }}
+                      >
+                        {s.title}
+                      </Link>
+                    ))}
+                    <Link to={listUrl} className="chip" style={{ textDecoration: "none" }}>
+                      إدارة من القائمة (+)
+                    </Link>
                   </div>
-                )}
-
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  <input
-                    className="form-control"
-                    style={{ flex: 1, minWidth: 200 }}
-                    placeholder="اسم درس فرعي جديد (مثال: السرعة)"
-                    value={newSubTitle}
-                    onChange={(e) => setNewSubTitle(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") createSubLesson();
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="btn btn-secondary"
-                    disabled={busy || !newSubTitle.trim()}
-                    onClick={createSubLesson}
-                  >
-                    + درس فرعي
-                  </button>
                 </div>
-              </div>
+              )}
 
               {showImport && (
                 <QuestionImportPanel
                   importUrl="/collection-questions/import/"
                   lessonId={lessonId}
-                  subLessonId={activeSubObj?.id}
+                  subLessonId={focusedSubId || null}
                   targetLabel={
-                    activeSubObj
-                      ? `الدرس الفرعي «${activeSubObj.title}»`
+                    focusedSubObj
+                      ? `الدرس الفرعي «${focusedSubObj.title}»`
                       : `الدرس الرئيسي «${lesson.title}»`
                   }
                   showYearHint
@@ -1056,8 +919,8 @@ export default function CollectionLessonDetail() {
                     ["easy", "medium", "hard"].includes(filterLevel) ? filterLevel : "medium"
                   }
                   initialQuestion={null}
-                  subLessons={subLessons}
-                  defaultSubLessonId={activeSubObj?.id ?? null}
+                  subLessons={[]}
+                  defaultSubLessonId={focusedSubId || null}
                   onCancel={() => setShowForm(false)}
                   onSaved={() => {
                     loadQuestions();
@@ -1095,7 +958,7 @@ export default function CollectionLessonDetail() {
                           {item.question_year ? ` · ${item.question_year}` : ""}
                           {item.teacher_tier ? ` · ${tierLabel(item.teacher_tier)}` : ""}:
                         </strong>{" "}
-                        {activeSub === "all" && item.sub_lesson && subTitleById[item.sub_lesson] && (
+                        {effectiveActiveSub === "all" && item.sub_lesson && subTitleById[item.sub_lesson] && (
                           <span className="chip" style={{ marginInlineEnd: 6 }}>
                             {subTitleById[item.sub_lesson]}
                           </span>
@@ -1216,7 +1079,8 @@ export default function CollectionLessonDetail() {
                           kind="collection"
                           defaultDifficulty={item.difficulty || "medium"}
                           initialQuestion={editingQ}
-                          subLessons={subLessons}
+                          subLessons={[]}
+                          defaultSubLessonId={focusedSubId || item.sub_lesson || null}
                           onCancel={() => closeQuestionEdit(item.id)}
                           onSaved={() => {
                             loadQuestions().then(() => {

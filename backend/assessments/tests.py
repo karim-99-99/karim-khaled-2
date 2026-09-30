@@ -700,6 +700,26 @@ class CollectionSubLessonAPITests(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual([r["title"] for r in res.data], ["السرعة", "التسارع"])
 
+    def test_list_by_subject(self):
+        self._create_sub("السرعة")
+        self._create_sub("خارجي", lesson=self.other_lesson)
+        other_subject = Subject.objects.create(name="أخرى", slug="other-sub", order=99)
+        foreign_lesson = Lesson.objects.create(
+            subject=other_subject, title="أجنبي", order_number=1, created_by=self.admin
+        )
+        self.client.force_authenticate(user=self.teacher)
+        self.client.post(
+            "/api/collection-sub-lessons/",
+            {"lesson": foreign_lesson.id, "title": "لا يظهر"},
+            format="json",
+        )
+        self.client.force_authenticate(user=self.student)
+        res = self.client.get(f"/api/collection-sub-lessons/?subject={self.subject.id}")
+        self.assertEqual(res.status_code, 200)
+        titles = [r["title"] for r in res.data]
+        self.assertEqual(titles, ["السرعة", "خارجي"])
+        self.assertNotIn("لا يظهر", titles)
+
     def test_outsider_teacher_cannot_create(self):
         self.client.force_authenticate(user=self.outsider)
         res = self.client.post(
