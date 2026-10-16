@@ -872,13 +872,14 @@ class StartSimulatorView(APIView):
     Body:
       subject OR subjects[] (one or more),
       lessons[],
-      years[] OR year (optional filter on question_year),
       count (used by personal simulator),
       take_all (true = كل أسئلة المستويات المختارة — للتجميعات),
       level (easy|medium|hard|all) OR levels[] (one or more of easy/medium/hard),
       review_mode (immediate|final),
       question_pool (any|new|seen),
       time_limit_minutes (null/0 = open, else minutes)
+
+    Note: year/years are ignored — question_year is display-only for students.
     """
 
     permission_classes = [IsAuthenticated]
@@ -908,13 +909,7 @@ class StartSimulatorView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        raw_years = request.data.get("years")
-        years = []
-        if isinstance(raw_years, list):
-            years = [str(y).strip() for y in raw_years if str(y).strip()]
-        single_year = (request.data.get("year") or "").strip()
-        if single_year and single_year not in years:
-            years.append(single_year)
+        years = []  # year filter removed — keep year visible on each question only
 
         raw_tiers = request.data.get("tiers") or request.data.get("teacher_tiers")
         tiers = []
@@ -1011,8 +1006,7 @@ class StartSimulatorView(APIView):
             if 0 in sub_ids:
                 sub_q |= Q(sub_lesson__isnull=True)
             bank = bank.filter(sub_q)
-        if years:
-            bank = bank.filter(question_year__in=years)
+        # years intentionally unused (display-only on questions)
         if tiers:
             bank = bank.filter(teacher_tier__in=tiers)
 
