@@ -57,6 +57,7 @@ from planner.views import (
     active_study_plan,
     generate_study_plan,
     list_study_plans,
+    reschedule_study_plan,
     study_plan_detail,
     toggle_study_task,
 )
@@ -129,6 +130,7 @@ api_patterns = [
     path("study-plans/active/", active_study_plan),
     path("study-plans/generate/", generate_study_plan),
     path("study-plans/<int:plan_id>/", study_plan_detail),
+    path("study-plans/<int:plan_id>/reschedule/", reschedule_study_plan),
     path("study-plans/<int:plan_id>/tasks/<int:task_id>/toggle/", toggle_study_task),
     # Billing
     path("subscription/", my_subscription),
