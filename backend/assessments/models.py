@@ -91,11 +91,13 @@ class HomeworkQuestion(QuestionBase):
         null=True,
         blank=True,
     )
+    # ترتيب يدوي داخل العنوان الفرعي (أو الدرس إن لم يُحدد قسم).
+    order_number = models.PositiveIntegerField(default=1)
     needs_review = models.BooleanField(default=False)
     review_notes = models.TextField(blank=True, default="")
 
     class Meta:
-        ordering = ["lesson", "section", "id"]
+        ordering = ["lesson", "section", "order_number", "id"]
 
     def __str__(self):
         return f"Homework Q{self.id} - {self.lesson.title}"
@@ -148,6 +150,8 @@ class CollectionQuestion(QuestionBase):
     review_notes = models.TextField(blank=True, default="")
     # free_order 1..N marks a question as part of the free preview (first 10).
     free_order = models.PositiveIntegerField(null=True, blank=True)
+    # ترتيب يدوي داخل الدرس / الدرس الفرعي (مستقل عن مستوى الصعوبة).
+    order_number = models.PositiveIntegerField(default=1)
     # Teacher recommendation tier for collections (student filter).
     class TeacherTier(models.TextChoices):
         GOLD = "gold", "ذهبي"
@@ -159,7 +163,7 @@ class CollectionQuestion(QuestionBase):
     )
 
     class Meta:
-        ordering = ["lesson", "difficulty", "id"]
+        ordering = ["lesson", "sub_lesson", "order_number", "id"]
 
     def __str__(self):
         return f"Bank Q{self.id} - {self.lesson.title} [{self.difficulty}]"

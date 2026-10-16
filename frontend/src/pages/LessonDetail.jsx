@@ -108,6 +108,29 @@ export default function LessonDetail() {
     }
   }
 
+  async function bulkDeleteLessonHomework() {
+    if (
+      !confirm(
+        `مسح كل أسئلة الواجب في الدرس «${lesson.title}» (كل العناوين الفرعية)؟\nلا يمكن التراجع.`
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    try {
+      const { data } = await client.post("/homework-questions/bulk-delete/", {
+        lesson: Number(lessonId),
+      });
+      setMsg(`تم مسح ${data.deleted ?? 0} سؤال من واجب هذا الدرس ✓`);
+      await load();
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر المسح الجماعي");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   if (!lesson) return <div className="spinner">جاري التحميل…</div>;
 
   if (lesson.is_locked && !canEdit) {
@@ -181,9 +204,20 @@ export default function LessonDetail() {
           العناوين الفرعية
         </div>
         {canEdit && (
-          <button type="button" className="btn btn-primary" onClick={() => setShowAdd((v) => !v)}>
-            {showAdd ? "إلغاء" : "+ عنوان فرعي"}
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button type="button" className="btn btn-primary" onClick={() => setShowAdd((v) => !v)}>
+              {showAdd ? "إلغاء" : "+ عنوان فرعي"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              style={{ color: "var(--error)" }}
+              disabled={busy}
+              onClick={bulkDeleteLessonHomework}
+            >
+              مسح كل أسئلة الدرس
+            </button>
+          </div>
         )}
       </div>
 

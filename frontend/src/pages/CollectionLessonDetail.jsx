@@ -6,10 +6,28 @@ import client from "../api/client";
 import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
 import QuestionImportPanel from "../components/QuestionImportPanel";
+import QuestionOrderNumber from "../components/QuestionOrderNumber";
 import TeacherQuestionForm from "../components/TeacherQuestionForm";
 import VideoPlayer from "../components/VideoPlayer";
 import YearScrollPicker, { expandYearRange } from "../components/YearScrollPicker";
 import { TEACHER_TIERS, tierLabel } from "../constants/teacherTiers";
+
+function sortByOrder(rows) {
+  return [...(rows || [])].sort(
+    (a, b) => (a.order_number || 0) - (b.order_number || 0) || a.id - b.id
+  );
+}
+
+function moveToPosition(list, id, newPos) {
+  const next = [...list];
+  const from = next.findIndex((q) => q.id === id);
+  if (from < 0) return list;
+  const to = Math.max(0, Math.min(next.length - 1, newPos - 1));
+  if (from === to) return list;
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
 
 const LEVELS = [
   { id: "easy", label: "سهل" },
@@ -242,8 +260,82 @@ export default function CollectionLessonDetail() {
     if (focusedSubId) params.set("sub_lesson", String(focusedSubId));
     return client
       .get(`/collection-questions/?${params.toString()}`)
-      .then((res) => setQList(res.data.results || res.data || []))
+      .then((res) => setQList(sortByOrder(res.data.results || res.data || [])))
       .catch(() => setQList([]));
+  }
+
+  async function reorderScopedQuestions(ordered) {
+    const payload = {
+      lesson: Number(lessonId),
+      ordered_ids: ordered.map((q) => q.id),
+    };
+    if (focusedSubId) payload.sub_lesson = focusedSubId;
+    else if (effectiveActiveSub === "none") payload.sub_lesson = "none";
+    else if (typeof effectiveActiveSub === "number") payload.sub_lesson = effectiveActiveSub;
+    const { data } = await client.post("/collection-questions/reorder/", payload);
+    const byId = Object.fromEntries((data || []).map((q) => [q.id, q]));
+    setQList((prev) =>
+      sortByOrder(
+        prev.map((q) => (byId[q.id] ? { ...q, order_number: byId[q.id].order_number } : q))
+      )
+    );
+  }
+
+  async function commitQuestionOrder(item, newPos, scopeList) {
+    const ordered = moveToPosition(scopeList, item.id, newPos);
+    if (ordered === scopeList) return;
+    // Optimistic UI
+    const optimistic = ordered.map((q, i) => ({ ...q, order_number: i + 1 }));
+    setQList((prev) => {
+      const others = prev.filter((q) => !optimistic.some((o) => o.id === q.id));
+      return sortByOrder([...others, ...optimistic]);
+    });
+    try {
+      await reorderScopedQuestions(ordered);
+      setMsg("تم تحديث ترتيب الأسئلة ✓");
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر تحديث الترتيب");
+      await loadQuestions();
+    }
+  }
+
+  async function bulkDeleteQuestions() {
+    const scopeLabel = focusedSubObj
+      ? `الدرس الفرعي «${focusedSubObj.title}»`
+      : effectiveActiveSub === "none"
+        ? "الأسئلة المباشرة تحت الدرس الرئيسي"
+        : typeof effectiveActiveSub === "number" && activeSubObj
+          ? `الدرس الفرعي «${activeSubObj.title}»`
+          : `كل أسئلة الدرس «${lesson.title}»`;
+    const countHint =
+      effectiveActiveSub === "all" && !focusedSubId
+        ? qList.length
+        : subScopedQs.length;
+    if (
+      !confirm(
+        `مسح ${countHint} سؤال من ${scopeLabel}؟\nلا يمكن التراجع عن هذا الإجراء.`
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    try {
+      const payload = { lesson: Number(lessonId) };
+      if (focusedSubId) payload.sub_lesson = focusedSubId;
+      else if (effectiveActiveSub === "none") payload.sub_lesson = "none";
+      else if (typeof effectiveActiveSub === "number") payload.sub_lesson = effectiveActiveSub;
+      // when "all" on main: omit sub_lesson → delete entire lesson bank
+      const { data } = await client.post("/collection-questions/bulk-delete/", payload);
+      setEditingQ(null);
+      setShowForm(false);
+      await Promise.all([loadQuestions(), loadLesson(), loadSubLessons()]);
+      setMsg(`تم مسح ${data.deleted ?? countHint} سؤال ✓`);
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر المسح الجماعي");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function loadSubLessons() {
@@ -825,8 +917,23 @@ export default function CollectionLessonDetail() {
                       ? "إخفاء النموذج"
                       : activeSubObj
                         ? `+ إضافة سؤال في «${activeSubObj.title}»`
-                        : "+ إضافة سؤال"}
+                        : "+ إضافة سؤال على الفصل"}
                   </button>
+                  {(focusedSubId
+                    ? subScopedQs.length > 0
+                    : effectiveActiveSub === "all"
+                      ? qList.length > 0
+                      : subScopedQs.length > 0) && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      style={{ color: "var(--error)" }}
+                      disabled={busy}
+                      onClick={bulkDeleteQuestions}
+                    >
+                      مسح كل الأسئلة هنا
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -919,20 +1026,37 @@ export default function CollectionLessonDetail() {
                     ["easy", "medium", "hard"].includes(filterLevel) ? filterLevel : "medium"
                   }
                   initialQuestion={null}
-                  subLessons={[]}
+                  subLessons={subLessons}
                   defaultSubLessonId={focusedSubId || null}
                   onCancel={() => setShowForm(false)}
                   onSaved={() => {
                     loadQuestions();
+                    loadSubLessons();
                     setShowForm(false);
                     setMsg("تم إضافة السؤال ✓");
                   }}
                 />
               )}
 
+              {canEdit &&
+                subScopedQs.length > 1 &&
+                (focusedSubId || effectiveActiveSub === "none" || typeof effectiveActiveSub === "number") && (
+                  <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 8 }}>
+                    رتّب الأسئلة بالترقيم (#) — غيّر الرقم ثم Enter. مش محتاج أسهم.
+                  </p>
+                )}
+
               {visibleQs.map((item, i) => {
                 const isEditing = editingQ?.id === item.id;
                 const options = Array.isArray(item.options) ? item.options : [];
+                const scopeForOrder = subScopedQs;
+                const orderIndex = scopeForOrder.findIndex((q) => q.id === item.id);
+                const canNumberOrder =
+                  orderIndex >= 0 &&
+                  scopeForOrder.length > 1 &&
+                  (focusedSubId ||
+                    effectiveActiveSub === "none" ||
+                    typeof effectiveActiveSub === "number");
                 return (
                   <div
                     key={item.id}
@@ -953,11 +1077,31 @@ export default function CollectionLessonDetail() {
                       }}
                     >
                       <div style={{ flex: 1 }}>
-                        <strong>
-                          س{i + 1} · {levelLabel(item.difficulty)}
-                          {item.question_year ? ` · ${item.question_year}` : ""}
-                          {item.teacher_tier ? ` · ${tierLabel(item.teacher_tier)}` : ""}:
-                        </strong>{" "}
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 10,
+                            flexWrap: "wrap",
+                            marginBottom: 4,
+                          }}
+                        >
+                          {canNumberOrder ? (
+                            <QuestionOrderNumber
+                              value={orderIndex + 1}
+                              max={scopeForOrder.length}
+                              disabled={busy}
+                              onCommit={(n) => commitQuestionOrder(item, n, scopeForOrder)}
+                            />
+                          ) : (
+                            <strong style={{ color: "var(--text-muted)" }}>س{i + 1}</strong>
+                          )}
+                          <strong>
+                            {levelLabel(item.difficulty)}
+                            {item.question_year ? ` · ${item.question_year}` : ""}
+                            {item.teacher_tier ? ` · ${tierLabel(item.teacher_tier)}` : ""}:
+                          </strong>
+                        </div>{" "}
                         {effectiveActiveSub === "all" && item.sub_lesson && subTitleById[item.sub_lesson] && (
                           <span className="chip" style={{ marginInlineEnd: 6 }}>
                             {subTitleById[item.sub_lesson]}
@@ -1079,11 +1223,11 @@ export default function CollectionLessonDetail() {
                           kind="collection"
                           defaultDifficulty={item.difficulty || "medium"}
                           initialQuestion={editingQ}
-                          subLessons={[]}
+                          subLessons={subLessons}
                           defaultSubLessonId={focusedSubId || item.sub_lesson || null}
                           onCancel={() => closeQuestionEdit(item.id)}
                           onSaved={() => {
-                            loadQuestions().then(() => {
+                            Promise.all([loadQuestions(), loadSubLessons()]).then(() => {
                               closeQuestionEdit(item.id, "تم تعديل السؤال ✓");
                             });
                           }}

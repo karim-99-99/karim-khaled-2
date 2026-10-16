@@ -181,7 +181,7 @@ export default function TeacherQuestionForm({
         <>
           {subLessons.length > 0 && (
             <div className="form-group">
-              <label>الدرس الفرعي (اختياري)</label>
+              <label>تصنيف الدرس الفرعي (اختياري)</label>
               <select
                 className="form-control"
                 value={form.sub_lesson ?? ""}
@@ -192,13 +192,16 @@ export default function TeacherQuestionForm({
                   }))
                 }
               >
-                <option value="">— بدون (مباشرة في الدرس الرئيسي) —</option>
+                <option value="">— على الفصل مباشرة (بدون عنوان فرعي) —</option>
                 {subLessons.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.title}
                   </option>
                 ))}
               </select>
+              <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 6 }}>
+                تقدر تضيف السؤال على الفصل، أو تصنّفه يدوياً لأي عنوان فرعي موجود تحت هذا الدرس.
+              </p>
             </div>
           )}
           <div className="form-group">
@@ -251,9 +254,12 @@ export default function TeacherQuestionForm({
         <EquationEditor
           value={form.text}
           onChange={(text) => setForm((f) => ({ ...f, text }))}
-          placeholder="اكتب السؤال…"
+          placeholder="اكتب السؤال… أو الصق صورة بـ Ctrl+V"
           {...pasteProps("text")}
         />
+        <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 6 }}>
+          كوبي بيست للصور: انسخ صورة (Ctrl+C) والصقها هنا أو في خانة الصورة بـ Ctrl+V.
+        </p>
       </div>
       <ImagePicker
         label="صورة السؤال (اختياري)"

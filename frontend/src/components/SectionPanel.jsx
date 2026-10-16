@@ -4,9 +4,27 @@ import client from "../api/client";
 import MathText from "./MathText";
 import TeacherQuestionForm from "./TeacherQuestionForm";
 import QuestionImportPanel from "./QuestionImportPanel";
+import QuestionOrderNumber from "./QuestionOrderNumber";
 import VideoPlayer from "./VideoPlayer";
 import { useAuth } from "../auth/AuthContext";
 import { canEditSubject } from "../auth/teacherScope";
+
+function sortByOrder(rows) {
+  return [...(rows || [])].sort(
+    (a, b) => (a.order_number || 0) - (b.order_number || 0) || a.id - b.id
+  );
+}
+
+function moveToPosition(list, id, newPos) {
+  const next = [...list];
+  const from = next.findIndex((q) => q.id === id);
+  if (from < 0) return list;
+  const to = Math.max(0, Math.min(next.length - 1, newPos - 1));
+  if (from === to) return list;
+  const [item] = next.splice(from, 1);
+  next.splice(to, 0, item);
+  return next;
+}
 
 /**
  * Inline panel under a lesson subsection: video / homework / PDF.
@@ -45,7 +63,7 @@ export default function SectionPanel({ sectionId, onUpdated }) {
       return client
         .get(`/homework-questions/?section=${sid}`)
         .then((res) => {
-          const rows = res.data.results || res.data || [];
+          const rows = sortByOrder(res.data.results || res.data || []);
           setTeacherQs(rows);
           setHomework(rows);
         })
@@ -124,6 +142,52 @@ export default function SectionPanel({ sectionId, onUpdated }) {
       await loadHomework(canEdit);
     } catch (e) {
       setMsg(e.response?.data?.detail || "تعذّر الحذف");
+    }
+  }
+
+  async function commitQuestionOrder(item, newPos) {
+    const ordered = moveToPosition(teacherQs, item.id, newPos);
+    if (ordered === teacherQs) return;
+    const optimistic = ordered.map((q, i) => ({ ...q, order_number: i + 1 }));
+    setTeacherQs(optimistic);
+    setHomework(optimistic);
+    try {
+      await client.post("/homework-questions/reorder/", {
+        lesson: section.lesson,
+        section: section.id,
+        ordered_ids: ordered.map((q) => q.id),
+      });
+      setMsg("تم تحديث ترتيب الأسئلة ✓");
+      await loadHomework(true);
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر تحديث الترتيب");
+      await loadHomework(true);
+    }
+  }
+
+  async function bulkDeleteSectionQuestions() {
+    if (
+      !confirm(
+        `مسح كل أسئلة هذا العنوان الفرعي (${teacherQs.length})؟\nلا يمكن التراجع.`
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    try {
+      const { data } = await client.post("/homework-questions/bulk-delete/", {
+        section: section.id,
+        lesson: section.lesson,
+      });
+      setEditingQ(null);
+      setShowAddQ(false);
+      await loadHomework(true);
+      setMsg(`تم مسح ${data.deleted ?? teacherQs.length} سؤال ✓`);
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر المسح الجماعي");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -282,11 +346,28 @@ export default function SectionPanel({ sectionId, onUpdated }) {
               >
                 {showAddQ && !editingQ ? "إخفاء النموذج" : "+ إضافة سؤال واجب"}
               </button>
+              {teacherQs.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  style={{ color: "var(--error)" }}
+                  disabled={busy}
+                  onClick={bulkDeleteSectionQuestions}
+                >
+                  مسح كل أسئلة هذا العنوان
+                </button>
+              )}
               <span style={{ color: "var(--text-muted)", alignSelf: "center", fontSize: 13 }}>
                 عدد الأسئلة: {teacherQs.length}
                 {reviewCount > 0 ? ` · ${reviewCount} بانتظار المراجعة` : ""}
               </span>
             </div>
+          )}
+
+          {canEdit && teacherQs.length > 1 && (
+            <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 8 }}>
+              رتّب الأسئلة بالترقيم (#) — غيّر الرقم ثم Enter.
+            </p>
           )}
 
           {canEdit && showImport && (
@@ -334,15 +415,34 @@ export default function SectionPanel({ sectionId, onUpdated }) {
                 <div key={item.id} className="card" style={{ padding: 12, marginTop: 8 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                     <div style={{ flex: 1 }}>
-                      <strong>س{i + 1}:</strong>{" "}
-                      {item.needs_review && (
-                        <span
-                          className="chip"
-                          style={{ background: "#fef3c7", color: "#92400e", marginInlineEnd: 6 }}
-                        >
-                          بحاجة لمراجعة
-                        </span>
-                      )}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                          flexWrap: "wrap",
+                          marginBottom: 4,
+                        }}
+                      >
+                        {teacherQs.length > 1 ? (
+                          <QuestionOrderNumber
+                            value={i + 1}
+                            max={teacherQs.length}
+                            disabled={busy}
+                            onCommit={(n) => commitQuestionOrder(item, n)}
+                          />
+                        ) : (
+                          <strong style={{ color: "var(--text-muted)" }}>س1</strong>
+                        )}
+                        {item.needs_review && (
+                          <span
+                            className="chip"
+                            style={{ background: "#fef3c7", color: "#92400e" }}
+                          >
+                            بحاجة لمراجعة
+                          </span>
+                        )}
+                      </div>
                       <MathText>{item.text}</MathText>
                       {item.needs_review && item.review_notes && (
                         <div style={{ color: "#b45309", fontSize: 13, marginTop: 4 }}>

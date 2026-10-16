@@ -61,6 +61,19 @@ def _teacher_scope(user):
     return group_ids, subject_ids
 
 
+def _next_question_order(model, *, lesson_id, section_id=None, sub_lesson_id=None):
+    qs = model.objects.filter(lesson_id=lesson_id)
+    if section_id is not None:
+        qs = qs.filter(section_id=section_id)
+    if "sub_lesson" in [f.name for f in model._meta.get_fields()]:
+        if sub_lesson_id is None:
+            qs = qs.filter(sub_lesson__isnull=True)
+        else:
+            qs = qs.filter(sub_lesson_id=sub_lesson_id)
+    last = qs.order_by("-order_number", "-id").values_list("order_number", flat=True).first()
+    return (last or 0) + 1
+
+
 class TeacherQuestionMixin:
     permission_classes = [IsTeacherOrAdmin]
 
@@ -74,7 +87,7 @@ class TeacherQuestionMixin:
             val = self.request.query_params.get(field)
             if val and field in [f.name for f in self.model._meta.get_fields()]:
                 qs = qs.filter(**{field: val})
-        return qs
+        return qs.order_by("order_number", "id")
 
     def perform_create(self, serializer):
         user = self.request.user
@@ -124,7 +137,16 @@ class HomeworkQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
                 )
             if group is not None and not links.filter(group=group).exists():
                 raise PermissionDenied("لا تُدرّس هذه المادة في هذه المجموعة")
-        serializer.save(created_by=user)
+        lesson = serializer.validated_data.get("lesson")
+        section = serializer.validated_data.get("section")
+        lesson_id = lesson.pk if hasattr(lesson, "pk") else lesson
+        section_id = section.pk if section is not None and hasattr(section, "pk") else section
+        extras = {}
+        if not serializer.validated_data.get("order_number"):
+            extras["order_number"] = _next_question_order(
+                HomeworkQuestion, lesson_id=lesson_id, section_id=section_id
+            )
+        serializer.save(created_by=user, **extras)
 
     def perform_update(self, serializer):
         user = self.request.user
@@ -142,6 +164,85 @@ class HomeworkQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
 
                 raise PermissionDenied("لا تُدرّس هذه المادة في هذه المجموعة")
         serializer.save()
+
+    @action(detail=False, methods=["post"])
+    def reorder(self, request):
+        """
+        { lesson, section (optional), ordered_ids: [id, ...] }
+        section omitted/null = كل أسئلة الدرس بلا قسم؛ رقم = قسم معيّن.
+        """
+        lesson_id = request.data.get("lesson")
+        ordered_ids = request.data.get("ordered_ids") or []
+        if not lesson_id or not isinstance(ordered_ids, list) or not ordered_ids:
+            return Response(
+                {"detail": "أرسل lesson و ordered_ids"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        lesson = Lesson.objects.filter(id=lesson_id).first()
+        if not lesson:
+            return Response({"detail": "الدرس غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+        assert_teacher_can_manage_subject(request.user, lesson.subject_id)
+        try:
+            ids = [int(x) for x in ordered_ids]
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "ordered_ids غير صالحة"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        qs = HomeworkQuestion.objects.filter(lesson_id=lesson.id, id__in=ids)
+        if "section" in request.data:
+            section = request.data.get("section")
+            if section in (None, "", "none"):
+                qs = qs.filter(section__isnull=True)
+            else:
+                qs = qs.filter(section_id=int(section))
+        found = set(qs.values_list("id", flat=True))
+        if len(found) != len(ids):
+            return Response(
+                {"detail": "بعض الأسئلة غير موجودة في هذا النطاق"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        with transaction.atomic():
+            for i, qid in enumerate(ids):
+                HomeworkQuestion.objects.filter(id=qid).update(order_number=i + 1)
+        out = self.get_serializer(
+            HomeworkQuestion.objects.filter(id__in=ids).order_by("order_number", "id"),
+            many=True,
+        ).data
+        return Response(out)
+
+    @action(detail=False, methods=["post"], url_path="bulk-delete")
+    def bulk_delete(self, request):
+        """
+        مسح كل أسئلة نطاق معيّن:
+          { lesson } → كل أسئلة الدرس (كل العناوين الفرعية)
+          { section } → أسئلة عنوان فرعي واحد
+        """
+        lesson_id = request.data.get("lesson")
+        section_id = request.data.get("section")
+        if not lesson_id and not section_id:
+            return Response(
+                {"detail": "أرسل lesson أو section"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        qs = HomeworkQuestion.objects.all()
+        if section_id:
+            qs = qs.filter(section_id=section_id)
+            sample = qs.first()
+            if sample:
+                assert_teacher_can_manage_subject(request.user, sample.subject_id)
+            elif lesson_id:
+                lesson = Lesson.objects.filter(id=lesson_id).first()
+                if lesson:
+                    assert_teacher_can_manage_subject(request.user, lesson.subject_id)
+        else:
+            lesson = Lesson.objects.filter(id=lesson_id).first()
+            if not lesson:
+                return Response({"detail": "الدرس غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+            assert_teacher_can_manage_subject(request.user, lesson.subject_id)
+            qs = qs.filter(lesson_id=lesson.id)
+        # Subject managers can wipe the whole scope (confirm on the client).
+        deleted, _ = qs.delete()
+        return Response({"deleted": deleted})
 
 
 class CollectionQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
@@ -165,14 +266,23 @@ class CollectionQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
             qs = qs.filter(sub_lesson__isnull=True)
         elif sub_lesson and sub_lesson.isdigit():
             qs = qs.filter(sub_lesson_id=int(sub_lesson))
-        return qs
+        return qs.order_by("order_number", "id")
 
     def perform_create(self, serializer):
         user = self.request.user
         subject = serializer.validated_data.get("subject")
         subject_id = subject.pk if hasattr(subject, "pk") else subject
         assert_teacher_can_manage_subject(user, subject_id)
-        serializer.save(created_by=user, group=None)
+        lesson = serializer.validated_data.get("lesson")
+        sub = serializer.validated_data.get("sub_lesson")
+        lesson_id = lesson.pk if hasattr(lesson, "pk") else lesson
+        sub_id = sub.pk if sub is not None and hasattr(sub, "pk") else sub
+        extras = {"group": None}
+        if not serializer.validated_data.get("order_number"):
+            extras["order_number"] = _next_question_order(
+                CollectionQuestion, lesson_id=lesson_id, sub_lesson_id=sub_id
+            )
+        serializer.save(created_by=user, **extras)
 
     def perform_update(self, serializer):
         user = self.request.user
@@ -181,6 +291,82 @@ class CollectionQuestionViewSet(TeacherQuestionMixin, viewsets.ModelViewSet):
         assert_teacher_can_manage_subject(user, serializer.instance.subject_id)
         assert_teacher_can_manage_subject(user, subject_id)
         serializer.save(group=None)
+
+    @action(detail=False, methods=["post"])
+    def reorder(self, request):
+        """
+        { lesson, sub_lesson?: null|"none"|id, ordered_ids: [id, ...] }
+        بدون sub_lesson = إعادة ترتيب القائمة المُرسلة كما هي (نفس النطاق).
+        """
+        lesson_id = request.data.get("lesson")
+        ordered_ids = request.data.get("ordered_ids") or []
+        if not lesson_id or not isinstance(ordered_ids, list) or not ordered_ids:
+            return Response(
+                {"detail": "أرسل lesson و ordered_ids"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        lesson = Lesson.objects.filter(id=lesson_id).first()
+        if not lesson:
+            return Response({"detail": "الدرس غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+        assert_teacher_can_manage_subject(request.user, lesson.subject_id)
+        try:
+            ids = [int(x) for x in ordered_ids]
+        except (TypeError, ValueError):
+            return Response(
+                {"detail": "ordered_ids غير صالحة"}, status=status.HTTP_400_BAD_REQUEST
+            )
+        qs = CollectionQuestion.objects.filter(lesson_id=lesson.id, id__in=ids)
+        if "sub_lesson" in request.data:
+            sub = request.data.get("sub_lesson")
+            if sub in (None, "", "none"):
+                qs = qs.filter(sub_lesson__isnull=True)
+            else:
+                qs = qs.filter(sub_lesson_id=int(sub))
+        found = set(qs.values_list("id", flat=True))
+        if len(found) != len(ids):
+            return Response(
+                {"detail": "بعض الأسئلة غير موجودة في هذا النطاق"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        with transaction.atomic():
+            for i, qid in enumerate(ids):
+                CollectionQuestion.objects.filter(id=qid).update(order_number=i + 1)
+        out = self.get_serializer(
+            CollectionQuestion.objects.filter(id__in=ids).order_by("order_number", "id"),
+            many=True,
+        ).data
+        return Response(out)
+
+    @action(detail=False, methods=["post"], url_path="bulk-delete")
+    def bulk_delete(self, request):
+        """
+        مسح أسئلة التجميع في نطاق:
+          { lesson } → كل أسئلة الدرس (رئيسي + فروع)
+          { lesson, sub_lesson: "none" } → الأسئلة المباشرة تحت الدرس فقط
+          { lesson, sub_lesson: id } → أسئلة درس فرعي
+        """
+        lesson_id = request.data.get("lesson")
+        if not lesson_id:
+            return Response({"detail": "أرسل lesson"}, status=status.HTTP_400_BAD_REQUEST)
+        lesson = Lesson.objects.filter(id=lesson_id).first()
+        if not lesson:
+            return Response({"detail": "الدرس غير موجود"}, status=status.HTTP_404_NOT_FOUND)
+        assert_teacher_can_manage_subject(request.user, lesson.subject_id)
+        qs = CollectionQuestion.objects.filter(lesson_id=lesson.id)
+        if "sub_lesson" in request.data:
+            sub = request.data.get("sub_lesson")
+            if sub in (None, "", "none"):
+                qs = qs.filter(sub_lesson__isnull=True)
+            else:
+                try:
+                    qs = qs.filter(sub_lesson_id=int(sub))
+                except (TypeError, ValueError):
+                    return Response(
+                        {"detail": "sub_lesson غير صالح"},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+        deleted, _ = qs.delete()
+        return Response({"deleted": deleted})
 
 
 class CollectionSubLessonViewSet(viewsets.ModelViewSet):
@@ -347,6 +533,11 @@ class ImportCollectionQuestionsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        start_order = _next_question_order(
+            CollectionQuestion,
+            lesson_id=lesson.id,
+            sub_lesson_id=sub_lesson.id if sub_lesson else None,
+        )
         created = CollectionQuestion.objects.bulk_create(
             [
                 CollectionQuestion(
@@ -355,6 +546,7 @@ class ImportCollectionQuestionsView(APIView):
                     sub_lesson=sub_lesson,
                     created_by=request.user,
                     group=None,
+                    order_number=start_order + i,
                     text=q["text"],
                     options=q["options"],
                     correct_answer=q["correct_answer"],
@@ -367,7 +559,7 @@ class ImportCollectionQuestionsView(APIView):
                     needs_review=q["needs_review"],
                     review_notes=q["review_notes"],
                 )
-                for q in questions
+                for i, q in enumerate(questions)
             ]
         )
         return Response(
@@ -463,6 +655,11 @@ class ImportHomeworkQuestionsView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        start_order = _next_question_order(
+            HomeworkQuestion,
+            lesson_id=lesson.id,
+            section_id=section.id if section else None,
+        )
         created = HomeworkQuestion.objects.bulk_create(
             [
                 HomeworkQuestion(
@@ -471,6 +668,7 @@ class ImportHomeworkQuestionsView(APIView):
                     section=section,
                     created_by=request.user,
                     group=None,
+                    order_number=start_order + i,
                     text=q["text"],
                     options=q["options"],
                     correct_answer=q["correct_answer"],
@@ -480,7 +678,7 @@ class ImportHomeworkQuestionsView(APIView):
                     needs_review=q["needs_review"],
                     review_notes=q["review_notes"],
                 )
-                for q in questions
+                for i, q in enumerate(questions)
             ]
         )
         return Response(
@@ -544,10 +742,12 @@ class StudentHomeworkView(APIView):
                 lesson = Lesson.objects.filter(id=check_lesson_id).first()
                 if lesson and not lesson_is_free_preview(lesson):
                     return Response([])
-            qs = qs.order_by("id")[: free_question_limit()]
+            qs = qs.order_by("order_number", "id")[: free_question_limit()]
             return Response(HomeworkPublicSerializer(qs, many=True).data)
 
-        return Response(HomeworkPublicSerializer(qs, many=True).data)
+        return Response(
+            HomeworkPublicSerializer(qs.order_by("order_number", "id"), many=True).data
+        )
 
 
 def _student_group_ids(user):

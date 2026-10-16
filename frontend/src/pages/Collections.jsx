@@ -120,6 +120,29 @@ export default function Collections() {
     }
   }
 
+  async function bulkDeleteLessonQuestions(lesson) {
+    if (
+      !confirm(
+        `مسح كل أسئلة التجميع في «${lesson.title}» (الرئيسي + كل الفروع)؟\nلا يمكن التراجع.`
+      )
+    ) {
+      return;
+    }
+    setBusy(true);
+    setMsg("");
+    try {
+      const { data } = await client.post("/collection-questions/bulk-delete/", {
+        lesson: lesson.id,
+      });
+      setMsg(`تم مسح ${data.deleted ?? 0} سؤال من «${lesson.title}» ✓`);
+      await loadSubs();
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر المسح الجماعي");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function moveLesson(id, dir) {
     const idx = lessons.findIndex((l) => l.id === id);
     if (idx < 0) return;
@@ -419,18 +442,28 @@ export default function Collections() {
                       >
                         تعديل الاسم
                       </button>
-                      <button
-                        type="button"
-                        className="btn btn-ghost btn-sm"
-                        style={{ color: "var(--error)" }}
-                        disabled={busy}
-                        onClick={() => deleteLesson(l.id, l.title)}
-                      >
-                        حذف
-                      </button>
-                      <Link to={lessonHref} className="btn btn-secondary btn-sm">
-                        فتح الدرس
-                      </Link>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ color: "var(--error)" }}
+                      disabled={busy}
+                      onClick={() => deleteLesson(l.id, l.title)}
+                    >
+                      حذف الدرس
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      style={{ color: "var(--error)" }}
+                      disabled={busy}
+                      onClick={() => bulkDeleteLessonQuestions(l)}
+                      title="مسح كل الأسئلة دون حذف الدرس"
+                    >
+                      مسح الأسئلة
+                    </button>
+                    <Link to={lessonHref} className="btn btn-secondary btn-sm">
+                      فتح الدرس
+                    </Link>
                     </>
                   )}
                 </>
@@ -579,7 +612,38 @@ export default function Collections() {
                                 disabled={busy}
                                 onClick={() => deleteSubLesson(s)}
                               >
-                                حذف
+                                حذف الفرعي
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-ghost btn-sm"
+                                style={{ color: "var(--error)" }}
+                                disabled={busy}
+                                onClick={async () => {
+                                  if (
+                                    !confirm(
+                                      `مسح كل أسئلة «${s.title}»؟\nلا يمكن التراجع.`
+                                    )
+                                  ) {
+                                    return;
+                                  }
+                                  setBusy(true);
+                                  setMsg("");
+                                  try {
+                                    const { data } = await client.post(
+                                      "/collection-questions/bulk-delete/",
+                                      { lesson: l.id, sub_lesson: s.id }
+                                    );
+                                    setMsg(`تم مسح ${data.deleted ?? 0} سؤال من «${s.title}» ✓`);
+                                    await loadSubs();
+                                  } catch (e) {
+                                    setMsg(e.response?.data?.detail || "تعذّر المسح");
+                                  } finally {
+                                    setBusy(false);
+                                  }
+                                }}
+                              >
+                                مسح الأسئلة
                               </button>
                               <Link to={subHref} className="btn btn-secondary btn-sm">
                                 فتح وإضافة أسئلة

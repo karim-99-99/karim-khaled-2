@@ -825,3 +825,123 @@ class CollectionSubLessonAPITests(TestCase):
             format="json",
         )
         self.assertEqual(res.status_code, 400)
+
+    def test_reorder_and_bulk_delete_collection_questions(self):
+        a = _make_question(self.subject, self.lesson, self.teacher, "easy", 1)
+        b = _make_question(self.subject, self.lesson, self.teacher, "easy", 2)
+        c = _make_question(self.subject, self.lesson, self.teacher, "medium", 3)
+        sub = self._create_sub("فرع")
+        in_sub = _make_question(self.subject, self.lesson, self.teacher, "easy", 4)
+        in_sub.sub_lesson_id = sub["id"]
+        in_sub.save()
+
+        self.client.force_authenticate(user=self.teacher)
+        res = self.client.post(
+            "/api/collection-questions/reorder/",
+            {
+                "lesson": self.lesson.id,
+                "sub_lesson": "none",
+                "ordered_ids": [c.id, a.id, b.id],
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 200, res.data)
+        a.refresh_from_db()
+        b.refresh_from_db()
+        c.refresh_from_db()
+        self.assertEqual([c.order_number, a.order_number, b.order_number], [1, 2, 3])
+
+        wipe_sub = self.client.post(
+            "/api/collection-questions/bulk-delete/",
+            {"lesson": self.lesson.id, "sub_lesson": sub["id"]},
+            format="json",
+        )
+        self.assertEqual(wipe_sub.status_code, 200, wipe_sub.data)
+        self.assertEqual(wipe_sub.data["deleted"], 1)
+        self.assertFalse(CollectionQuestion.objects.filter(id=in_sub.id).exists())
+
+        wipe_direct = self.client.post(
+            "/api/collection-questions/bulk-delete/",
+            {"lesson": self.lesson.id, "sub_lesson": "none"},
+            format="json",
+        )
+        self.assertEqual(wipe_direct.status_code, 200)
+        self.assertEqual(wipe_direct.data["deleted"], 3)
+        self.assertEqual(
+            CollectionQuestion.objects.filter(lesson=self.lesson).count(), 0
+        )
+
+
+class HomeworkQuestionOrderBulkTests(TestCase):
+    def setUp(self):
+        from catalog.models import LessonSection
+        from groups.models import GroupTeacher
+
+        self.client = APIClient()
+        self.subject = Subject.objects.create(name="تأسيس-ترتيب", slug="hw-ord", order=1)
+        self.admin = User.objects.create_user(
+            email="a-hw-ord@test.local",
+            password="Passw0rd!",
+            full_name="A",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.teacher = User.objects.create_user(
+            email="t-hw-ord@test.local",
+            password="Passw0rd!",
+            full_name="T",
+            role=User.Role.TEACHER,
+            taught_subject=self.subject,
+        )
+        self.lesson = Lesson.objects.create(
+            subject=self.subject, title="درس", order_number=1, created_by=self.admin
+        )
+        self.section = LessonSection.objects.create(
+            lesson=self.lesson, title="حصة", order_number=1
+        )
+        self.group = StudyGroup.objects.create(name="HwOrd", created_by=self.admin)
+        GroupTeacher.objects.create(
+            group=self.group, teacher=self.teacher, subject=self.subject
+        )
+
+    def test_reorder_and_bulk_delete_homework(self):
+        from assessments.models import HomeworkQuestion
+
+        qs = []
+        for i in range(3):
+            qs.append(
+                HomeworkQuestion.objects.create(
+                    subject=self.subject,
+                    lesson=self.lesson,
+                    section=self.section,
+                    created_by=self.teacher,
+                    text=f"س{i}",
+                    options=[{"key": "أ", "text": "1"}, {"key": "ب", "text": "2"}],
+                    correct_answer="أ",
+                    difficulty="medium",
+                    order_number=i + 1,
+                )
+            )
+        self.client.force_authenticate(user=self.teacher)
+        res = self.client.post(
+            "/api/homework-questions/reorder/",
+            {
+                "lesson": self.lesson.id,
+                "section": self.section.id,
+                "ordered_ids": [qs[2].id, qs[0].id, qs[1].id],
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 200, res.data)
+        for q in qs:
+            q.refresh_from_db()
+        self.assertEqual([qs[2].order_number, qs[0].order_number, qs[1].order_number], [1, 2, 3])
+
+        wipe = self.client.post(
+            "/api/homework-questions/bulk-delete/",
+            {"section": self.section.id, "lesson": self.lesson.id},
+            format="json",
+        )
+        self.assertEqual(wipe.status_code, 200, wipe.data)
+        self.assertEqual(wipe.data["deleted"], 3)
+        self.assertEqual(HomeworkQuestion.objects.filter(section=self.section).count(), 0)
