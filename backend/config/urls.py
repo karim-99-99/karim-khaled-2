@@ -33,6 +33,7 @@ from assessments.views import (
     StartTeacherTestView,
     StudentHomeworkView,
     TeacherTestViewSet,
+    collections_resume,
     simulator_options,
 )
 from billing.views import (
@@ -123,6 +124,7 @@ api_patterns = [
     path("exams/<int:exam_id>/finish/", FinishView.as_view()),
     path("exams/<int:exam_id>/review/", ExamReviewView.as_view()),
     path("results/", MyResultsView.as_view()),
+    path("collections/resume/", collections_resume),
     path("my-homework/", StudentHomeworkView.as_view()),
     # Smart study plan (الجدول الذكي)
     path("study-plans/", list_study_plans),

@@ -40,6 +40,14 @@ export default function TestRunner() {
         if (q.selected_answer) restored[q.answer_id] = q.selected_answer;
       });
       setAnswers(restored);
+      // أكمل من أول سؤال لسه متحلّش (أنت واقف هنا)
+      const ri = Number(res.data.resume_index);
+      if (Number.isFinite(ri) && ri >= 0) {
+        setIdx(Math.min(ri, Math.max(0, (res.data.questions || []).length - 1)));
+      } else {
+        const firstOpen = (res.data.questions || []).findIndex((q) => !q.selected_answer);
+        if (firstOpen >= 0) setIdx(firstOpen);
+      }
     });
   }, [examId]);
 
@@ -235,8 +243,16 @@ export default function TestRunner() {
           <span style={{ color: "var(--text-muted)", fontSize: 13 }}>مدة مفتوحة</span>
         )}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Link to="/courses" className="btn btn-ghost btn-sm">
-            الخروج للدورات
+          <Link
+            to={
+              exam.subject
+                ? `/courses/${exam.subject}/collections`
+                : "/courses"
+            }
+            className="btn btn-ghost btn-sm"
+            title="هتلاقي علامة «أنت واقف هنا» ترجعك لنفس المكان"
+          >
+            خروج — أكمل لاحقاً
           </Link>
           <button
             type="button"
