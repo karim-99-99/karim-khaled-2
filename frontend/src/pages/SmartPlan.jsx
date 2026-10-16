@@ -88,9 +88,15 @@ export default function SmartPlan() {
   const byDay = useMemo(() => groupTasksByDay(plan?.tasks), [plan]);
   const dayTasks = byDay[selectedDay] || [];
   const dayDone = dayTasks.filter((t) => t.is_done).length;
+  const dayPending = dayTasks.length - dayDone;
   const progressPct = plan?.total_count
     ? Math.round((100 * (plan.done_count || 0)) / plan.total_count)
     : 0;
+  const overdueCount = plan?.overdue_count || 0;
+  const selectedIsPast =
+    plan && selectedDay != null && selectedDay < (plan.today_day_index || 1);
+  const selectedIncomplete = selectedIsPast && dayPending > 0;
+  const canReschedule = overdueCount > 0 || selectedIncomplete;
 
   function toggleSubject(id) {
     setForm((f) => {
@@ -138,10 +144,44 @@ export default function SmartPlan() {
         if (!prev) return prev;
         const tasks = prev.tasks.map((t) => (t.id === data.id ? { ...t, ...data } : t));
         const done_count = tasks.filter((t) => t.is_done).length;
-        return { ...prev, tasks, done_count, total_count: tasks.length };
+        const today_i = prev.today_day_index || 1;
+        const overdue_count = tasks.filter(
+          (t) => !t.is_done && t.day_index < today_i
+        ).length;
+        return {
+          ...prev,
+          tasks,
+          done_count,
+          total_count: tasks.length,
+          overdue_count,
+        };
       });
     } catch (e) {
       setMsg(e.response?.data?.detail || "تعذّر تحديث المهمة");
+    }
+  }
+
+  async function rescheduleRemaining() {
+    if (!plan) return;
+    const ok = confirm(
+      "هنوزّع المهام اللي لسه مخلصتهاش على الأيام المتبقية بنفس ساعات يومك. اللي خلّصته هيفضل زي ما هو. متابع؟"
+    );
+    if (!ok) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const { data } = await client.post(`/study-plans/${plan.id}/reschedule/`);
+      setPlan(data);
+      setSelectedDay(data.today_day_index || 1);
+      setMsg(
+        data.overflow_count
+          ? `اتظبطت الخطة ✓ — ${data.rescheduled_units} مهمة على ${data.remaining_days} يوم متبقي، وفي ${data.overflow_count} خارج المدة.`
+          : `اتظبطت الخطة ✓ — ${data.rescheduled_units} مهمة اتوزّعت على ${data.remaining_days} يوم متبقي.`
+      );
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر إعادة ضبط الجدول");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -171,7 +211,7 @@ export default function SmartPlan() {
           <p className="smart-plan__eyebrow">الجدول الذكي</p>
           <h1>بدل ما تحتار كل يوم… الخطة ترتّب لك</h1>
           <p className="smart-plan__lead">
-            خصّص المدة والساعات والمواد — ونوزّع تأسيس وتجميعات مع أيام مراجعة تلقائياً.
+            كل يوم له قائمة مهام — ولو فوّت يوم أو ما خلّصتش، أعد توزيع الباقي على الوقت المتبقي.
           </p>
         </div>
         <div className="smart-plan__hero-actions">
@@ -181,7 +221,7 @@ export default function SmartPlan() {
               className="btn btn-secondary"
               onClick={() => setShowWizard(true)}
             >
-              إعادة ضبط الخطة
+              خطة جديدة
             </button>
           )}
           {plan && (
@@ -358,6 +398,9 @@ export default function SmartPlan() {
               <div style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 4 }}>
                 {plan.days_count} يوم · {plan.hours_per_day} ساعة/يوم ·{" "}
                 {plan.done_count}/{plan.total_count} مهمة
+                {plan.remaining_days != null ? (
+                  <> · متبقي {plan.remaining_days} يوم</>
+                ) : null}
               </div>
             </div>
             <div className="smart-plan__progress">
@@ -367,6 +410,29 @@ export default function SmartPlan() {
               <div className="smart-plan__progress-label">{progressPct}%</div>
             </div>
           </div>
+
+          {canReschedule && (
+            <div className="smart-plan__reschedule card">
+              <div>
+                <strong>
+                  {overdueCount > 0
+                    ? `${overdueCount} مهمة فاتت من أيام سابقة`
+                    : "في مهام ناقصة في يوم فات"}
+                </strong>
+                <p>
+                  اضغط لإعادة توزيع اللي لسه مخلصتهوش على الأيام المتبقية — بنفس ساعات يومك.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy}
+                onClick={rescheduleRemaining}
+              >
+                {busy ? "جاري الضبط…" : "أعد ضبط المتبقي"}
+              </button>
+            </div>
+          )}
 
           <div className="smart-plan__day-nav">
             <button
@@ -383,6 +449,9 @@ export default function SmartPlan() {
                 <span className="badge badge-active" style={{ marginInlineStart: 8 }}>
                   اليوم
                 </span>
+              ) : null}
+              {selectedIsPast ? (
+                <span className="smart-plan__past-tag">فات</span>
               ) : null}
               <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
                 {dayTasks[0]?.task_date || ""}
@@ -402,6 +471,9 @@ export default function SmartPlan() {
             {Array.from({ length: plan.days_count }, (_, i) => i + 1).map((d) => {
               const tasks = byDay[d] || [];
               const allDone = tasks.length > 0 && tasks.every((t) => t.is_done);
+              const hasPending = tasks.some((t) => !t.is_done);
+              const isPast = d < (plan.today_day_index || 1);
+              const isOverdue = isPast && hasPending;
               const isToday = d === plan.today_day_index;
               return (
                 <button
@@ -412,11 +484,18 @@ export default function SmartPlan() {
                     selectedDay === d ? "is-selected" : "",
                     isToday ? "is-today" : "",
                     allDone ? "is-done" : "",
+                    isOverdue ? "is-overdue" : "",
                   ]
                     .filter(Boolean)
                     .join(" ")}
                   onClick={() => setSelectedDay(d)}
-                  title={`اليوم ${d}`}
+                  title={
+                    isOverdue
+                      ? `اليوم ${d} — فيه مهام ناقصة`
+                      : allDone
+                        ? `اليوم ${d} — خلصان`
+                        : `اليوم ${d}`
+                  }
                 >
                   {d}
                 </button>
@@ -424,55 +503,75 @@ export default function SmartPlan() {
             })}
           </div>
 
-          <div style={{ marginBottom: 12, color: "var(--text-muted)", fontSize: 14 }}>
-            مهام هذا اليوم: {dayDone}/{dayTasks.length}
+          <div className="smart-plan__todo-head">
+            <h2>قائمة اليوم {selectedDay}</h2>
+            <span>
+              {dayDone}/{dayTasks.length} تم
+              {dayPending > 0 ? ` · ${dayPending} باقي` : ""}
+            </span>
           </div>
 
-          {dayTasks.map((task) => {
-            const href = taskLink(task);
-            const key = resolveSubjectKey(task.subject_name);
-            return (
-              <div
-                key={task.id}
-                className={`card smart-plan__task ${task.is_done ? "is-done" : ""}`}
-                data-subject={key || undefined}
-              >
-                <div className="smart-plan__task-main">
-                  <span className={`smart-plan__kind smart-plan__kind--${task.kind}`}>
-                    {KIND_LABEL[task.kind] || task.kind}
-                  </span>
-                  <div>
-                    <strong>{task.title}</strong>
+          <ul className="smart-plan__todo-list">
+            {dayTasks.map((task) => {
+              const href = taskLink(task);
+              const key = resolveSubjectKey(task.subject_name);
+              return (
+                <li
+                  key={task.id}
+                  className={`smart-plan__todo-item ${task.is_done ? "is-done" : ""}`}
+                  data-subject={key || undefined}
+                >
+                  <label className="smart-plan__todo-check">
+                    <input
+                      type="checkbox"
+                      checked={!!task.is_done}
+                      onChange={() => toggleTask(task)}
+                      aria-label={task.is_done ? "إلغاء الإنجاز" : "تعليم كمكتمل"}
+                    />
+                    <span className="smart-plan__todo-box" aria-hidden="true" />
+                  </label>
+                  <div className="smart-plan__todo-body">
+                    <div className="smart-plan__todo-top">
+                      <span className={`smart-plan__kind smart-plan__kind--${task.kind}`}>
+                        {KIND_LABEL[task.kind] || task.kind}
+                      </span>
+                      <strong>{task.title}</strong>
+                    </div>
                     {task.detail ? (
-                      <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
-                        {task.detail}
-                      </div>
+                      <div className="smart-plan__todo-detail">{task.detail}</div>
                     ) : null}
-                    <div style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 4 }}>
+                    <div className="smart-plan__todo-meta">
                       ≈ {task.estimated_minutes} دقيقة
                     </div>
                   </div>
-                </div>
-                <div className="smart-plan__task-actions">
-                  {href && (
-                    <Link to={href} className="btn btn-secondary btn-sm">
-                      ابدأ
-                    </Link>
-                  )}
-                  <button
-                    type="button"
-                    className={`btn btn-sm ${task.is_done ? "btn-ghost" : "btn-primary"}`}
-                    onClick={() => toggleTask(task)}
-                  >
-                    {task.is_done ? "تراجع" : "تم ✓"}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+                  <div className="smart-plan__task-actions">
+                    {href && (
+                      <Link to={href} className="btn btn-secondary btn-sm">
+                        ابدأ
+                      </Link>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
 
           {dayTasks.length === 0 && (
             <p style={{ color: "var(--text-muted)" }}>لا مهام لهذا اليوم.</p>
+          )}
+
+          {selectedIncomplete && (
+            <div className="smart-plan__day-reschedule">
+              <p>ما خلّصتش كل مطلوب اليوم دا — تقدر تعيد توزيع الباقي على الوقت المتبقي.</p>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                disabled={busy}
+                onClick={rescheduleRemaining}
+              >
+                أعد ضبط المتبقي من هنا
+              </button>
+            </div>
           )}
         </>
       )}
