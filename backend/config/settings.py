@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "scheduling",
     "billing",
     "core",
+    "planner",
 ]
 
 MIDDLEWARE = [

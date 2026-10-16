@@ -1846,3 +1846,162 @@ html[data-subject] .answer-option.selected .answer-option__key {
     padding: 26px 26px 22px;
   }
 }
+
+/* —— Smart study plan (الجدول الذكي) —— */
+.smart-plan__hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+  padding: 22px 22px 18px;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(ellipse at top left, color-mix(in srgb, var(--accent) 28%, transparent), transparent 55%),
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 12%, #fff), #fff 60%);
+  border: 1px solid var(--border);
+}
+.smart-plan__eyebrow {
+  font-weight: 700;
+  color: var(--primary);
+  margin: 0 0 6px;
+  font-size: 14px;
+}
+.smart-plan__hero h1 {
+  font-size: clamp(22px, 3vw, 30px);
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+.smart-plan__lead {
+  margin: 0;
+  color: var(--text-muted);
+  max-width: 52ch;
+}
+.smart-plan__hero-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.smart-plan__wizard {
+  padding: 20px;
+  margin-bottom: 20px;
+}
+.smart-plan__stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+.smart-plan__progress {
+  min-width: 180px;
+  flex: 1;
+  max-width: 280px;
+}
+.smart-plan__progress-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.smart-plan__progress-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  border-radius: inherit;
+}
+.smart-plan__progress-label {
+  margin-top: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-align: end;
+}
+.smart-plan__day-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.smart-plan__day-label {
+  text-align: center;
+  font-weight: 700;
+}
+.smart-plan__day-strip {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 4px 2px 14px;
+  margin-bottom: 8px;
+  scrollbar-width: thin;
+}
+.smart-plan__day-dot {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-family: var(--font-num);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--text);
+}
+.smart-plan__day-dot.is-today {
+  outline: 2px solid color-mix(in srgb, var(--accent) 80%, transparent);
+}
+.smart-plan__day-dot.is-selected {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.smart-plan__day-dot.is-done:not(.is-selected) {
+  background: color-mix(in srgb, var(--success) 16%, #fff);
+  border-color: color-mix(in srgb, var(--success) 40%, var(--border));
+}
+.smart-plan__task {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+.smart-plan__task.is-done {
+  opacity: 0.72;
+}
+.smart-plan__task-main {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex: 1;
+  min-width: 200px;
+}
+.smart-plan__kind {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.smart-plan__kind--collections {
+  background: var(--accent-soft);
+  color: #8a6a00;
+}
+.smart-plan__kind--review {
+  background: #ecfdf5;
+  color: #047857;
+}
+.smart-plan__task-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

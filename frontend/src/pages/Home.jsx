@@ -120,13 +120,20 @@ export default function Home() {
             </>
           )}
         </div>
-        {session?.zoom_link ? (
-          <a className="btn" href={session.zoom_link} target="_blank" rel="noreferrer">
-            رابط الحصة Zoom ↗
-          </a>
-        ) : (
-          <Link to="/schedule" className="btn">جدول الحصص</Link>
-        )}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {session?.zoom_link ? (
+            <a className="btn" href={session.zoom_link} target="_blank" rel="noreferrer">
+              رابط الحصة Zoom ↗
+            </a>
+          ) : (
+            <Link to="/schedule" className="btn">جدول الحصص</Link>
+          )}
+          {user && (
+            <Link to="/smart-plan" className="btn btn-secondary">
+              الجدول الذكي
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="section-title">
