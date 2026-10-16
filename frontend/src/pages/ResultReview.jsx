@@ -4,6 +4,7 @@ import client from "../api/client";
 import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
 import QuestionMeta from "../components/QuestionMeta";
+import SaveToFolderButton from "../components/SaveToFolderButton";
 import VideoPlayer from "../components/VideoPlayer";
 import { applySubjectTheme, lockSubjectTheme, resolveExamThemeKey } from "../theme/subjects";
 
@@ -210,13 +211,27 @@ export default function ResultReview() {
               {!a.is_correct && !unansweredRow && ` · الصحيح: ${a.correct_answer}`}
               {unansweredRow && a.correct_answer ? ` · الصحيح: ${a.correct_answer}` : ""}
             </div>
-            <QuestionMeta
-              difficulty={a.difficulty}
-              difficultyLabel={a.difficulty_label}
-              subjectName={a.subject_name}
-              lessonTitle={a.lesson_title}
-              questionYear={a.question_year}
-            />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 10,
+                flexWrap: "wrap",
+                marginBottom: 8,
+              }}
+            >
+              <QuestionMeta
+                difficulty={a.difficulty}
+                difficultyLabel={a.difficulty_label}
+                subjectName={a.subject_name}
+                lessonTitle={a.lesson_title}
+                questionYear={a.question_year}
+              />
+              {a.question_id ? (
+                <SaveToFolderButton questionId={a.question_id} compact />
+              ) : null}
+            </div>
             <div style={{ marginBottom: 10 }}>
               <MathText>{a.question_text}</MathText>
             </div>

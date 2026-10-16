@@ -172,6 +172,9 @@ export default function Layout() {
           <NavLink to="/results">نتائج</NavLink>
           <NavLink to="/schedule">جدول الحصص</NavLink>
           <NavLink to="/smart-plan">الجدول الذكي</NavLink>
+          {user?.role === "student" && (
+            <NavLink to="/question-folders">ملفاتي</NavLink>
+          )}
           {user?.role === "student" && <NavLink to="/subscription">اشتراكي</NavLink>}
           {user?.role === "teacher" && <NavLink to="/teacher">لوحة المدرس</NavLink>}
           {user?.role === "admin" && <NavLink to="/admin">لوحة المدير</NavLink>}

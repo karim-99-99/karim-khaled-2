@@ -339,3 +339,56 @@ class ExamAnswer(models.Model):
     class Meta:
         ordering = ["exam", "order"]
         unique_together = ("exam", "question")
+
+
+MAX_QUESTION_FOLDERS = 20
+
+
+class QuestionFolder(models.Model):
+    """
+    ملف أسئلة شخصية للطالب (مثل يلو): يحفظ أسئلة مهمة للمراجعة.
+    داخل الملف تُعرض الأسئلة مجمّعة حسب المادة — بدون اعتماد على اسم الدرس.
+    """
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="question_folders",
+        on_delete=models.CASCADE,
+    )
+    name = models.CharField(max_length=80)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student", "name"], name="uniq_question_folder_student_name"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.student_id})"
+
+
+class QuestionFolderItem(models.Model):
+    folder = models.ForeignKey(
+        QuestionFolder, related_name="items", on_delete=models.CASCADE
+    )
+    question = models.ForeignKey(
+        CollectionQuestion,
+        related_name="folder_items",
+        on_delete=models.CASCADE,
+    )
+    added_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-added_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["folder", "question"], name="uniq_folder_question"
+            )
+        ]
+
+    def __str__(self):
+        return f"folder={self.folder_id} q={self.question_id}"
