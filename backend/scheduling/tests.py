@@ -347,6 +347,7 @@ class BBBJoinTests(TestCase):
             BBB_URL="https://bbb.example/bigbluebutton/demo",
             BBB_SECRET="test-secret",
             BBB_CHECKSUM="sha1",
+            BBB_LOGOUT_URL="https://school.example/schedule",
             SECRET_KEY="unit-secret",
         ):
             with patch("scheduling.bbb.urllib.request.urlopen", return_value=mock_resp) as urlopen:
@@ -356,6 +357,11 @@ class BBBJoinTests(TestCase):
         called = urlopen.call_args[0][0].full_url
         self.assertIn("/api/create?", called)
         self.assertNotIn("/api/join?", called)
+        create_params = dict(parse_qsl(urlsplit(called).query, keep_blank_values=True))
+        self.assertEqual(
+            create_params["logoutURL"],
+            "https://school.example/schedule",
+        )
         self.assertTrue(url.startswith("https://bbb.example/bigbluebutton/demo/api/join?"))
         parts = urlsplit(url)
         pairs = parse_qsl(parts.query, keep_blank_values=True)
@@ -363,6 +369,7 @@ class BBBJoinTests(TestCase):
         self.assertEqual(params["role"], "VIEWER")
         self.assertEqual(params["redirect"], "true")
         self.assertEqual(params["fullName"], "طالب")
+        self.assertEqual(params["logoutURL"], "https://school.example/schedule")
         self.assertEqual(params["userdata-bbb_force_listen_only"], "true")
         self.assertEqual(params["userdata-bbb_auto_join_audio"], "false")
         self.assertEqual(params["userdata-bbb_override_default_locale"], "ar")
