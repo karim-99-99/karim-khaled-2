@@ -74,6 +74,10 @@ def api_call(call: str, params: dict) -> ET.Element:
     return root
 
 
+def _logout_url() -> str:
+    return (getattr(settings, "BBB_LOGOUT_URL", "") or "").strip()
+
+
 def ensure_meeting(session) -> str:
     """Create (or reuse) the meeting for a timetable row. Returns meetingID."""
     meeting_id = session.bbb_meeting_id or meeting_id_for(session.id)
@@ -93,6 +97,7 @@ def ensure_meeting(session) -> str:
             "allowStartStopRecording": "true",
             "duration": int(session.duration_minutes or 60),
             "welcome": "أهلاً بكم في الحصة المباشرة",
+            "logoutURL": _logout_url(),
             "meta_sessionId": str(session.id),
             "meta_groupId": str(session.group_id or ""),
         },
@@ -120,6 +125,7 @@ def join_url(session, *, full_name: str, user_id, moderator: bool) -> str:
         "password": mod_pw if moderator else att_pw,
         "userID": str(user_id),
         "redirect": "true",
+        "logoutURL": _logout_url(),
         # Don't grab the microphone on load. The browser blocks that prompt
         # when the meeting opens from a redirect, and BBB then shows
         # "We need access to your microphone".
