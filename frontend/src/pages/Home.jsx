@@ -6,11 +6,13 @@ import { filterSubjectsForUser } from "../auth/teacherScope";
 import VideoPlayer from "../components/VideoPlayer";
 import { getSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 import { formatSessionWhen, sessionDisplayTitle } from "../utils/sessionDate";
+import { joinLiveSession } from "../utils/joinLiveSession";
 
 export default function Home() {
   const { user } = useAuth();
   const [content, setContent] = useState(null);
   const [next, setNext] = useState(null);
+  const [joinMsg, setJoinMsg] = useState("");
   const isTeacher = user?.role === "teacher";
 
   useEffect(() => {
@@ -108,7 +110,7 @@ export default function Home() {
               <h2 style={{ marginTop: 0 }}>{sessionDisplayTitle(session)}</h2>
               <div className="meta" style={{ marginTop: 6, opacity: 0.9, fontSize: 14 }}>
                 {session.subject_name}
-                {session.teacher_joined_zoom ? " · المدرس في Zoom ✓" : ""}
+                {session.teacher_joined_zoom ? " · المدرس داخل الحصة ✓" : ""}
               </div>
             </>
           ) : (
@@ -121,10 +123,25 @@ export default function Home() {
           )}
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {session?.zoom_link ? (
-            <a className="btn" href={session.zoom_link} target="_blank" rel="noreferrer">
-              رابط الحصة Zoom ↗
-            </a>
+          {session && (session.join_mode === "bbb" || session.join_mode === "zoom" || session.zoom_link) ? (
+            <button
+              type="button"
+              className="btn"
+              onClick={async () => {
+                setJoinMsg("");
+                try {
+                  if (session.join_mode === "zoom" && session.zoom_link) {
+                    window.open(session.zoom_link, "_blank", "noopener,noreferrer");
+                  } else {
+                    await joinLiveSession(session.id);
+                  }
+                } catch (e) {
+                  setJoinMsg(e.response?.data?.detail || "تعذّر فتح الحصة");
+                }
+              }}
+            >
+              ادخل الحصة ↗
+            </button>
           ) : (
             <Link to="/schedule" className="btn">جدول الحصص</Link>
           )}
@@ -135,6 +152,7 @@ export default function Home() {
           )}
         </div>
       </div>
+      {joinMsg && <div className="banner" style={{ marginBottom: 16 }}>{joinMsg}</div>}
 
       <div className="section-title">
         {isTeacher ? (subjectPanels.length > 1 ? "موادك" : "مادتك") : "تصفح حسب المادة"}

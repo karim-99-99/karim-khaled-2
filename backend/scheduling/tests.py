@@ -210,3 +210,111 @@ class HeavyScheduleListTests(TestCase):
         self.assertEqual(len(res.data), 120)
         # Remote Neon latency varies; catch pathological regressions only.
         self.assertLess(elapsed, 12.0, f"schedule list too slow: {elapsed:.2f}s")
+
+
+class BBBJoinTests(TestCase):
+    def setUp(self):
+        self.subject = Subject.objects.create(name="رياضيات-لايف", slug="math-bbb", order=1)
+        self.admin = User.objects.create_user(
+            email="admin-bbb@test.local",
+            password="Passw0rd!",
+            full_name="مدير",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.teacher = User.objects.create_user(
+            email="teacher-bbb@test.local",
+            password="Passw0rd!",
+            full_name="أستاذ",
+            role=User.Role.TEACHER,
+        )
+        self.student = User.objects.create_user(
+            email="student-bbb@test.local",
+            password="Passw0rd!",
+            full_name="طالب",
+            role=User.Role.STUDENT,
+        )
+        self.outsider = User.objects.create_user(
+            email="out-bbb@test.local",
+            password="Passw0rd!",
+            full_name="خارج",
+            role=User.Role.STUDENT,
+        )
+        self.group = StudyGroup.objects.create(name="مجموعة أ", created_by=self.admin)
+        GroupTeacher.objects.create(group=self.group, teacher=self.teacher, subject=self.subject)
+        GroupStudent.objects.create(group=self.group, student=self.student)
+        self.client = APIClient()
+
+    def test_admin_create_assigns_meeting_id(self):
+        self.client.force_authenticate(user=self.admin)
+        start = (timezone.now() + timedelta(hours=2)).isoformat()
+        res = self.client.post(
+            "/api/sessions/",
+            {
+                "title": "حصة لايف",
+                "subject": self.subject.id,
+                "group": self.group.id,
+                "start_time": start,
+                "duration_minutes": 60,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertTrue(res.data["bbb_meeting_id"].startswith("zad-session-"))
+        self.assertEqual(res.data["teacher"], self.teacher.id)
+        self.assertEqual(res.data["join_mode"], "bbb")
+
+    def test_outsider_cannot_join(self):
+        session = Session.objects.create(
+            subject=self.subject,
+            group=self.group,
+            teacher=self.teacher,
+            title="حصة",
+            start_time=timezone.now(),
+            duration_minutes=60,
+            bbb_meeting_id="zad-session-x",
+        )
+        self.client.force_authenticate(user=self.outsider)
+        res = self.client.post(f"/api/sessions/{session.id}/join/")
+        self.assertEqual(res.status_code, 404)
+
+    def test_student_join_returns_personal_url(self):
+        from unittest.mock import patch
+        session = Session.objects.create(
+            subject=self.subject,
+            group=self.group,
+            teacher=self.teacher,
+            title="حصة",
+            start_time=timezone.now(),
+            duration_minutes=60,
+            bbb_meeting_id="zad-session-9",
+        )
+        self.client.force_authenticate(user=self.student)
+        with patch("scheduling.views.bbb_configured", return_value=True), patch(
+            "scheduling.views.join_url", return_value="https://bbb.example/join/student"
+        ):
+            res = self.client.post(f"/api/sessions/{session.id}/join/")
+        self.assertEqual(res.status_code, 200, res.data)
+        self.assertEqual(res.data["url"], "https://bbb.example/join/student")
+        self.assertEqual(res.data["role"], "viewer")
+
+    def test_teacher_join_is_moderator(self):
+        from unittest.mock import patch
+        session = Session.objects.create(
+            subject=self.subject,
+            group=self.group,
+            teacher=self.teacher,
+            title="حصة",
+            start_time=timezone.now(),
+            duration_minutes=60,
+        )
+        self.client.force_authenticate(user=self.teacher)
+        with patch("scheduling.views.bbb_configured", return_value=True), patch(
+            "scheduling.views.join_url", return_value="https://bbb.example/join/teacher"
+        ) as mocked:
+            res = self.client.post(f"/api/sessions/{session.id}/join/")
+        self.assertEqual(res.status_code, 200, res.data)
+        self.assertEqual(res.data["role"], "moderator")
+        self.assertTrue(mocked.call_args.kwargs["moderator"])
+        session.refresh_from_db()
+        self.assertTrue(session.teacher_joined_zoom)

@@ -40,6 +40,8 @@ class Session(models.Model):
     start_time = models.DateTimeField()
     duration_minutes = models.PositiveIntegerField(default=60)
     zoom_link = models.URLField(blank=True)
+    # BigBlueButton meeting id generated from the timetable row (admin-owned).
+    bbb_meeting_id = models.CharField(max_length=80, blank=True, default="")
     teacher_joined_zoom = models.BooleanField(
         default=False,
         help_text="هل سجّل المدرس دخوله إلى Zoom لهذه الحصة",
