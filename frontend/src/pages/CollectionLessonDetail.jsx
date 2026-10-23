@@ -78,8 +78,10 @@ export default function CollectionLessonDetail() {
   const [selectedSubs, setSelectedSubs] = useState(
     focusedSubId ? [focusedSubId] : []
   );
+  const [resume, setResume] = useState(null);
 
   const canEdit = canEditSubject(user, subjectId || lesson?.subject);
+  const isStudent = user?.role === "student";
   const canRenameLesson =
     canEdit && (user?.role === "teacher" || user?.role === "admin");
   const listUrl = `/courses/${subjectId || lesson?.subject}/collections`;
@@ -202,6 +204,30 @@ export default function CollectionLessonDetail() {
       return res.data;
     });
   }
+
+  useEffect(() => {
+    if (!isStudent) {
+      setResume(null);
+      return;
+    }
+    const sid = subjectId || lesson?.subject;
+    if (!sid) return;
+    client
+      .get(`/collections/resume/?subject=${sid}`)
+      .then((res) => {
+        const row = (res.data?.results || [])[0] || null;
+        if (
+          row &&
+          Array.isArray(row.lesson_ids) &&
+          row.lesson_ids.map(Number).includes(Number(lessonId))
+        ) {
+          setResume(row);
+        } else {
+          setResume(null);
+        }
+      })
+      .catch(() => setResume(null));
+  }, [isStudent, subjectId, lessonId, lesson?.subject]);
 
   useEffect(() => {
     let cancelled = false;
@@ -696,6 +722,21 @@ export default function CollectionLessonDetail() {
 
       {(!canEdit || tab === "questions") && (
         <>
+          {isStudent && resume && (
+            <div className="collections-resume card" style={{ marginBottom: 16 }}>
+              <div>
+                <div className="collections-resume__tag">أنت واقف هنا</div>
+                <strong>{resume.exam_title || "تمرين سابق"}</strong>
+                <p>
+                  خلّصت {resume.answered_count} من {resume.question_count} — كمل من سؤال{" "}
+                  {resume.next_question_number}
+                </p>
+              </div>
+              <Link to={`/exam/${resume.exam_id}`} className="btn btn-primary">
+                كمّل من هنا ←
+              </Link>
+            </div>
+          )}
           <div className="card" style={{ padding: 16, marginBottom: 20 }}>
             <div className="section-title" style={{ marginTop: 0 }}>
               ابدأ بالتدريب

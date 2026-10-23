@@ -10,7 +10,9 @@ export default function SubjectHub() {
   const { subjectId } = useParams();
   const { user } = useAuth();
   const [subject, setSubject] = useState(null);
+  const [resume, setResume] = useState(null);
   const canEdit = canEditSubject(user, subjectId);
+  const isStudent = user?.role === "student";
 
   useEffect(() => {
     try {
@@ -35,6 +37,17 @@ export default function SubjectHub() {
       });
     });
   }, [subjectId]);
+
+  useEffect(() => {
+    if (!isStudent || !subjectId) {
+      setResume(null);
+      return;
+    }
+    client
+      .get(`/collections/resume/?subject=${subjectId}`)
+      .then((res) => setResume((res.data?.results || [])[0] || null))
+      .catch(() => setResume(null));
+  }, [subjectId, isStudent]);
 
   const key = resolveSubjectKey(subject?.name);
 
@@ -68,8 +81,28 @@ export default function SubjectHub() {
           <div className="path-icon">ج</div>
           <h3>تجميع</h3>
           <p>{canEdit ? "دروس ودروس فرعية + أسئلة للجميع" : "دروس ودروس فرعية — تدريب من بنك كل المدرسين"}</p>
+          {isStudent && resume ? (
+            <div className="collections-resume__hub">
+              أنت واقف هنا · سؤال {resume.next_question_number} من {resume.question_count}
+            </div>
+          ) : null}
         </Link>
       </div>
+      {isStudent && resume ? (
+        <div className="collections-resume card" style={{ marginTop: 16 }}>
+          <div>
+            <div className="collections-resume__tag">أنت واقف هنا</div>
+            <strong>{resume.exam_title || "تمرين تجميعات"}</strong>
+            <p>
+              خلّصت {resume.answered_count} من {resume.question_count} — كمل من سؤال{" "}
+              {resume.next_question_number}
+            </p>
+          </div>
+          <Link to={`/exam/${resume.exam_id}`} className="btn btn-primary">
+            كمّل من هنا ←
+          </Link>
+        </div>
+      ) : null}
       <div style={{ marginTop: 16 }}>
         <Link to="/tests" className="btn btn-secondary">
           الذهاب للاختبارات (محاكي + اختبارات المدرسين) ←

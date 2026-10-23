@@ -26,7 +26,9 @@ export default function Courses() {
   );
   const [loading, setLoading] = useState(subjects.length === 0);
   const [refreshing, setRefreshing] = useState(false);
+  const [resumeBySubject, setResumeBySubject] = useState({});
   const navigate = useNavigate();
+  const isStudent = user?.role === "student";
 
   useEffect(() => {
     let cancelled = false;
@@ -63,6 +65,30 @@ export default function Courses() {
     // Re-filter when user role/scope changes; network refresh stays cheap via cache paint.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, user?.role, user?.taught_subject, JSON.stringify(user?.teachable_subject_ids || [])]);
+
+  useEffect(() => {
+    if (!isStudent) {
+      setResumeBySubject({});
+      return;
+    }
+    let cancelled = false;
+    client
+      .get("/collections/resume/")
+      .then((res) => {
+        if (cancelled) return;
+        const map = {};
+        for (const row of res.data?.results || []) {
+          map[row.subject] = row;
+        }
+        setResumeBySubject(map);
+      })
+      .catch(() => {
+        if (!cancelled) setResumeBySubject({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [isStudent, user?.id]);
 
   return (
     <div>
@@ -103,15 +129,21 @@ export default function Courses() {
       <div className="grid grid-2" style={{ maxWidth: 720 }}>
         {subjects.map((s) => {
           const key = resolveSubjectKey(s.name) || "math";
+          const bookmark = resumeBySubject[s.id];
           return (
             <button
               key={s.id}
               type="button"
               className={`btn subject-tile ${key}`}
-              style={{ minHeight: 100, fontSize: 22 }}
+              style={{ minHeight: 100, fontSize: 22, flexDirection: "column", gap: 8 }}
               onClick={() => navigate(`/courses/${s.id}`)}
             >
-              {s.name}
+              <span>{s.name}</span>
+              {bookmark ? (
+                <span className="collections-resume__pill collections-resume__pill--on-tile">
+                  أنت واقف هنا · س{bookmark.next_question_number}
+                </span>
+              ) : null}
             </button>
           );
         })}
