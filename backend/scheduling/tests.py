@@ -363,6 +363,25 @@ class BBBJoinTests(TestCase):
         self.assertEqual(params["role"], "VIEWER")
         self.assertEqual(params["redirect"], "true")
         self.assertEqual(params["fullName"], "طالب")
+        self.assertEqual(params["userdata-bbb_force_listen_only"], "true")
+        self.assertEqual(params["userdata-bbb_auto_join_audio"], "false")
+        self.assertEqual(params["userdata-bbb_override_default_locale"], "ar")
         query = urlencode([(k, v) for k, v in pairs if k != "checksum"])
         expect = hashlib.sha1(f"join{query}test-secret".encode()).hexdigest()
         self.assertEqual(params["checksum"], expect)
+
+        with override_settings(
+            BBB_URL="https://bbb.example/bigbluebutton/demo",
+            BBB_SECRET="test-secret",
+            BBB_CHECKSUM="sha1",
+            SECRET_KEY="unit-secret",
+        ):
+            with patch("scheduling.bbb.urllib.request.urlopen", return_value=mock_resp):
+                teacher_url = join_url(
+                    session, full_name="أستاذ", user_id=2, moderator=True
+                )
+        teacher_params = dict(parse_qsl(urlsplit(teacher_url).query, keep_blank_values=True))
+        self.assertEqual(teacher_params["role"], "MODERATOR")
+        self.assertNotIn("userdata-bbb_force_listen_only", teacher_params)
+        self.assertEqual(teacher_params["userdata-bbb_auto_join_audio"], "false")
+        self.assertEqual(teacher_params["userdata-bbb_listen_only_mode"], "true")
