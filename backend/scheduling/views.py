@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import permissions, status, viewsets
@@ -7,6 +9,7 @@ from rest_framework.response import Response
 
 from core.permissions import IsAdmin, IsTeacherOrAdmin
 from groups.models import GroupStudent, GroupTeacher
+from .bbb import BBBError, configured as bbb_configured, join_url, meeting_id_for
 from .models import Session, SessionAttendance, sync_session_statuses
 from .serializers import SessionSerializer
 
@@ -23,7 +26,7 @@ class SessionViewSet(viewsets.ModelViewSet):
     pagination_class = None  # full schedule for numbering + past/upcoming views
 
     def get_permissions(self):
-        if self.action in ("list", "retrieve"):
+        if self.action in ("list", "retrieve", "join"):
             return [permissions.IsAuthenticated()]
         if self.action == "attendance":
             if self.request.method in ("GET", "HEAD", "OPTIONS"):
@@ -155,7 +158,10 @@ class SessionViewSet(viewsets.ModelViewSet):
         teacher, teacher_name = self._resolve_teacher(
             group, subject, serializer.validated_data.get("teacher")
         )
-        serializer.save(teacher=teacher, teacher_name=teacher_name)
+        session = serializer.save(teacher=teacher, teacher_name=teacher_name)
+        if not session.bbb_meeting_id:
+            session.bbb_meeting_id = meeting_id_for(session.id)
+            session.save(update_fields=["bbb_meeting_id"])
 
     def perform_update(self, serializer):
         user = self.request.user
@@ -198,6 +204,83 @@ class SessionViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_admin_role:
             raise PermissionDenied("المدير فقط يحذف الحصص من الجدول")
         instance.delete()
+
+    def _can_join(self, session, user):
+        if user.is_admin_role:
+            return True, True
+        if self._teacher_owns_session(session, user) and not user.is_student:
+            return True, True
+        if user.is_student and session.group_id:
+            in_group = GroupStudent.objects.filter(
+                group_id=session.group_id, student=user
+            ).exists()
+            if in_group:
+                return True, False
+        return False, False
+
+    @action(detail=False, methods=["get"], permission_classes=[IsAdmin])
+    def bbb_status(self, request):
+        return Response({"configured": bbb_configured()})
+
+    @action(detail=True, methods=["post"])
+    def join(self, request, pk=None):
+        """
+        Admin arranges the row. This call creates the BBB meeting (if needed)
+        and returns a personal join URL for the teacher (moderator) or a
+        student in the group (viewer).
+        """
+        session = self.get_object()
+        user = request.user
+        allowed, moderator = self._can_join(session, user)
+        if not allowed:
+            raise PermissionDenied("هذه الحصة ليست لمجموعتك")
+
+        now = timezone.now()
+        if not user.is_admin_role:
+            opens = session.start_time - timedelta(minutes=20)
+            if now < opens:
+                return Response(
+                    {"detail": "لينك الدخول يتفتح قبل الحصة بـ ٢٠ دقيقة"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if now > session.end_time:
+                return Response(
+                    {"detail": "انتهت الحصة"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        if not bbb_configured():
+            if session.zoom_link and not moderator:
+                return Response({"url": session.zoom_link, "provider": "zoom"})
+            if session.zoom_link and moderator:
+                return Response({"url": session.zoom_link, "provider": "zoom"})
+            return Response(
+                {
+                    "detail": "لايف BigBlueButton غير مربوط بعد. المدير يضع BBB_URL و BBB_SECRET."
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        try:
+            url = join_url(
+                session,
+                full_name=user.full_name or user.email,
+                user_id=user.id,
+                moderator=moderator,
+            )
+        except BBBError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+
+        if moderator and not user.is_student:
+            session.teacher_joined_zoom = True
+            session.teacher_joined_zoom_at = timezone.now()
+            session.save(
+                update_fields=["teacher_joined_zoom", "teacher_joined_zoom_at"]
+            )
+        return Response(
+            SessionSerializer(session, context=self.get_serializer_context()).data
+            | {"url": url, "provider": "bbb", "role": "moderator" if moderator else "viewer"}
+        )
 
     @action(detail=True, methods=["post"])
     def teacher_zoom(self, request, pk=None):

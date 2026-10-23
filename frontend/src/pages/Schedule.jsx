@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import client from "../api/client";
 import { resolveSubjectKey } from "../theme/subjects";
+import { joinLiveSession } from "../utils/joinLiveSession";
 import {
   effectiveSessionStatus,
   formatSessionWhen,
@@ -11,6 +12,8 @@ export default function Schedule() {
   const [sessions, setSessions] = useState([]);
   const [view, setView] = useState("upcoming"); // upcoming | past
   const [loading, setLoading] = useState(true);
+  const [joinMsg, setJoinMsg] = useState("");
+  const [joiningId, setJoiningId] = useState(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -50,6 +53,8 @@ export default function Schedule() {
           {isPast ? "العودة للجدول" : "الحصص السابقة"}
         </button>
       </div>
+
+      {joinMsg && <div className="banner" style={{ marginBottom: 12 }}>{joinMsg}</div>}
 
       {loading && <p style={{ color: "var(--text-muted)" }}>جاري التحميل…</p>}
 
@@ -111,12 +116,12 @@ export default function Schedule() {
                 </div>
                 {s.teacher_joined_zoom ? (
                   <div style={{ marginTop: 8 }}>
-                    <span className="badge badge-present">المدرس دخل Zoom ✓</span>
+                    <span className="badge badge-present">المدرس داخل الحصة ✓</span>
                   </div>
                 ) : (
                   <div style={{ marginTop: 8 }}>
                     <span className="badge" style={{ opacity: 0.75 }}>
-                      المدرس لم يسجّل دخول Zoom بعد
+                      المدرس لم يدخل الحصة بعد
                     </span>
                   </div>
                 )}
@@ -136,18 +141,32 @@ export default function Schedule() {
                   </div>
                 )}
               </div>
-              {!isPast && s.zoom_link ? (
-                <a
+              {!isPast && (s.join_mode === "bbb" || s.join_mode === "zoom" || s.zoom_link) ? (
+                <button
+                  type="button"
                   className="btn btn-primary btn-sm"
-                  href={s.zoom_link}
-                  target="_blank"
-                  rel="noreferrer"
+                  disabled={joiningId === s.id}
+                  onClick={async () => {
+                    setJoinMsg("");
+                    setJoiningId(s.id);
+                    try {
+                      if (s.join_mode === "zoom" && s.zoom_link) {
+                        window.open(s.zoom_link, "_blank", "noopener,noreferrer");
+                      } else {
+                        await joinLiveSession(s.id);
+                      }
+                    } catch (e) {
+                      setJoinMsg(e.response?.data?.detail || "تعذّر فتح الحصة");
+                    } finally {
+                      setJoiningId(null);
+                    }
+                  }}
                 >
-                  انضم عبر Zoom
-                </a>
+                  {joiningId === s.id ? "…" : "ادخل الحصة"}
+                </button>
               ) : !isPast ? (
-                <button type="button" className="btn btn-secondary btn-sm">
-                  تذكير
+                <button type="button" className="btn btn-secondary btn-sm" disabled>
+                  بانتظار تفعيل اللايف
                 </button>
               ) : null}
             </div>

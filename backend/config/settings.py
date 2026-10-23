@@ -186,3 +186,8 @@ TELEGRAM_ALLOWED_REDIRECT_URIS = env_list(
     "https://karim-khaled-2.vercel.app/auth/telegram/callback,http://localhost:5173/auth/telegram/callback",
 )
 
+# --- BigBlueButton (BiggerBlueButton or self-hosted). Secret never goes to the browser. ---
+BBB_URL = env("BBB_URL", "").rstrip("/")
+BBB_SECRET = env("BBB_SECRET", "")
+BBB_CHECKSUM = env("BBB_CHECKSUM", "sha1")  # sha1 or sha256
+

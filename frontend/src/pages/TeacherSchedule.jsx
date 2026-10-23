@@ -3,9 +3,10 @@ import { Link } from "react-router-dom";
 import client from "../api/client";
 import { resolveSubjectKey } from "../theme/subjects";
 import { formatSessionWhen, sessionDisplayTitle, effectiveSessionStatus } from "../utils/sessionDate";
+import { joinLiveSession } from "../utils/joinLiveSession";
 
 /**
- * Teacher view: Zoom link + session status + attendance per group session.
+ * Teacher view: join the admin-scheduled live class + attendance.
  */
 export default function TeacherSchedule() {
   const [sessions, setSessions] = useState([]);
@@ -213,15 +214,17 @@ export default function TeacherSchedule() {
               </div>
             </div>
 
+            {s.join_mode !== "bbb" && (
             <div className="form-group" style={{ marginTop: 12, marginBottom: 8 }}>
-              <label>رابط Zoom Meeting</label>
+              <label>رابط احتياطي (اختياري)</label>
               <input
                 className="form-control"
                 value={draft.zoom_link}
-                placeholder="https://zoom.us/j/..."
+                placeholder="https://..."
                 onChange={(e) => setDraft(s.id, "zoom_link", e.target.value)}
               />
             </div>
+            )}
 
             <div className="form-group" style={{ marginBottom: 12 }}>
               <label>الحالة</label>
@@ -240,28 +243,37 @@ export default function TeacherSchedule() {
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button
+                type="button"
                 className="btn btn-primary btn-sm"
+                disabled={busyId === s.id}
+                onClick={async () => {
+                  setMsg("");
+                  setBusyId(s.id);
+                  try {
+                    await joinLiveSession(s.id);
+                    setMsg("اتفتح لينك الحصة — أنت مدرّس الجلسة");
+                    loadSessions();
+                  } catch (e) {
+                    setMsg(e.response?.data?.detail || "تعذّر فتح الحصة");
+                  } finally {
+                    setBusyId(null);
+                  }
+                }}
+              >
+                {busyId === s.id ? "…" : "ادخل الحصة"}
+              </button>
+              {s.join_mode !== "bbb" && (
+              <button
+                className="btn btn-secondary btn-sm"
                 disabled={busyId === s.id}
                 onClick={() => saveZoom(s)}
               >
-                {busyId === s.id ? "…" : "حفظ الرابط"}
+                حفظ الرابط الاحتياطي
               </button>
-              {draft.zoom_link && (
-                <a className="btn btn-secondary btn-sm" href={draft.zoom_link} target="_blank" rel="noreferrer">
-                  فتح Zoom ↗
-                </a>
               )}
-              <button
-                type="button"
-                className={`btn btn-sm ${s.teacher_joined_zoom ? "btn-secondary" : "btn-primary"}`}
-                disabled={busyId === s.id}
-                onClick={() => toggleTeacherZoom(s, !s.teacher_joined_zoom)}
-              >
-                {s.teacher_joined_zoom ? "إلغاء دخول Zoom" : "سجّلت دخولي Zoom"}
-              </button>
               {s.teacher_joined_zoom && (
                 <span className="badge badge-present" style={{ alignSelf: "center" }}>
-                  ظاهر للطلاب: دخل المدرس Zoom
+                  ظاهر للطلاب: المدرس داخل الحصة
                 </span>
               )}
               {s.group ? (

@@ -976,7 +976,7 @@ function ScheduleTab() {
   return (
     <div>
       <div className="banner" style={{ marginBottom: 16 }}>
-        أنت تضع جدول الحصص لكل المجموعات (اسم الحصة / اليوم ميلادي وهجري / الوقت / المادة / المجموعة).
+        أنت (المدير فقط) ترتّب جدول الحصص. عند الحفظ تتجهّز حصة BigBlueButton تلقائياً، والمدرس وطلاب المجموعة يضغطون «ادخل الحصة» فيأخذ كل واحد لينكه.
         المدرس يضيف فقط رابط Zoom من لوحته.
       </div>
 
@@ -1143,7 +1143,7 @@ function ScheduleTab() {
                     {s.subject_name}
                     {s.session_number != null ? ` · #${s.session_number}` : ""}
                     {" · "}{s.group_name || "—"} · {s.teacher_name || "بدون مدرس"} · {s.duration_minutes} د
-                    {s.zoom_link ? " · Zoom ✓" : " · بانتظار رابط Zoom"}
+                    {s.join_mode === "bbb" ? " · لايف BBB جاهز" : s.zoom_link ? " · رابط احتياطي" : " · بانتظار تفعيل BBB"}
                   </div>
                 </div>
                 <button className="btn btn-ghost btn-sm" onClick={() => editSession(s)}>تعديل</button>

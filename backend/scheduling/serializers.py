@@ -11,6 +11,8 @@ class SessionSerializer(serializers.ModelSerializer):
     session_number = serializers.SerializerMethodField()
     my_attendance = serializers.SerializerMethodField()
     attendance_summary = serializers.SerializerMethodField()
+    bbb_configured = serializers.SerializerMethodField()
+    join_mode = serializers.SerializerMethodField()
 
     class Meta:
         model = Session
@@ -27,6 +29,9 @@ class SessionSerializer(serializers.ModelSerializer):
             "start_time",
             "duration_minutes",
             "zoom_link",
+            "bbb_meeting_id",
+            "bbb_configured",
+            "join_mode",
             "teacher_joined_zoom",
             "teacher_joined_zoom_at",
             "status",
@@ -45,6 +50,9 @@ class SessionSerializer(serializers.ModelSerializer):
             "attendance_summary",
             "teacher_joined_zoom",
             "teacher_joined_zoom_at",
+            "bbb_meeting_id",
+            "bbb_configured",
+            "join_mode",
         ]
 
     def _build_session_numbers(self):
@@ -67,6 +75,20 @@ class SessionSerializer(serializers.ModelSerializer):
             cache[sid] = counters[key]
         self.context["_session_numbers"] = cache
         return cache
+
+    def get_bbb_configured(self, obj):
+        from .bbb import configured
+
+        return configured()
+
+    def get_join_mode(self, obj):
+        from .bbb import configured
+
+        if configured() or obj.bbb_meeting_id:
+            return "bbb"
+        if obj.zoom_link:
+            return "zoom"
+        return "none"
 
     def get_session_number(self, obj):
         cache = self._build_session_numbers()
