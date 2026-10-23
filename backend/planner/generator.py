@@ -193,3 +193,62 @@ def generate_plan_payload(
         "total_units": len(units),
         "error": None,
     }
+
+
+def units_from_unfinished_tasks(tasks):
+    """Convert unfinished content tasks into packable units (skip empty reviews)."""
+    units = []
+    for t in tasks:
+        if t.kind == "review" and not t.lesson_id:
+            continue
+        units.append(
+            {
+                "kind": t.kind,
+                "subject": t.subject,
+                "lesson": t.lesson,
+                "title": t.title,
+                "detail": t.detail or "",
+                "minutes": t.estimated_minutes or MINUTES_COLLECTIONS,
+            }
+        )
+    return units
+
+
+def reschedule_unfinished_payload(plan, *, from_day_index, from_date):
+    """
+    أعد توزيع المهام غير المنتهية على الأيام المتبقية من اليوم الحالي
+    حتى نهاية الخطة — بنفس ساعات اليوم الأصلية.
+    """
+    remaining_days = plan.days_count - from_day_index + 1
+    if remaining_days < 1:
+        return {"error": "انتهت مدة الخطة — أنشئ خطة جديدة", "days": {}, "overflow_count": 0}
+
+    unfinished = (
+        plan.tasks.filter(is_done=False)
+        .select_related("subject", "lesson")
+        .order_by("day_index", "order_on_day", "id")
+    )
+    units = units_from_unfinished_tasks(unfinished)
+    if not units:
+        return {
+            "error": "لا توجد مهام متبقية لإعادة الترتيب",
+            "days": {},
+            "overflow_count": 0,
+            "rescheduled_units": 0,
+        }
+
+    packed, overflow = pack_into_days(
+        units, remaining_days, plan.hours_per_day, from_date
+    )
+    # Remap local day 1..N → absolute day_index from_day_index..
+    remapped = {}
+    for local_day, tasks in packed.items():
+        abs_day = from_day_index + local_day - 1
+        remapped[abs_day] = tasks
+    return {
+        "error": None,
+        "days": remapped,
+        "overflow_count": len(overflow),
+        "rescheduled_units": len(units),
+        "remaining_days": remaining_days,
+    }
