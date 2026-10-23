@@ -113,14 +113,21 @@ def join_url(session, *, full_name: str, user_id, moderator: bool) -> str:
     """
     meeting_id = ensure_meeting(session)
     mod_pw, att_pw = _passwords(meeting_id)
-    return signed_url(
-        "join",
-        {
-            "meetingID": meeting_id,
-            "fullName": (full_name or "مشارك")[:250],
-            "role": "MODERATOR" if moderator else "VIEWER",
-            "password": mod_pw if moderator else att_pw,
-            "userID": str(user_id),
-            "redirect": "true",
-        },
-    )
+    params = {
+        "meetingID": meeting_id,
+        "fullName": (full_name or "مشارك")[:250],
+        "role": "MODERATOR" if moderator else "VIEWER",
+        "password": mod_pw if moderator else att_pw,
+        "userID": str(user_id),
+        "redirect": "true",
+        # Don't grab the microphone on load. The browser blocks that prompt
+        # when the meeting opens from a redirect, and BBB then shows
+        # "We need access to your microphone".
+        "userdata-bbb_auto_join_audio": "false",
+        "userdata-bbb_listen_only_mode": "true",
+        "userdata-bbb_override_default_locale": "ar",
+    }
+    if not moderator:
+        # Students hear the teacher without a microphone of their own.
+        params["userdata-bbb_force_listen_only"] = "true"
+    return signed_url("join", params)
