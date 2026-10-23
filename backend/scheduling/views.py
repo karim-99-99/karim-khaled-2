@@ -226,8 +226,8 @@ class SessionViewSet(viewsets.ModelViewSet):
     def join(self, request, pk=None):
         """
         Admin arranges the row. This call creates the BBB meeting (if needed)
-        and returns a personal join URL for the teacher (moderator) or a
-        student in the group (viewer).
+        and returns a personal join URL. The browser itself must open that
+        URL; the server never calls join.
         """
         session = self.get_object()
         user = request.user

@@ -318,3 +318,51 @@ class BBBJoinTests(TestCase):
         self.assertTrue(mocked.call_args.kwargs["moderator"])
         session.refresh_from_db()
         self.assertTrue(session.teacher_joined_zoom)
+
+    def test_join_url_is_opened_by_the_browser(self):
+        import hashlib
+        from unittest.mock import MagicMock, patch
+        from urllib.parse import parse_qsl, urlencode, urlsplit
+
+        from django.test import override_settings
+
+        from scheduling.bbb import join_url
+
+        session = Session.objects.create(
+            subject=self.subject,
+            group=self.group,
+            teacher=self.teacher,
+            title="حصة",
+            start_time=timezone.now(),
+            duration_minutes=60,
+        )
+        xml = b"""<?xml version="1.0"?>
+        <response><returncode>SUCCESS</returncode></response>"""
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = xml
+        mock_resp.__enter__.return_value = mock_resp
+        mock_resp.__exit__.return_value = False
+
+        with override_settings(
+            BBB_URL="https://bbb.example/bigbluebutton/demo",
+            BBB_SECRET="test-secret",
+            BBB_CHECKSUM="sha1",
+            SECRET_KEY="unit-secret",
+        ):
+            with patch("scheduling.bbb.urllib.request.urlopen", return_value=mock_resp) as urlopen:
+                url = join_url(session, full_name="طالب", user_id=5, moderator=False)
+
+        self.assertEqual(urlopen.call_count, 1)
+        called = urlopen.call_args[0][0].full_url
+        self.assertIn("/api/create?", called)
+        self.assertNotIn("/api/join?", called)
+        self.assertTrue(url.startswith("https://bbb.example/bigbluebutton/demo/api/join?"))
+        parts = urlsplit(url)
+        pairs = parse_qsl(parts.query, keep_blank_values=True)
+        params = dict(pairs)
+        self.assertEqual(params["role"], "VIEWER")
+        self.assertEqual(params["redirect"], "true")
+        self.assertEqual(params["fullName"], "طالب")
+        query = urlencode([(k, v) for k, v in pairs if k != "checksum"])
+        expect = hashlib.sha1(f"join{query}test-secret".encode()).hexdigest()
+        self.assertEqual(params["checksum"], expect)

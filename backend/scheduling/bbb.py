@@ -42,7 +42,8 @@ def _passwords(meeting_id: str) -> tuple[str, str]:
     return digest[:16], digest[16:32]
 
 
-def api_call(call: str, params: dict) -> ET.Element:
+def signed_url(call: str, params: dict) -> str:
+    """Checksummed API URL. The browser must be the one that opens `join`."""
     if not configured():
         raise BBBError("خدمة اللايف غير مفعّلة على السيرفر")
     base = settings.BBB_URL.rstrip("/")
@@ -50,7 +51,11 @@ def api_call(call: str, params: dict) -> ET.Element:
         [(k, v) for k, v in params.items() if v is not None and v != ""]
     )
     checksum = _checksum(call, query)
-    url = f"{base}/api/{call}?{query}&checksum={checksum}"
+    return f"{base}/api/{call}?{query}&checksum={checksum}"
+
+
+def api_call(call: str, params: dict) -> ET.Element:
+    url = signed_url(call, params)
     req = urllib.request.Request(url, headers={"Accept": "application/xml"})
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:
@@ -99,9 +104,16 @@ def ensure_meeting(session) -> str:
 
 
 def join_url(session, *, full_name: str, user_id, moderator: bool) -> str:
+    """
+    Build the join link and hand it to the browser.
+
+    Calling `join` from the server consumes the session on the server's
+    connection. BiggerBlueButton then answers the student's browser with
+    error_401.html ("session not found").
+    """
     meeting_id = ensure_meeting(session)
     mod_pw, att_pw = _passwords(meeting_id)
-    root = api_call(
+    return signed_url(
         "join",
         {
             "meetingID": meeting_id,
@@ -109,10 +121,6 @@ def join_url(session, *, full_name: str, user_id, moderator: bool) -> str:
             "role": "MODERATOR" if moderator else "VIEWER",
             "password": mod_pw if moderator else att_pw,
             "userID": str(user_id),
-            "redirect": "false",
+            "redirect": "true",
         },
     )
-    url = root.findtext("url") or ""
-    if not url:
-        raise BBBError("الخادم لم يرجع رابط الدخول")
-    return url
