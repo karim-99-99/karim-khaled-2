@@ -2292,3 +2292,31 @@ html[dir="ltr"] .pricing-card__badge {
     padding: 16px;
   }
 }
+
+/* Official Saudi Riyal currency mark */
+.riyal-mark {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.95em;
+  vertical-align: -0.12em;
+  flex-shrink: 0;
+}
+.price-with-riyal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28em;
+  font-variant-numeric: tabular-nums;
+}
+.price-with-riyal__mark {
+  width: 0.78em;
+  height: 0.88em;
+}
+.currency-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+}
+.currency-label__mark {
+  width: 1em;
+  height: 1.12em;
+}

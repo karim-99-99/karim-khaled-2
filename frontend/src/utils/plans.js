@@ -30,11 +30,19 @@ export function currencyName(code) {
   return CURRENCY_NAMES[code] || code;
 }
 
-export function formatPrice(price, currency) {
+export function formatAmount(price) {
   const n = Number(price);
-  const amount = Number.isFinite(n)
+  return Number.isFinite(n)
     ? n.toLocaleString("ar-EG", { maximumFractionDigits: 2 })
     : String(price);
+}
+
+/** Plain-text price (buttons / attributes). SAR uses the Unicode riyal sign. */
+export function formatPriceText(price, currency) {
+  const amount = formatAmount(price);
+  if (String(currency).toUpperCase() === "SAR") {
+    return `${amount} ⃁`;
+  }
   return `${amount} ${currencyName(currency)}`;
 }
 

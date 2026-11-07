@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import client from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { BUSINESS } from "../legal/business";
-import { PLAN_FEATURES, currencyName, fetchPlans, formatPrice } from "../utils/plans";
+import Price, { CurrencyLabel } from "../components/Price";
+import { PLAN_FEATURES, fetchPlans, formatPriceText } from "../utils/plans";
 
 const METHODS = [
   { id: "card", label: "بطاقة بنكية" },
@@ -92,7 +93,7 @@ export default function Subscription() {
           >
             <strong style={{ fontSize: 18 }}>{p.label}</strong>
             <div style={{ fontSize: 22, fontWeight: 800, color: "var(--primary)", marginTop: 6 }}>
-              {formatPrice(p.price, p.currency)}
+              <Price amount={p.price} currency={p.currency} />
             </div>
             <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
               لمدة {p.days} يوماً · دفعة واحدة
@@ -127,11 +128,15 @@ export default function Subscription() {
           </div>
           <div className="checkout-summary__row">
             <span>المبلغ المستحق الآن</span>
-            <strong>{formatPrice(selected.price, selected.currency)}</strong>
+            <strong>
+              <Price amount={selected.price} currency={selected.currency} />
+            </strong>
           </div>
           <div className="checkout-summary__row">
             <span>العملة</span>
-            <strong>{currencyName(selected.currency)} ({selected.currency})</strong>
+            <strong>
+              <CurrencyLabel code={selected.currency} />
+            </strong>
           </div>
           <div className="checkout-summary__row">
             <span>التجديد</span>
@@ -167,7 +172,7 @@ export default function Subscription() {
         {busy
           ? "…"
           : selected
-            ? `ادفع ${formatPrice(selected.price, selected.currency)} واشترك`
+            ? `ادفع ${formatPriceText(selected.price, selected.currency)} واشترك`
             : "إتمام الدفع والاشتراك"}
       </button>
     </div>
