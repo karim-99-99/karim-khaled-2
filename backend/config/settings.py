@@ -47,6 +47,13 @@ def env_origins(key, default=""):
 SECRET_KEY = env("DJANGO_SECRET_KEY", "dev-insecure-change-me")
 DEBUG = env_bool("DJANGO_DEBUG", True)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+# Production hosts for the custom domain. Render's own hostname stays via env.
+for _host in ("api.maramedu.com", "maramedu.com", "www.maramedu.com"):
+    if _host not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_host)
+
+# Public site URL (custom domain). Used for Telegram redirects and BBB return links.
+SITE_URL = (env("SITE_URL", "https://maramedu.com") or "https://maramedu.com").rstrip("/")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -152,17 +159,21 @@ SIMPLE_JWT = {
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# CORS: Vite locally + Vercel (exact + any *.vercel.app preview/share URL).
+# CORS: Vite locally + the custom domain + Vercel (exact + any *.vercel.app preview URL).
 CORS_ALLOWED_ORIGINS = env_origins(
     "CORS_ALLOWED_ORIGINS",
     "http://localhost:5173,http://127.0.0.1:5173",
 )
+for _origin in ("https://maramedu.com", "https://www.maramedu.com"):
+    if _origin not in CORS_ALLOWED_ORIGINS:
+        CORS_ALLOWED_ORIGINS.append(_origin)
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://[\w.-]+\.vercel\.app$",
 ]
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS) + [
     "https://*.vercel.app",
+    "https://api.maramedu.com",
 ]
 
 # --- Business rules ---
@@ -183,7 +194,10 @@ TELEGRAM_CLIENT_ID = env("TELEGRAM_CLIENT_ID", "")  # bot numeric id if empty
 TELEGRAM_CLIENT_SECRET = env("TELEGRAM_CLIENT_SECRET", "")  # Web Login secret only
 TELEGRAM_ALLOWED_REDIRECT_URIS = env_list(
     "TELEGRAM_ALLOWED_REDIRECT_URIS",
-    "https://karim-khaled-2.vercel.app/auth/telegram/callback,http://localhost:5173/auth/telegram/callback",
+    f"{SITE_URL}/auth/telegram/callback,"
+    "https://www.maramedu.com/auth/telegram/callback,"
+    "https://karim-khaled-2.vercel.app/auth/telegram/callback,"
+    "http://localhost:5173/auth/telegram/callback",
 )
 
 # --- BigBlueButton (BiggerBlueButton or self-hosted). Secret never goes to the browser. ---
@@ -191,5 +205,5 @@ BBB_URL = env("BBB_URL", "").rstrip("/")
 BBB_SECRET = env("BBB_SECRET", "")
 BBB_CHECKSUM = env("BBB_CHECKSUM", "sha1")  # sha1 or sha256
 # Where the browser goes when a live class ends, instead of the host's promo page.
-BBB_LOGOUT_URL = env("BBB_LOGOUT_URL", "https://karim-khaled-2.vercel.app/schedule")
+BBB_LOGOUT_URL = env("BBB_LOGOUT_URL", f"{SITE_URL}/schedule")
 
