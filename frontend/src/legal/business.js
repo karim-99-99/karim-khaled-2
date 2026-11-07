@@ -5,9 +5,9 @@
  * Keep legalName and statementDescriptor identical to the Stripe account.
  */
 export const BUSINESS = {
-  brand: "زاد التحصيلي",
-  brandLatin: "Zad Al-Tahsili",
-  tagline: "زادك للمئوية",
+  brand: "مرام التحصيلي",
+  brandLatin: "Maram Edu",
+  tagline: "مرامك للمئوية",
   // Registered legal name as it appears on Stripe
   legalName: "Maram Education",
   // Appears on the student's card statement (must match Stripe)
