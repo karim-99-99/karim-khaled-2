@@ -109,7 +109,7 @@ export default function Layout() {
   const themeKey = (lockedSurface && lockedThemeKey) || routeThemeKey;
   const theme = getSubjectTheme(themeKey);
   const logoSrc = theme?.logo || DEFAULT_LOGO;
-  const logoAlt = theme ? `زاد ${theme.label}` : "زاد التحصيلي";
+  const logoAlt = theme ? `مرام ${theme.label}` : "مرام التحصيلي";
 
   useEffect(() => {
     if (lockedSurface) {
