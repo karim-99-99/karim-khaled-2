@@ -53,6 +53,14 @@ export function ContactBlock() {
         <a href={`mailto:${BUSINESS.supportEmail}`} dir="ltr">
           {BUSINESS.supportEmail}
         </a>
+        {BUSINESS.supportEmailAlt && (
+          <>
+            {" "}أو{" "}
+            <a href={`mailto:${BUSINESS.supportEmailAlt}`} dir="ltr">
+              {BUSINESS.supportEmailAlt}
+            </a>
+          </>
+        )}
       </li>
       <li>
         <strong>الهاتف / واتساب:</strong>{" "}

@@ -4,6 +4,7 @@ import { BUSINESS } from "../../legal/business";
 
 export default function RefundPolicy() {
   const days = BUSINESS.refundWindowDays;
+  const maxUsage = BUSINESS.refundMaxUsagePercent;
   return (
     <LegalPage
       title="سياسة الاسترداد والإلغاء"
@@ -18,9 +19,14 @@ export default function RefundPolicy() {
               cancel; access simply ends on the expiry date.
             </li>
             <li>
-              <strong>Full refund within {days} days</strong> of purchase if the
-              account has watched fewer than 3 paid lessons and has not attended a
-              live class.
+              <strong>Full refund within {days} days</strong> of purchase, provided
+              that no more than <strong>{maxUsage}%</strong> of the paid content
+              (lessons, question sets and live classes) has been used.
+            </li>
+            <li>
+              <strong>No refund</strong> for a plan whose content was offered as a
+              free trial or sample before purchase: you were able to evaluate it
+              before paying.
             </li>
             <li>
               Full refund at any time for duplicate charges, charges made without
@@ -47,7 +53,7 @@ export default function RefundPolicy() {
     >
       <LegalSection title="١. طبيعة الاشتراك">
         <p>
-          جميع الباقات (شهري، فصلي، سنوي) <strong>مدفوعة مقدّماً لمدة محددة</strong> ولا
+          جميع الباقات (الفضية والذهبية) <strong>مدفوعة مقدّماً لمدة محددة</strong> ولا
           تتجدد تلقائياً. لا نخصم أي مبلغ متكرر من بطاقتك، وعند انتهاء المدة يتوقف
           الوصول إلى المحتوى المدفوع ويمكنك الاشتراك مرة أخرى متى شئت.
         </p>
@@ -56,8 +62,9 @@ export default function RefundPolicy() {
       <LegalSection title="٢. حالات الاسترداد الكامل">
         <ul>
           <li>
-            <strong>خلال {days} أيام من الشراء</strong> إذا لم تشاهد أكثر من ٣ دروس
-            مدفوعة ولم تحضر أي حصة مباشرة.
+            <strong>خلال {days} أيام من الشراء</strong> بشرط ألا يتجاوز استهلاكك{" "}
+            <strong>{maxUsage}٪</strong> من المحتوى المدفوع (الدروس، تجميعات الأسئلة،
+            الحصص المباشرة). يُحسب الاستهلاك من سجل الحساب على المنصة.
           </li>
           <li>خصم مكرر لنفس الباقة بالخطأ.</li>
           <li>عملية دفع تمت دون تفويض صاحب البطاقة، بعد التحقق.</li>
@@ -70,7 +77,12 @@ export default function RefundPolicy() {
 
       <LegalSection title="٣. الحالات غير القابلة للاسترداد">
         <ul>
-          <li>انقضاء {days} أيام على الشراء، أو استخدام جزء كبير من المحتوى.</li>
+          <li>
+            <strong>الباقات التي سبقها عرض تجريبي:</strong> إذا أتيح لك تجربة محتوى
+            الباقة مجاناً قبل الشراء (درس مجاني، أسئلة تجريبية، أو فترة تجريبية) فلا يحق
+            الاسترداد بعد الدفع، لأنك اطّلعت على المحتوى قبل اتخاذ القرار.
+          </li>
+          <li>انقضاء {days} أيام على الشراء، أو تجاوز استهلاك {maxUsage}٪ من المحتوى.</li>
           <li>عدم استخدام الاشتراك طوال المدة دون طلب استرداد في الوقت المحدد.</li>
           <li>إيقاف الحساب بسبب مخالفة الشروط (مثل مشاركة الحساب أو تسجيل المحتوى).</li>
           <li>اختلاف التوقعات الشخصية عن محتوى تم وصفه بوضوح قبل الشراء.</li>

@@ -16,7 +16,7 @@ export default function About() {
             (achievement) exam in Mathematics, Physics, Chemistry and Biology.
           </p>
           <p>
-            We sell prepaid digital subscriptions (monthly, quarterly, yearly) that
+            We sell prepaid digital subscriptions (Silver and Gold tiers) that
             unlock recorded video lessons, question banks with worked solutions,
             practice exams, a study planner and scheduled live classes. Access is
             delivered instantly online after payment; nothing is shipped.

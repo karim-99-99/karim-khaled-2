@@ -15,7 +15,7 @@ export default function Subscription() {
   const { refreshUser } = useAuth();
   const [state, setState] = useState(null);
   const [catalog, setCatalog] = useState(null);
-  const [plan, setPlan] = useState("yearly");
+  const [plan, setPlan] = useState("gold");
   const [method, setMethod] = useState("card");
   const [agreed, setAgreed] = useState(false);
   const [msg, setMsg] = useState("");

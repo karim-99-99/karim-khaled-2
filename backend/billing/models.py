@@ -5,9 +5,15 @@ from django.utils import timezone
 
 class Subscription(models.Model):
     class Plan(models.TextChoices):
+        SILVER = "silver", "الباقة الفضية"
+        GOLD = "gold", "الباقة الذهبية"
+        # Legacy duration-based plans kept so existing rows still display.
         MONTHLY = "monthly", "شهري"
         QUARTERLY = "quarterly", "فصلي"
         YEARLY = "yearly", "سنوي"
+
+    # Tiers that include live classes with the teacher.
+    LIVE_PLANS = ("gold", "quarterly", "yearly")
 
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,

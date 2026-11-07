@@ -10,7 +10,8 @@ export default function Contact() {
       englishSummary={
         <>
           <p>
-            Customer service for {BUSINESS.brandLatin}: email {BUSINESS.supportEmail},
+            Customer service for {BUSINESS.brandLatin}: email {BUSINESS.supportEmail}
+            {BUSINESS.supportEmailAlt ? ` or ${BUSINESS.supportEmailAlt}` : ""},
             phone/WhatsApp {BUSINESS.supportPhone}, {BUSINESS.supportHoursEn}. Address:{" "}
             {BUSINESS.address}. We reply within one business day.
           </p>

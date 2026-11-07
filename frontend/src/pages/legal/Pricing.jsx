@@ -3,7 +3,13 @@ import { Link } from "react-router-dom";
 import LegalPage, { LegalSection } from "../../components/LegalPage";
 import { useAuth } from "../../auth/AuthContext";
 import { BUSINESS } from "../../legal/business";
-import { PLAN_FEATURES, currencyName, fetchPlans, formatPrice } from "../../utils/plans";
+import {
+  FEATURED_PLAN,
+  PLAN_FEATURES,
+  currencyName,
+  fetchPlans,
+  formatPrice,
+} from "../../utils/plans";
 
 export default function Pricing() {
   const { user } = useAuth();
@@ -33,7 +39,7 @@ export default function Pricing() {
     <LegalPage
       title="الأسعار والباقات"
       titleEn="Pricing"
-      intro="اختر المدة المناسبة لك. كل الباقات مدفوعة مقدّماً، لا تتجدد تلقائياً، وتُفعَّل فور الدفع."
+      intro="باقتان واضحتان: الفضية للمحتوى المسجّل، والذهبية تضيف الحصص المباشرة مع المدرس. كل الباقات مدفوعة مقدّماً، لا تتجدد تلقائياً، وتُفعَّل فور الدفع."
       englishSummary={
         <>
           <p>
@@ -46,8 +52,9 @@ export default function Pricing() {
           <ul>
             {plans.map((p) => (
               <li key={p.id}>
-                {p.label === "شهري" ? "Monthly" : p.label === "فصلي" ? "Quarterly" : "Yearly"}{" "}
-                ({p.days} days): {Number(p.price).toLocaleString("en-US")} {p.currency}
+                {p.label_en || p.id} ({p.days} days
+                {p.live_classes ? ", includes live classes" : ", recorded content"}):{" "}
+                {Number(p.price).toLocaleString("en-US")} {p.currency}
               </li>
             ))}
           </ul>
@@ -58,8 +65,11 @@ export default function Pricing() {
 
       <div className="pricing-grid">
         {plans.map((p) => (
-          <div key={p.id} className={`card pricing-card ${p.id === "yearly" ? "pricing-card--featured" : ""}`}>
-            {p.id === "yearly" && <div className="pricing-card__badge">الأكثر توفيراً</div>}
+          <div
+            key={p.id}
+            className={`card pricing-card ${p.id === FEATURED_PLAN ? "pricing-card--featured" : ""}`}
+          >
+            {p.id === FEATURED_PLAN && <div className="pricing-card__badge">الأكثر طلباً</div>}
             <h3 className="pricing-card__name">{p.label}</h3>
             <div className="pricing-card__price">{formatPrice(p.price, p.currency)}</div>
             <div className="pricing-card__term">لمدة {p.days} يوماً · دفعة واحدة</div>
@@ -82,7 +92,7 @@ export default function Pricing() {
           <li>تجميعات أسئلة السنوات السابقة مع الحل والشرح لكل سؤال.</li>
           <li>اختبارات محاكاة غير محدودة وتقارير النتائج.</li>
           <li>الجدول الذكي وخطة المذاكرة اليومية.</li>
-          <li>الحصص المباشرة حسب المجموعة الدراسية (الباقات الفصلية والسنوية).</li>
+          <li>الحصص المباشرة حسب المجموعة الدراسية (الباقة الذهبية فقط).</li>
         </ul>
       </LegalSection>
 
@@ -104,8 +114,10 @@ export default function Pricing() {
             أخرى متى شئت.
           </li>
           <li>
-            الاسترداد: خلال {BUSINESS.refundWindowDays} أيام من الشراء عند الاستخدام المحدود،
-            حسب <Link to="/refund-policy"><strong>سياسة الاسترداد والإلغاء</strong></Link>.
+            الاسترداد: خلال {BUSINESS.refundWindowDays} أيام من الشراء بشرط ألا يتجاوز
+            استهلاك المحتوى {BUSINESS.refundMaxUsagePercent}٪، ولا يشمل الباقات التي سبقها
+            عرض تجريبي، حسب{" "}
+            <Link to="/refund-policy"><strong>سياسة الاسترداد والإلغاء</strong></Link>.
           </li>
         </ul>
       </LegalSection>
@@ -115,6 +127,7 @@ export default function Pricing() {
           بدون اشتراك يمكنك مشاهدة الدرس المجاني في كل مادة وحل أول ١٠ أسئلة من التجميعات.
           {" "}
           <Link to={user ? "/courses" : "/register"}><strong>ابدأ الآن</strong></Link>.
+          لأن التجربة متاحة قبل الدفع، لا يحق الاسترداد لباقة جرّبت محتواها مسبقاً.
         </p>
       </LegalSection>
     </LegalPage>

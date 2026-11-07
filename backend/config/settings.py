@@ -172,10 +172,15 @@ FREE_TIER_QUESTION_LIMIT = int(env("FREE_TIER_QUESTION_LIMIT", "10"))
 # Subscription prices shown on /pricing and charged at checkout. Stripe's
 # website review requires the price and currency to be visible before paying.
 SUBSCRIPTION_CURRENCY = (env("SUBSCRIPTION_CURRENCY", "SAR") or "SAR").upper()
+# Two tiers: silver (recorded content) and gold (adds live classes).
 SUBSCRIPTION_PRICES = {
-    "monthly": env("PLAN_PRICE_MONTHLY", "99"),
-    "quarterly": env("PLAN_PRICE_QUARTERLY", "249"),
-    "yearly": env("PLAN_PRICE_YEARLY", "799"),
+    "silver": env("PLAN_PRICE_SILVER", "190"),
+    "gold": env("PLAN_PRICE_GOLD", "990"),
+}
+# Access period per tier, in days (defaults to one academic year).
+SUBSCRIPTION_DAYS = {
+    "silver": int(env("PLAN_DAYS_SILVER", "365")),
+    "gold": int(env("PLAN_DAYS_GOLD", "365")),
 }
 
 # --- Bunny Stream (video protection). Placeholders until real keys are added. ---
