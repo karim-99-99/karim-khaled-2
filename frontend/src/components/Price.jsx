@@ -7,8 +7,8 @@ export default function Price({ amount, currency, className = "" }) {
   if (String(currency).toUpperCase() === "SAR") {
     return (
       <span className={`price-with-riyal ${className}`.trim()} dir="ltr">
-        <span className="price-with-riyal__amount">{value}</span>
         <RiyalMark className="price-with-riyal__mark" />
+        <span className="price-with-riyal__amount">{value}</span>
       </span>
     );
   }
