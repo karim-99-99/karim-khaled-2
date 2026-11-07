@@ -1,6 +1,6 @@
 /** Subject themes — CSS-only skin (same routes, different data-subject). */
 
-export const DEFAULT_LOGO = "/logo-zad-altahsili.png";
+export const DEFAULT_LOGO = "/subjects/main.png";
 
 const LOCK_KEY = "zad_locked_subject_theme";
 export const SUBJECT_THEME_EVENT = "zad-subject-theme";
@@ -9,25 +9,25 @@ export const SUBJECT_THEMES = {
   math: {
     key: "math",
     label: "رياضيات",
-    logo: "/logo-math.png",
+    logo: "/subjects/math.png",
     match: ["رياضيات", "رياضة"],
   },
   physics: {
     key: "physics",
     label: "فيزياء",
-    logo: "/logo-physics.png",
+    logo: "/subjects/physics.png",
     match: ["فيزياء"],
   },
   chem: {
     key: "chem",
     label: "كيمياء",
-    logo: "/logo-chem.png",
+    logo: "/subjects/chem.png",
     match: ["كيمياء"],
   },
   bio: {
     key: "bio",
     label: "أحياء",
-    logo: "/logo-bio.png",
+    logo: "/subjects/bio.png",
     match: ["أحياء"],
   },
   /** Multi-subject personal simulator — blue skin */

@@ -6,7 +6,7 @@ Extracted from:
 - [canva-mockups-mobile.html](canva-mockups-mobile.html) — Phone (375×812)
 - [canva-mockups-tablet.html](canva-mockups-tablet.html) — Tablet (768×1024)
 
-Logo asset: [brand/logo-zad-altahsili.png](brand/logo-zad-altahsili.png)
+Logo asset: [frontend/public/subjects/main.png](frontend/public/subjects/main.png)
 
 Subject logos: [brand/subjects/](brand/subjects/) · Canva themes: [canva-subject-themes.html](canva-subject-themes.html)
 
@@ -68,7 +68,7 @@ Each mockup file links to the other device variants and to the brand board.
 ### 2.2 Typography
 - **Fonts:** Cairo (400, 600, 700) + Tajawal
 - **Direction:** RTL throughout
-- **Logo:** Full image `brand/logo-zad-altahsili.png` in header (not letter mark)
+- **Logo:** Full image `frontend/public/subjects/main.png` in header (not letter mark)
 
 ### 2.3 Button Hierarchy
 1. **Gold accent** — primary call to action
@@ -135,4 +135,4 @@ Each mockup file links to the other device variants and to the brand board.
 
 ## 6. Next Step (implementation)
 
-After Canva approval, apply the same tokens to `frontend/src/index.css` and replace the text logo in `Layout.jsx` with `logo-zad-altahsili.png` (already copied to `frontend/public/`).
+After Canva approval, apply the same tokens to `frontend/src/index.css` and replace the text logo in `Layout.jsx` with `subjects/main.png` (already copied to `frontend/public/`).
