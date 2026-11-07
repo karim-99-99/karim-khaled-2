@@ -14,7 +14,7 @@ export const BUSINESS = {
   legalName: "زاد التحصيلي للتعليم الإلكتروني",
   // Appears on the student's card statement (يُستكمل — must match Stripe)
   statementDescriptor: "ZAD ALTAHSILI",
-  website: "https://karim-khaled-2.vercel.app",
+  website: "https://maramedu.com",
   supportEmail: "support@zad-altahsili.com",
   supportPhone: "+20 10 0000 0000",
   supportWhatsapp: "+20 10 0000 0000",
