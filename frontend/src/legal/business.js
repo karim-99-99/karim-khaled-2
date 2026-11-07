@@ -7,7 +7,7 @@
 export const BUSINESS = {
   brand: "مرام التحصيلي",
   brandLatin: "Maram Edu",
-  tagline: "مرامك للمئوية",
+  tagline: "للتحصيلي بإتقان",
   // Registered legal name as it appears on Stripe
   legalName: "Maram Education",
   // Appears on the student's card statement (must match Stripe)
