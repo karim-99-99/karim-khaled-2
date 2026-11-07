@@ -4,7 +4,6 @@ import { useAuth } from "../auth/AuthContext";
 import { filterSubjectsForUser } from "../auth/teacherScope";
 import client from "../api/client";
 import BackToCourses from "../components/BackToCourses";
-import YearScrollPicker, { expandYearRange } from "../components/YearScrollPicker";
 import {
   lockSubjectTheme,
   resolveSubjectKey,
@@ -78,10 +77,7 @@ export default function SimulatorSetup() {
   const [subjects, setSubjects] = useState([]);
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [lessons, setLessons] = useState([]);
-  const [years, setYears] = useState([]);
-  const [yearStats, setYearStats] = useState([]);
   const [selectedLessons, setSelectedLessons] = useState([]);
-  const [yearRange, setYearRange] = useState(null);
   const [count, setCount] = useState(8);
   const [takeAll, setTakeAll] = useState(false);
   const [difficultyMix, setDifficultyMix] = useState("medium");
@@ -141,10 +137,7 @@ export default function SimulatorSetup() {
   useEffect(() => {
     if (!selectedSubjects.length) {
       setLessons([]);
-      setYears([]);
-      setYearStats([]);
       setSelectedLessons([]);
-      setYearRange(null);
       return;
     }
     let cancelled = false;
@@ -157,8 +150,6 @@ export default function SimulatorSetup() {
         if (cancelled) return;
         const rows = res.data.lessons || [];
         setLessons(rows);
-        setYears(res.data.years || []);
-        setYearStats(res.data.year_stats || []);
         setSelectedLessons((prev) => {
           const allowed = new Set(rows.map((l) => l.id));
           const kept = prev.filter((id) => allowed.has(id));
@@ -172,17 +163,10 @@ export default function SimulatorSetup() {
           }
           return rows.map((l) => l.id);
         });
-        setYearRange((prev) => {
-          if (!prev) return null;
-          const expanded = expandYearRange(res.data.years || [], prev);
-          return expanded.length ? prev : null;
-        });
       })
       .catch(() => {
         if (!cancelled) {
           setLessons([]);
-          setYears([]);
-          setYearStats([]);
         }
       })
       .finally(() => {
@@ -270,10 +254,6 @@ export default function SimulatorSetup() {
         question_pool: questionPool,
         time_limit_minutes: resolveTimeLimit(),
       };
-      if (yearRange) {
-        const expanded = expandYearRange(years, yearRange);
-        if (expanded.length) payload.years = expanded;
-      }
       if (selectedSubjects.length > 1) {
         lockSubjectTheme("multi");
       } else if (selectedSubjects.length === 1) {
@@ -401,17 +381,6 @@ export default function SimulatorSetup() {
               </div>
             </div>
           ))}
-        </div>
-
-        <div className="form-group">
-          <label>سنة / تاريخ الأسئلة — اختياري</label>
-          <YearScrollPicker
-            years={years}
-            value={yearRange}
-            onChange={setYearRange}
-            yearStats={yearStats}
-            emptyMessage="لا توجد سنوات مسجّلة على الأسئلة بعد — سيُؤخذ الكل."
-          />
         </div>
 
         <div className="form-group">

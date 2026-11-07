@@ -22,6 +22,7 @@ const Results = lazy(() => import("./pages/Results"));
 const ResultReview = lazy(() => import("./pages/ResultReview"));
 const Schedule = lazy(() => import("./pages/Schedule"));
 const SmartPlan = lazy(() => import("./pages/SmartPlan"));
+const QuestionFolders = lazy(() => import("./pages/QuestionFolders"));
 const Subscription = lazy(() => import("./pages/Subscription"));
 const TeacherPanel = lazy(() => import("./pages/TeacherPanel"));
 const TeacherSchedule = lazy(() => import("./pages/TeacherSchedule"));
@@ -65,6 +66,8 @@ export default function App() {
           <Route path="/results/:examId" element={<RequireAuth><ResultReview /></RequireAuth>} />
           <Route path="/schedule" element={<RequireAuth><Schedule /></RequireAuth>} />
           <Route path="/smart-plan" element={<RequireAuth><SmartPlan /></RequireAuth>} />
+          <Route path="/question-folders" element={<RequireAuth><QuestionFolders /></RequireAuth>} />
+          <Route path="/question-folders/:folderId" element={<RequireAuth><QuestionFolders /></RequireAuth>} />
           <Route path="/subscription" element={<RequireAuth><Subscription /></RequireAuth>} />
 
           <Route path="/teacher" element={<RequireRole roles={["teacher", "admin"]}><TeacherPanel /></RequireRole>} />

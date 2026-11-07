@@ -179,11 +179,14 @@ class ExamAnswerReviewSerializer(serializers.ModelSerializer):
     lesson_title = serializers.CharField(source="question.lesson.title", read_only=True)
     question_year = serializers.CharField(source="question.question_year", read_only=True)
 
+    question_id = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = ExamAnswer
         fields = [
             "id",
             "order",
+            "question_id",
             "question_text",
             "text_image",
             "options",

@@ -18,6 +18,14 @@ from accounts.views import (
     set_user_role,
     teacher_list,
 )
+from assessments.folder_views import (
+    question_folder_add_item,
+    question_folder_detail,
+    question_folder_membership,
+    question_folder_practice,
+    question_folder_remove_item,
+    question_folders,
+)
 from assessments.views import (
     AnswerView,
     CollectionQuestionViewSet,
@@ -124,6 +132,16 @@ api_patterns = [
     path("exams/<int:exam_id>/review/", ExamReviewView.as_view()),
     path("results/", MyResultsView.as_view()),
     path("my-homework/", StudentHomeworkView.as_view()),
+    # ملفات الأسئلة المهمة (حد 20 ملف للطالب)
+    path("question-folders/", question_folders),
+    path("question-folders/membership/", question_folder_membership),
+    path("question-folders/<int:folder_id>/", question_folder_detail),
+    path("question-folders/<int:folder_id>/items/", question_folder_add_item),
+    path(
+        "question-folders/<int:folder_id>/items/<int:question_id>/",
+        question_folder_remove_item,
+    ),
+    path("question-folders/<int:folder_id>/practice/", question_folder_practice),
     # Smart study plan (الجدول الذكي)
     path("study-plans/", list_study_plans),
     path("study-plans/active/", active_study_plan),

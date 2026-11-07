@@ -9,7 +9,6 @@ import QuestionImportPanel from "../components/QuestionImportPanel";
 import QuestionOrderNumber from "../components/QuestionOrderNumber";
 import TeacherQuestionForm from "../components/TeacherQuestionForm";
 import VideoPlayer from "../components/VideoPlayer";
-import YearScrollPicker, { expandYearRange } from "../components/YearScrollPicker";
 import { TEACHER_TIERS, tierLabel } from "../constants/teacherTiers";
 
 function sortByOrder(rows) {
@@ -36,7 +35,8 @@ const LEVELS = [
 ];
 
 /**
- * داخل درس التجميع: للطالب اختيار المستويات + السنة وبدء الاختبار بكل الأسئلة المطابقة.
+ * داخل درس التجميع: للطالب اختيار المستويات وبدء الاختبار بكل الأسئلة المطابقة.
+ * سنة السؤال تظهر على كل سؤال لكنها ليست فلتر اختيار.
  * نسب المزج (سهل/متقدم/تحدي) خاصة بالمحاكي الشخصي فقط.
  * للمدرس: فيديو / PDF / إدارة بنك الأسئلة.
  */
@@ -58,9 +58,6 @@ export default function CollectionLessonDetail() {
   const [busy, setBusy] = useState(false);
   const [startBusy, setStartBusy] = useState(false);
   const [selectedLevels, setSelectedLevels] = useState([]);
-  const [years, setYears] = useState([]);
-  const [yearStats, setYearStats] = useState([]);
-  const [yearRange, setYearRange] = useState(null);
   const [tierStats, setTierStats] = useState([]);
   const [filterBreakdown, setFilterBreakdown] = useState([]);
   const [selectedTiers, setSelectedTiers] = useState([]);
@@ -89,13 +86,8 @@ export default function CollectionLessonDetail() {
     hard: 0,
   };
 
-  const allowedYears = useMemo(() => {
-    if (!yearRange) return null;
-    return new Set(expandYearRange(years, yearRange));
-  }, [years, yearRange]);
-
   const filteredLevelCounts = useMemo(() => {
-    if (!allowedYears && !selectedTiers.length && !selectedSubs.length) {
+    if (!selectedTiers.length && !selectedSubs.length) {
       return {
         easy: Number(levelCounts.easy) || 0,
         medium: Number(levelCounts.medium) || 0,
@@ -103,36 +95,21 @@ export default function CollectionLessonDetail() {
       };
     }
     const out = { easy: 0, medium: 0, hard: 0 };
-    if (filterBreakdown.length) {
-      for (const row of filterBreakdown) {
-        if (allowedYears && !allowedYears.has(row.question_year || "")) {
-          continue;
-        }
-        if (selectedTiers.length && !selectedTiers.includes(row.teacher_tier || "")) {
-          continue;
-        }
-        if (selectedSubs.length && !selectedSubs.includes(row.sub_lesson ?? 0)) {
-          continue;
-        }
-        const d = row.difficulty;
-        if (d in out) out[d] += Number(row.count) || 0;
+    for (const row of filterBreakdown) {
+      if (selectedTiers.length && !selectedTiers.includes(row.teacher_tier || "")) {
+        continue;
       }
-      return out;
-    }
-    // Fallback when breakdown unavailable.
-    for (const row of yearStats) {
-      if (allowedYears && !allowedYears.has(row.year)) continue;
-      out.easy += Number(row.easy) || 0;
-      out.medium += Number(row.medium) || 0;
-      out.hard += Number(row.hard) || 0;
+      if (selectedSubs.length && !selectedSubs.includes(row.sub_lesson ?? 0)) {
+        continue;
+      }
+      const d = row.difficulty;
+      if (d in out) out[d] += Number(row.count) || 0;
     }
     return out;
   }, [
-    allowedYears,
     selectedTiers,
     selectedSubs,
     filterBreakdown,
-    yearStats,
     levelCounts.easy,
     levelCounts.medium,
     levelCounts.hard,
@@ -141,7 +118,6 @@ export default function CollectionLessonDetail() {
   const tierCountsForFilter = useMemo(() => {
     const out = Object.fromEntries(TEACHER_TIERS.map((t) => [t.id, 0]));
     for (const row of filterBreakdown) {
-      if (allowedYears && !allowedYears.has(row.question_year || "")) continue;
       if (selectedSubs.length && !selectedSubs.includes(row.sub_lesson ?? 0)) continue;
       if (row.teacher_tier && row.teacher_tier in out) {
         out[row.teacher_tier] += Number(row.count) || 0;
@@ -153,19 +129,18 @@ export default function CollectionLessonDetail() {
       }
     }
     return out;
-  }, [filterBreakdown, tierStats, allowedYears, selectedSubs]);
+  }, [filterBreakdown, tierStats, selectedSubs]);
 
-  /** Student chip counts per sub-lesson (0 = direct), respecting year + tier filters. */
+  /** Student chip counts per sub-lesson (0 = direct), respecting tier filters. */
   const subCountsForFilter = useMemo(() => {
     const out = {};
     for (const row of filterBreakdown) {
-      if (allowedYears && !allowedYears.has(row.question_year || "")) continue;
       if (selectedTiers.length && !selectedTiers.includes(row.teacher_tier || "")) continue;
       const key = row.sub_lesson ?? 0;
       out[key] = (out[key] || 0) + (Number(row.count) || 0);
     }
     return out;
-  }, [filterBreakdown, allowedYears, selectedTiers]);
+  }, [filterBreakdown, selectedTiers]);
 
   function toggleSub(id) {
     setSelectedSubs((prev) =>
@@ -209,7 +184,6 @@ export default function CollectionLessonDetail() {
     setEditingQ(null);
     setMsg("");
     setSelectedLevels([]);
-    setYearRange(null);
     setSelectedTiers([]);
     setShowImport(false);
     setTab("questions");
@@ -228,15 +202,11 @@ export default function CollectionLessonDetail() {
           .get(`/exams/simulator/options/?${params.toString()}`)
           .then((res) => {
             if (cancelled) return;
-            setYears(res.data.years || []);
-            setYearStats(res.data.year_stats || []);
             setTierStats(res.data.tier_stats || []);
             setFilterBreakdown(res.data.filter_breakdown || []);
           })
           .catch(() => {
             if (!cancelled) {
-              setYears([]);
-              setYearStats([]);
               setTierStats([]);
               setFilterBreakdown([]);
             }
@@ -443,10 +413,6 @@ export default function CollectionLessonDetail() {
           .replace(/\s+/g, " ")
           .trim(),
       };
-      if (yearRange) {
-        const expanded = expandYearRange(years, yearRange);
-        if (expanded.length) payload.years = expanded;
-      }
       if (selectedTiers.length) {
         payload.tiers = selectedTiers;
       }
@@ -702,8 +668,8 @@ export default function CollectionLessonDetail() {
             </div>
             <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 12 }}>
               {focusedSubObj
-                ? `اختر المستويات وسنة الاختبار — كل الأسئلة المطابقة في «${focusedSubObj.title}».`
-                : "اختر المستويات وسنة الاختبار (اختياري) — يظهر لك كل الأسئلة المطابقة في هذا الدرس. نسب المزج موجودة في المحاكي الشخصي فقط."}
+                ? `اختر المستويات — كل الأسئلة المطابقة في «${focusedSubObj.title}». سنة كل سؤال تظهر عليه أثناء الحل.`
+                : "اختر المستويات — يظهر لك كل الأسئلة المطابقة في هذا الدرس. سنة كل سؤال تظهر عليه أثناء الحل (بدون فلتر سنة)."}
             </p>
             <div style={{ marginBottom: 16 }}>
               <Link
@@ -785,16 +751,6 @@ export default function CollectionLessonDetail() {
               <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>
                 مثال: سهل فقط = كل الأسئلة السهلة · سهل + صعب = كل السهل وكل الصعب
               </p>
-            </div>
-            <div className="form-group" style={{ marginBottom: 16 }}>
-              <label>سنة / تاريخ الاختبار — اختياري</label>
-              <YearScrollPicker
-                years={years}
-                value={yearRange}
-                onChange={setYearRange}
-                yearStats={yearStats}
-                emptyMessage="لا توجد سنوات مسجّلة على أسئلة هذا الدرس بعد."
-              />
             </div>
             <div className="form-group" style={{ marginBottom: 16 }}>
               <label>ترشيحات المدرسين — اختياري (واحد أو أكثر، أو الكل)</label>

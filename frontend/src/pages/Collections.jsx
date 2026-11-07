@@ -279,7 +279,7 @@ export default function Collections() {
       <div className="banner" style={{ marginBottom: 16 }}>
         {canEdit
           ? "أسئلة التجميع تظهر لكل طلاب المادة. اضغط + بجانب أي درس لإضافة دروس فرعية تظهر هنا مباشرة — أو ادخل للدرس لإضافة الأسئلة بدون فروع."
-          : "اختر درساً أو درساً فرعياً للتدريب، أو خصّص مواداً ودروساً وسنة ومدة من الإعداد الكامل."}
+          : "اختر درساً أو درساً فرعياً للتدريب، أو خصّص مواداً ودروساً ومدة من الإعداد الكامل."}
       </div>
 
       {!canEdit && (
@@ -288,7 +288,7 @@ export default function Collections() {
             to={`/tests/simulator/${subjectId}?from=collections`}
             className="btn btn-primary"
           >
-            تدريب مخصص (مواد · دروس · سنة · مدة) ←
+            تدريب مخصص (مواد · دروس · مدة) ←
           </Link>
         </div>
       )}

@@ -75,7 +75,7 @@ export default function TestsPage() {
       <div className="card" style={{ padding: 28, marginBottom: 28 }}>
         <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 8 }}>المحاكي الشخصي</h2>
         <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>
-          اختر كل المواد أو بعضها، والدروس داخل كل مادة، والسنة، ومدة الاختبار أو بدون زمن
+          اختر كل المواد أو بعضها، والدروس داخل كل مادة، ومدة الاختبار أو بدون زمن
         </p>
         <button
           type="button"

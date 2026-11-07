@@ -5,6 +5,7 @@ import AnswerVerdictFlash from "../components/AnswerVerdictFlash";
 import BackToCourses from "../components/BackToCourses";
 import MathText from "../components/MathText";
 import QuestionMeta from "../components/QuestionMeta";
+import SaveToFolderButton from "../components/SaveToFolderButton";
 import VideoPlayer from "../components/VideoPlayer";
 import { applySubjectTheme, lockSubjectTheme, resolveExamThemeKey } from "../theme/subjects";
 
@@ -277,13 +278,25 @@ export default function TestRunner() {
             </div>
           )}
 
-          <QuestionMeta
-            difficulty={q.difficulty}
-            difficultyLabel={q.difficulty_label}
-            subjectName={q.subject_name}
-            lessonTitle={q.lesson_title}
-            questionYear={q.question_year}
-          />
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              gap: 10,
+              flexWrap: "wrap",
+              marginBottom: 8,
+            }}
+          >
+            <QuestionMeta
+              difficulty={q.difficulty}
+              difficultyLabel={q.difficulty_label}
+              subjectName={q.subject_name}
+              lessonTitle={q.lesson_title}
+              questionYear={q.question_year}
+            />
+            {q.id ? <SaveToFolderButton questionId={q.id} /> : null}
+          </div>
 
           <h3 style={{ fontSize: 18, marginBottom: 20, lineHeight: 1.8 }}>
             <MathText>{q.text}</MathText>
