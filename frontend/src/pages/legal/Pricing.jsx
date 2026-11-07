@@ -3,13 +3,8 @@ import { Link } from "react-router-dom";
 import LegalPage, { LegalSection } from "../../components/LegalPage";
 import { useAuth } from "../../auth/AuthContext";
 import { BUSINESS } from "../../legal/business";
-import {
-  FEATURED_PLAN,
-  PLAN_FEATURES,
-  currencyName,
-  fetchPlans,
-  formatPrice,
-} from "../../utils/plans";
+import Price, { CurrencyLabel } from "../../components/Price";
+import { FEATURED_PLAN, PLAN_FEATURES, fetchPlans } from "../../utils/plans";
 
 export default function Pricing() {
   const { user } = useAuth();
@@ -71,7 +66,9 @@ export default function Pricing() {
           >
             {p.id === FEATURED_PLAN && <div className="pricing-card__badge">الأكثر طلباً</div>}
             <h3 className="pricing-card__name">{p.label}</h3>
-            <div className="pricing-card__price">{formatPrice(p.price, p.currency)}</div>
+            <div className="pricing-card__price">
+              <Price amount={p.price} currency={p.currency} />
+            </div>
             <div className="pricing-card__term">لمدة {p.days} يوماً · دفعة واحدة</div>
             <ul className="pricing-card__features">
               {(PLAN_FEATURES[p.id] || []).map((f) => (
@@ -99,7 +96,8 @@ export default function Pricing() {
       <LegalSection title="معلومات الدفع">
         <ul>
           <li>
-            الأسعار بعملة <strong>{currency ? `${currencyName(currency)} (${currency})` : "—"}</strong>{" "}
+            الأسعار بعملة{" "}
+            <strong>{currency ? <CurrencyLabel code={currency} /> : "—"}</strong>{" "}
             وشاملة الضرائب المطبقة. قد يضيف بنكك رسوم تحويل عملة إذا كانت بطاقتك بعملة أخرى.
           </li>
           <li>
