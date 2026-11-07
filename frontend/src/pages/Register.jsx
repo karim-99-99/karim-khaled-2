@@ -13,6 +13,7 @@ export default function Register() {
     email: "",
     password: "",
   });
+  const [agreed, setAgreed] = useState(false);
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
 
@@ -23,6 +24,10 @@ export default function Register() {
   async function submit(e) {
     e.preventDefault();
     setErrors({});
+    if (!agreed) {
+      setErrors({ agree: "يلزم الموافقة على الشروط وسياسة الخصوصية للمتابعة." });
+      return;
+    }
     setBusy(true);
     try {
       await register(form);
@@ -141,6 +146,22 @@ export default function Register() {
             required
           />
           {errors.password && <div className="error-text">{errors.password}</div>}
+        </div>
+        <div className="form-group">
+          <label className="consent-row">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+            />
+            <span>
+              أوافق على{" "}
+              <Link to="/terms" target="_blank" rel="noreferrer">الشروط والأحكام</Link> و
+              <Link to="/privacy" target="_blank" rel="noreferrer">سياسة الخصوصية</Link> و
+              <Link to="/refund-policy" target="_blank" rel="noreferrer">سياسة الاسترداد</Link>.
+            </span>
+          </label>
+          {errors.agree && <div className="error-text">{errors.agree}</div>}
         </div>
         {errors.detail && <div className="error-text">{errors.detail}</div>}
         <button className="btn btn-primary btn-block" disabled={busy}>

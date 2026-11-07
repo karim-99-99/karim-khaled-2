@@ -2005,3 +2005,290 @@ html[data-subject] .answer-option.selected .answer-option__key {
   gap: 8px;
   flex-wrap: wrap;
 }
+
+/* —— Public policy pages (Stripe review: about, pricing, terms, privacy, refund, contact) —— */
+.legal-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding-bottom: 24px;
+}
+.legal-page__head {
+  margin-bottom: 24px;
+  padding: 26px 24px 22px;
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(ellipse at top left, color-mix(in srgb, var(--accent) 26%, transparent), transparent 55%),
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 12%, #fff), #fff 60%);
+  border: 1px solid var(--border);
+}
+.legal-page__title {
+  font-size: clamp(24px, 3.4vw, 34px);
+  margin: 4px 0 2px;
+  line-height: 1.3;
+}
+.legal-page__title-en {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 14px;
+  direction: ltr;
+  text-align: start;
+}
+.legal-page__intro {
+  margin-top: 12px;
+  color: var(--text);
+  max-width: 68ch;
+}
+.legal-page__meta {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.legal-page__body {
+  display: grid;
+  gap: 14px;
+}
+.legal-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+}
+.legal-section h2 {
+  font-size: 19px;
+  margin-bottom: 10px;
+  color: var(--primary);
+}
+.legal-section p + p,
+.legal-section ul + p,
+.legal-section ol + p {
+  margin-top: 10px;
+}
+.legal-section ul,
+.legal-section ol {
+  padding-inline-start: 22px;
+  display: grid;
+  gap: 6px;
+}
+.legal-section a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.legal-contact {
+  list-style: none;
+  padding: 0 !important;
+  display: grid;
+  gap: 8px;
+}
+.legal-page__en {
+  margin-top: 22px;
+  padding: 18px 20px;
+  border-radius: var(--radius-md);
+  border: 1px dashed color-mix(in srgb, var(--primary) 35%, var(--border));
+  background: color-mix(in srgb, var(--primary-light) 55%, #fff);
+  font-family: "Rubik", "Cairo", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.legal-page__en h2 {
+  font-size: 15px;
+  margin-bottom: 8px;
+  color: var(--primary-dark);
+}
+.legal-page__en ul {
+  padding-inline-start: 20px;
+  display: grid;
+  gap: 6px;
+}
+.legal-page__en p + p {
+  margin-top: 8px;
+}
+.legal-page__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+/* Pricing cards */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.pricing-card {
+  position: relative;
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: center;
+}
+.pricing-card--featured {
+  border: 2px solid var(--primary);
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+.pricing-card__badge {
+  position: absolute;
+  top: -12px;
+  inset-inline-start: 50%;
+  transform: translateX(50%);
+  background: var(--accent);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 999px;
+}
+html[dir="ltr"] .pricing-card__badge {
+  transform: translateX(-50%);
+}
+.pricing-card__name {
+  font-size: 20px;
+}
+.pricing-card__price {
+  font-family: var(--font-num);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--primary);
+}
+.pricing-card__term {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.pricing-card__features {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 14px;
+  display: grid;
+  gap: 6px;
+  text-align: start;
+  font-size: 14px;
+}
+.pricing-card__features li::before {
+  content: "✓";
+  color: var(--success);
+  font-weight: 800;
+  margin-inline-end: 8px;
+}
+
+/* Checkout disclosure + consent */
+.checkout-summary {
+  margin-top: 20px;
+  padding: 18px 20px;
+  max-width: 560px;
+  display: grid;
+  gap: 8px;
+}
+.checkout-summary__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 15px;
+}
+.checkout-summary__note {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.checkout-summary__note a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.consent-row {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 1.6;
+  cursor: pointer;
+}
+.consent-row input {
+  margin-top: 5px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  accent-color: var(--primary);
+}
+.consent-row a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Site footer */
+.site-footer {
+  margin-top: 40px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary) 4%, var(--surface)), var(--surface));
+  border-top: 3px solid var(--accent);
+}
+.site-footer__inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 36px 24px 24px;
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr 1fr;
+  gap: 28px;
+}
+.site-footer__name {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: 8px;
+}
+.site-footer__brand p {
+  color: var(--text-muted);
+  font-size: 14px;
+  max-width: 44ch;
+}
+.site-footer__legal-name {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.site-footer__heading {
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+.site-footer__col ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 7px;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.site-footer__col a {
+  color: var(--text);
+}
+.site-footer__col a:hover {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.site-footer__bottom {
+  border-top: 1px solid var(--border);
+  text-align: center;
+  padding: 14px 24px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+@media (max-width: 900px) {
+  .site-footer__inner {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 560px) {
+  .site-footer__inner {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .legal-section {
+    padding: 16px;
+  }
+}

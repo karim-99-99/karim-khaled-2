@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import client from "../api/client";
+import SiteFooter from "./SiteFooter";
 import {
   DEFAULT_LOGO,
   SUBJECT_THEME_EVENT,
@@ -172,6 +173,7 @@ export default function Layout() {
           <NavLink to="/results">نتائج</NavLink>
           <NavLink to="/schedule">جدول الحصص</NavLink>
           <NavLink to="/smart-plan">الجدول الذكي</NavLink>
+          <NavLink to="/pricing">الأسعار</NavLink>
           {user?.role === "student" && <NavLink to="/subscription">اشتراكي</NavLink>}
           {user?.role === "teacher" && <NavLink to="/teacher">لوحة المدرس</NavLink>}
           {user?.role === "admin" && <NavLink to="/admin">لوحة المدير</NavLink>}
@@ -199,6 +201,7 @@ export default function Layout() {
       <main className="container">
         <Outlet />
       </main>
+      <SiteFooter />
     </>
   );
 }

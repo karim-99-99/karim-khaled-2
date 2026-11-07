@@ -41,6 +41,7 @@ from billing.views import (
     admin_grant_subscription,
     checkout,
     my_subscription,
+    subscription_plans,
 )
 from catalog.views import LessonSectionViewSet, LessonViewSet, SubjectViewSet
 from core.views import (
@@ -132,6 +133,7 @@ api_patterns = [
     path("study-plans/<int:plan_id>/tasks/<int:task_id>/toggle/", toggle_study_task),
     # Billing
     path("subscription/", my_subscription),
+    path("subscription/plans/", subscription_plans),
     path("subscription/checkout/", checkout),
     # Teacher scheduling helpers
     path("teacher/assignments/", teacher_assignments),
