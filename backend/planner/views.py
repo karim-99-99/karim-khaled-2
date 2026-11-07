@@ -10,9 +10,9 @@ from rest_framework.response import Response
 
 from catalog.models import Subject
 
-from .generator import generate_plan_payload
+from .generator import generate_plan_payload, reschedule_unfinished_payload
 from .models import StudyPlan, StudyPlanTask
-from .serializers import StudyPlanSerializer, StudyPlanSummarySerializer
+from .serializers import StudyPlanSerializer, StudyPlanSummarySerializer, _today_day_index
 
 
 def _parse_date(value, default=None):
@@ -199,3 +199,76 @@ def toggle_study_task(request, plan_id, task_id):
     from .serializers import StudyPlanTaskSerializer
 
     return Response(StudyPlanTaskSerializer(task).data)
+
+
+def _load_plan_for_user(user, plan_id):
+    return (
+        StudyPlan.objects.filter(id=plan_id, student=user)
+        .annotate(
+            _done_count=Count("tasks", filter=Q(tasks__is_done=True)),
+            _total_count=Count("tasks"),
+        )
+        .prefetch_related("tasks__subject", "tasks__lesson")
+        .first()
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def reschedule_study_plan(request, plan_id):
+    """
+    لو الطالب فوّت أيام أو ما خلّصش المطلوب:
+    يعيد توزيع المهام غير المنتهية على الأيام المتبقية فقط
+    (من اليوم الحالي لنهاية الخطة) بنفس الساعات اليومية.
+    المهام المنتهية تبقى كما هي.
+    """
+    plan = StudyPlan.objects.filter(id=plan_id, student=request.user).first()
+    if not plan:
+        return Response({"detail": "الخطة غير موجودة"}, status=404)
+    if not plan.is_active:
+        return Response({"detail": "هذه الخطة غير نشطة"}, status=400)
+
+    today = timezone.localdate()
+    today_index = _today_day_index(plan)
+    # If plan hasn't started yet, reschedule from day 1 / start_date.
+    if today < plan.start_date:
+        from_day = 1
+        from_date = plan.start_date
+    else:
+        from_day = today_index
+        from_date = today
+
+    payload = reschedule_unfinished_payload(
+        plan, from_day_index=from_day, from_date=from_date
+    )
+    if payload.get("error"):
+        return Response({"detail": payload["error"]}, status=400)
+
+    with transaction.atomic():
+        # احذف غير المنتهي فقط — المنتهي يبقى أرشيفاً في أيامه.
+        StudyPlanTask.objects.filter(plan=plan, is_done=False).delete()
+        rows = []
+        for day_index, tasks in payload["days"].items():
+            for t in tasks:
+                rows.append(
+                    StudyPlanTask(
+                        plan=plan,
+                        day_index=day_index,
+                        task_date=t["task_date"],
+                        kind=t["kind"],
+                        subject=t.get("subject"),
+                        lesson=t.get("lesson"),
+                        title=t["title"][:300],
+                        detail=t.get("detail") or "",
+                        estimated_minutes=t.get("minutes") or 60,
+                        order_on_day=t.get("order_on_day") or 1,
+                    )
+                )
+        StudyPlanTask.objects.bulk_create(rows)
+
+    plan = _load_plan_for_user(request.user, plan.id)
+    out = StudyPlanSerializer(plan).data
+    out["overflow_count"] = payload["overflow_count"]
+    out["rescheduled_units"] = payload["rescheduled_units"]
+    out["remaining_days"] = payload["remaining_days"]
+    return Response(out)

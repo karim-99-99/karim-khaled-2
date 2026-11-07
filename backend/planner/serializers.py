@@ -34,11 +34,25 @@ class StudyPlanTaskSerializer(serializers.ModelSerializer):
         return obj.lesson.title if obj.lesson_id else ""
 
 
+def _today_day_index(plan):
+    from django.utils import timezone
+
+    today = timezone.localdate()
+    delta = (today - plan.start_date).days + 1
+    if delta < 1:
+        return 1
+    if delta > plan.days_count:
+        return plan.days_count
+    return delta
+
+
 class StudyPlanSerializer(serializers.ModelSerializer):
     tasks = StudyPlanTaskSerializer(many=True, read_only=True)
     done_count = serializers.SerializerMethodField()
     total_count = serializers.SerializerMethodField()
     today_day_index = serializers.SerializerMethodField()
+    overdue_count = serializers.SerializerMethodField()
+    remaining_days = serializers.SerializerMethodField()
 
     class Meta:
         model = StudyPlan
@@ -57,6 +71,8 @@ class StudyPlanSerializer(serializers.ModelSerializer):
             "done_count",
             "total_count",
             "today_day_index",
+            "overdue_count",
+            "remaining_days",
             "tasks",
         ]
         read_only_fields = fields
@@ -72,15 +88,15 @@ class StudyPlanSerializer(serializers.ModelSerializer):
         return obj.tasks.count()
 
     def get_today_day_index(self, obj):
-        from django.utils import timezone
+        return _today_day_index(obj)
 
-        today = timezone.localdate()
-        delta = (today - obj.start_date).days + 1
-        if delta < 1:
-            return 1
-        if delta > obj.days_count:
-            return obj.days_count
-        return delta
+    def get_overdue_count(self, obj):
+        """مهام غير منتهية في أيام فاتت قبل اليوم الحالي."""
+        today_i = _today_day_index(obj)
+        return obj.tasks.filter(is_done=False, day_index__lt=today_i).count()
+
+    def get_remaining_days(self, obj):
+        return obj.days_count - _today_day_index(obj) + 1
 
 
 class StudyPlanSummarySerializer(StudyPlanSerializer):
@@ -100,4 +116,6 @@ class StudyPlanSummarySerializer(StudyPlanSerializer):
             "done_count",
             "total_count",
             "today_day_index",
+            "overdue_count",
+            "remaining_days",
         ]
