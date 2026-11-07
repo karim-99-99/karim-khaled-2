@@ -169,6 +169,15 @@ CSRF_TRUSTED_ORIGINS = list(CORS_ALLOWED_ORIGINS) + [
 # Free tier (visitors + non-subscribers) may answer only this many questions.
 FREE_TIER_QUESTION_LIMIT = int(env("FREE_TIER_QUESTION_LIMIT", "10"))
 
+# Subscription prices shown on /pricing and charged at checkout. Stripe's
+# website review requires the price and currency to be visible before paying.
+SUBSCRIPTION_CURRENCY = (env("SUBSCRIPTION_CURRENCY", "SAR") or "SAR").upper()
+SUBSCRIPTION_PRICES = {
+    "monthly": env("PLAN_PRICE_MONTHLY", "99"),
+    "quarterly": env("PLAN_PRICE_QUARTERLY", "249"),
+    "yearly": env("PLAN_PRICE_YEARLY", "799"),
+}
+
 # --- Bunny Stream (video protection). Placeholders until real keys are added. ---
 BUNNY_STREAM_LIBRARY_ID = env("BUNNY_STREAM_LIBRARY_ID", "")
 BUNNY_STREAM_API_KEY = env("BUNNY_STREAM_API_KEY", "")

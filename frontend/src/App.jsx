@@ -29,6 +29,12 @@ const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const QuestionEditor = lazy(() => import("./pages/QuestionEditor"));
 const Profile = lazy(() => import("./pages/Profile"));
 const TelegramCallback = lazy(() => import("./pages/TelegramCallback"));
+const About = lazy(() => import("./pages/legal/About"));
+const Pricing = lazy(() => import("./pages/legal/Pricing"));
+const Terms = lazy(() => import("./pages/legal/Terms"));
+const Privacy = lazy(() => import("./pages/legal/Privacy"));
+const RefundPolicy = lazy(() => import("./pages/legal/RefundPolicy"));
+const Contact = lazy(() => import("./pages/legal/Contact"));
 
 function PageFallback() {
   return <div className="spinner">جاري التحميل…</div>;
@@ -44,6 +50,14 @@ export default function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
           <Route path="/auth/telegram/callback" element={<TelegramCallback />} />
+
+          {/* Public pages required for payment-provider (Stripe) review */}
+          <Route path="/about" element={<About />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/refund-policy" element={<RefundPolicy />} />
+          <Route path="/contact" element={<Contact />} />
 
           <Route path="/courses" element={<RequireAuth><Courses /></RequireAuth>} />
           <Route path="/courses/:subjectId" element={<RequireAuth><SubjectHub /></RequireAuth>} />
