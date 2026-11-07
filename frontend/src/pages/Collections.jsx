@@ -26,9 +26,11 @@ export default function Collections() {
   const [newSubTitle, setNewSubTitle] = useState("");
   const [renameSubId, setRenameSubId] = useState(null);
   const [renameSubTitle, setRenameSubTitle] = useState("");
+  const [resume, setResume] = useState(null);
 
   const canEdit = canEditSubject(user, subjectId);
   const freeTier = user?.role === "student" && !user?.has_active_subscription;
+  const isStudent = user?.role === "student";
 
   const subsByLesson = useMemo(() => {
     const map = {};
@@ -67,6 +69,20 @@ export default function Collections() {
   useEffect(() => {
     load();
   }, [subjectId]);
+
+  useEffect(() => {
+    if (!isStudent || !subjectId) {
+      setResume(null);
+      return;
+    }
+    client
+      .get(`/collections/resume/?subject=${subjectId}`)
+      .then((res) => {
+        const rows = res.data?.results || [];
+        setResume(rows[0] || null);
+      })
+      .catch(() => setResume(null));
+  }, [subjectId, isStudent]);
 
   async function createLesson() {
     if (!newTitle.trim()) return;
@@ -293,6 +309,25 @@ export default function Collections() {
         </div>
       )}
 
+      {isStudent && resume && (
+        <div className="collections-resume card">
+          <div>
+            <div className="collections-resume__tag">أنت واقف هنا</div>
+            <strong>{resume.exam_title || "تمرين تجميعات"}</strong>
+            <p>
+              خلّصت {resume.answered_count} من {resume.question_count} — كمل من سؤال{" "}
+              {resume.next_question_number}
+              {resume.lesson_titles?.length
+                ? ` · ${resume.lesson_titles.join(" · ")}`
+                : ""}
+            </p>
+          </div>
+          <Link to={`/exam/${resume.exam_id}`} className="btn btn-primary">
+            كمّل من هنا ←
+          </Link>
+        </div>
+      )}
+
       {freeTier && (
         <div className="banner" style={{ marginBottom: 16 }}>
           المعاينة المجانية: أول درس فقط بحد أقصى ١٠ أسئلة —
@@ -329,11 +364,15 @@ export default function Collections() {
         const renaming = renameId === l.id;
         const subs = subsByLesson[l.id] || [];
         const lessonHref = `/courses/${subjectId}/collections/${l.id}`;
+        const isResumeLesson =
+          resume &&
+          Array.isArray(resume.lesson_ids) &&
+          resume.lesson_ids.map(Number).includes(Number(l.id));
 
         return (
           <div key={l.id} style={{ marginBottom: 16 }}>
             <div
-              className="card"
+              className={`card${isResumeLesson ? " collections-resume-lesson" : ""}`}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -385,10 +424,20 @@ export default function Collections() {
                     </Link>
                   )}
 
+                  {isResumeLesson ? (
+                    <span className="collections-resume__pill">أنت واقف هنا</span>
+                  ) : null}
+
                   {freeTier && (l.is_free_preview || l.order_number === 1) ? (
                     <span className="badge badge-active">مجاني</span>
                   ) : locked ? (
                     <span className="badge badge-expired">يتطلب تفعيل</span>
+                  ) : null}
+
+                  {isResumeLesson && !locked ? (
+                    <Link to={`/exam/${resume.exam_id}`} className="btn btn-primary btn-sm">
+                      كمّل
+                    </Link>
                   ) : null}
 
                   <span style={{ color: "var(--text-muted)", fontSize: 13 }}>

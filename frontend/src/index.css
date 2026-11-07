@@ -1187,6 +1187,62 @@ a.card:hover,
   transform: scale(1.1) rotate(-4deg);
 }
 
+/* Collections resume bookmark — أنت واقف هنا */
+.collections-resume {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, var(--border));
+  background:
+    linear-gradient(
+      120deg,
+      color-mix(in srgb, var(--accent) 16%, #fff),
+      #fff 72%
+    );
+}
+.collections-resume p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.collections-resume__tag {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--accent-dark, #8a6a00);
+  margin-bottom: 4px;
+}
+.collections-resume__pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 22%, #fff);
+  color: var(--accent-dark, #6b5200);
+  white-space: nowrap;
+}
+.collections-resume__pill--on-tile {
+  background: rgba(255, 255, 255, 0.22);
+  color: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+.collections-resume-lesson {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.collections-resume__hub {
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-dark, #8a6a00);
+}
+
 /* Subject themes: same pages — only CSS variables + logo swap (matches Canva) */
 html[data-subject="math"] {
   --primary: #5b8c2a;

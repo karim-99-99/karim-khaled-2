@@ -1616,9 +1616,18 @@ def _exam_payload(exam):
         }
         for a in answers
     ]
+    resume_index = 0
+    for i, q in enumerate(questions):
+        if not q.get("selected_answer"):
+            resume_index = i
+            break
+    else:
+        resume_index = max(0, len(questions) - 1)
+
     return {
         "exam": ExamSerializer(exam).data,
         "questions": questions,
+        "resume_index": resume_index,
     }
 
 
@@ -1733,6 +1742,87 @@ class MyResultsView(APIView):
             .order_by("-finished_at", "-id")
         )
         return Response(ExamSerializer(exams, many=True).data)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def collections_resume(request):
+    """
+    «أنت واقف هنا» — آخر تمرين تجميعات لم يُنهَ لكل مادة.
+
+    Query: ?subject=<id> لتقييد مادة واحدة.
+    يرجع علامة واحدة لكل مادة (أحدث امتحان in_progress وفيه إجابات).
+    """
+    from django.db.models import Count, Q
+
+    subject_id = request.query_params.get("subject")
+    qs = (
+        Exam.objects.filter(
+            student=request.user,
+            status=Exam.Status.IN_PROGRESS,
+            exam_type__in=[Exam.Type.SIMULATOR, Exam.Type.TEACHER],
+        )
+        .select_related("subject")
+        .annotate(
+            _ann_answered=Count(
+                "answers",
+                filter=Q(answers__skipped=False) & ~Q(answers__selected_answer=""),
+            )
+        )
+        .filter(_ann_answered__gt=0)
+        .order_by("-started_at", "-id")
+    )
+    if subject_id:
+        try:
+            qs = qs.filter(subject_id=int(subject_id))
+        except (TypeError, ValueError):
+            return Response({"detail": "subject غير صالح"}, status=400)
+
+    seen_subjects = set()
+    rows = []
+    for exam in qs:
+        if exam.subject_id in seen_subjects:
+            continue
+        seen_subjects.add(exam.subject_id)
+
+        answers = list(
+            exam.answers.order_by("order", "id").values(
+                "order", "selected_answer", "skipped"
+            )
+        )
+        next_index = 0
+        for i, a in enumerate(answers):
+            if not a["selected_answer"]:
+                next_index = i
+                break
+        else:
+            next_index = max(0, len(answers) - 1)
+
+        lesson_rows = list(
+            exam.lessons.select_related("lesson")
+            .order_by("lesson__order_number", "lesson_id")
+            .values("lesson_id", "lesson__title")
+        )
+        rows.append(
+            {
+                "subject": exam.subject_id,
+                "subject_name": exam.subject.name if exam.subject_id else "",
+                "exam_id": exam.id,
+                "exam_title": exam.title,
+                "exam_type": exam.exam_type,
+                "answered_count": exam._ann_answered,
+                "question_count": exam.question_count or len(answers),
+                "next_index": next_index,
+                "next_question_number": next_index + 1,
+                "lesson_ids": [r["lesson_id"] for r in lesson_rows],
+                "lesson_titles": [
+                    r["lesson__title"] for r in lesson_rows if r["lesson__title"]
+                ],
+                "started_at": exam.started_at,
+            }
+        )
+
+    return Response({"results": rows})
 
 
 class ExamReviewView(APIView):

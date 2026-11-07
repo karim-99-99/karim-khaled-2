@@ -945,3 +945,90 @@ class HomeworkQuestionOrderBulkTests(TestCase):
         self.assertEqual(wipe.status_code, 200, wipe.data)
         self.assertEqual(wipe.data["deleted"], 3)
         self.assertEqual(HomeworkQuestion.objects.filter(section=self.section).count(), 0)
+
+
+class CollectionsResumeAPITests(TestCase):
+    def setUp(self):
+        self.math = Subject.objects.create(name="رياضيات-وقف", slug="resume-math", order=1)
+        self.phys = Subject.objects.create(name="فيزياء-وقف", slug="resume-phys", order=2)
+        self.teacher = User.objects.create_user(
+            email="t-resume@test.local",
+            password="Passw0rd!",
+            full_name="T",
+            role=User.Role.TEACHER,
+        )
+        self.admin = User.objects.create_user(
+            email="a-resume@test.local",
+            password="Passw0rd!",
+            full_name="A",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.lesson = Lesson.objects.create(
+            subject=self.math, title="درس وقف", order_number=1, created_by=self.teacher
+        )
+        for i in range(25):
+            _make_question(self.math, self.lesson, self.teacher, "medium", i)
+        self.group = StudyGroup.objects.create(name="ResumeG", created_by=self.admin)
+        self.student = User.objects.create_user(
+            email="s-resume@test.local",
+            password="Passw0rd!",
+            full_name="S",
+            role=User.Role.STUDENT,
+        )
+        GroupStudent.objects.create(group=self.group, student=self.student)
+        Subscription.objects.create(
+            student=self.student,
+            plan=Subscription.Plan.MONTHLY,
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date() + timedelta(days=30),
+        )
+        self.client = APIClient()
+
+    def test_resume_bookmark_per_subject_after_partial_answers(self):
+        self.client.force_authenticate(user=self.student)
+        start = self.client.post(
+            "/api/exams/simulator/",
+            {
+                "subjects": [self.math.id],
+                "lessons": [self.lesson.id],
+                "count": 25,
+                "take_all": True,
+                "review_mode": "immediate",
+            },
+            format="json",
+        )
+        self.assertEqual(start.status_code, 201, start.data)
+        exam_id = start.data["exam"]["id"]
+        questions = start.data["questions"]
+        # Answer first 20 then leave (no finish).
+        for q in questions[:20]:
+            ans = self.client.post(
+                f"/api/exams/{exam_id}/answer/",
+                {"answer_id": q["answer_id"], "selected": "أ"},
+                format="json",
+            )
+            self.assertEqual(ans.status_code, 200, ans.data)
+
+        empty = self.client.get(f"/api/collections/resume/?subject={self.phys.id}")
+        self.assertEqual(empty.status_code, 200)
+        self.assertEqual(empty.data["results"], [])
+
+        resume = self.client.get(f"/api/collections/resume/?subject={self.math.id}")
+        self.assertEqual(resume.status_code, 200)
+        self.assertEqual(len(resume.data["results"]), 1)
+        row = resume.data["results"][0]
+        self.assertEqual(row["exam_id"], exam_id)
+        self.assertEqual(row["subject"], self.math.id)
+        self.assertEqual(row["answered_count"], 20)
+        self.assertEqual(row["next_question_number"], 21)
+        self.assertEqual(row["next_index"], 20)
+        self.assertIn(self.lesson.id, row["lesson_ids"])
+
+        detail = self.client.get(f"/api/exams/{exam_id}/")
+        self.assertEqual(detail.status_code, 200)
+        self.assertEqual(detail.data["resume_index"], 20)
+
+        all_rows = self.client.get("/api/collections/resume/")
+        self.assertEqual(all_rows.status_code, 200)
+        self.assertEqual(len(all_rows.data["results"]), 1)
