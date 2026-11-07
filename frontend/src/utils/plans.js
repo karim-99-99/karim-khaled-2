@@ -41,7 +41,7 @@ export function formatAmount(price) {
 export function formatPriceText(price, currency) {
   const amount = formatAmount(price);
   if (String(currency).toUpperCase() === "SAR") {
-    return `${amount} ⃁`;
+    return `⃁ ${amount}`;
   }
   return `${amount} ${currencyName(currency)}`;
 }
