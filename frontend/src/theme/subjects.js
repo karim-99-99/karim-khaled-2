@@ -1,6 +1,6 @@
 /** Subject themes — CSS-only skin (same routes, different data-subject). */
 
-export const DEFAULT_LOGO = "/subjects/main.png";
+export const DEFAULT_LOGO = "/maram-real.png";
 
 const LOCK_KEY = "zad_locked_subject_theme";
 export const SUBJECT_THEME_EVENT = "zad-subject-theme";
@@ -10,24 +10,32 @@ export const SUBJECT_THEMES = {
     key: "math",
     label: "رياضيات",
     logo: "/subjects/math.png",
+    color: "#5f8f2e",
+    soft: "#f1f7e8",
     match: ["رياضيات", "رياضة"],
   },
   physics: {
     key: "physics",
     label: "فيزياء",
     logo: "/subjects/physics.png",
+    color: "#6d28d9",
+    soft: "#f5f0ff",
     match: ["فيزياء"],
   },
   chem: {
     key: "chem",
     label: "كيمياء",
     logo: "/subjects/chem.png",
+    color: "#c0182f",
+    soft: "#fff1f2",
     match: ["كيمياء"],
   },
   bio: {
     key: "bio",
     label: "أحياء",
     logo: "/subjects/bio.png",
+    color: "#c58a00",
+    soft: "#fff8e1",
     match: ["أحياء"],
   },
   /** Multi-subject personal simulator — blue skin */
@@ -35,6 +43,8 @@ export const SUBJECT_THEMES = {
     key: "multi",
     label: "عدة مواد",
     logo: DEFAULT_LOGO,
+    color: "#156eb0",
+    soft: "#e8f3fb",
     match: ["عدة مواد"],
   },
 };

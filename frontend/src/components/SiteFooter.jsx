@@ -15,12 +15,11 @@ export default function SiteFooter() {
     <footer className="site-footer">
       <div className="site-footer__inner">
         <div className="site-footer__brand">
-          <div className="site-footer__name">{BUSINESS.brand}</div>
+          <div className="site-footer__name">مرام التحصيلي</div>
           <p>
-            منصة تعليمية إلكترونية لطلاب اختبار التحصيلي: دروس مرئية، بنك أسئلة، اختبارات
-            محاكاة، وحصص مباشرة. اشتراكات مدفوعة مقدّماً لا تتجدد تلقائياً.
+            منصة تعليمية إلكترونية لطلاب اختبار التحصيلي: دروس مرئية، بنك أسئلة، اختبارات محاكاة، وحصص مباشرة. اشتراكات مدفوعة مقدماً لا تتجدد تلقائياً.
           </p>
-          <div className="site-footer__legal-name">{BUSINESS.legalName}</div>
+          <div className="site-footer__legal-name">Maram Education</div>
         </div>
 
         <div className="site-footer__col">

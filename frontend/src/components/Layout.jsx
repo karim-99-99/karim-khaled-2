@@ -192,13 +192,30 @@ export default function Layout() {
               </Link>
             </>
           ) : (
-            <NavLink to="/login" className="btn btn-primary btn-sm">
-              تسجيل الدخول
-            </NavLink>
+            <>
+              <NavLink to="/login" className="btn btn-ghost btn-sm header-login">
+                تسجيل الدخول
+              </NavLink>
+              <NavLink to="/register" className="btn btn-sm header-book">
+                احجز مقعدك
+              </NavLink>
+            </>
           )}
         </div>
       </header>
-      <main className="container">
+      <main
+        className={
+          location.pathname === "/" ||
+          location.pathname === "/pricing" ||
+          location.pathname === "/courses" ||
+          location.pathname === "/tests" ||
+          location.pathname.startsWith("/courses/") ||
+          location.pathname.startsWith("/smart-plan") ||
+          location.pathname.startsWith("/tests/simulator")
+            ? "container container--bleed"
+            : "container"
+        }
+      >
         <Outlet />
       </main>
       <SiteFooter />

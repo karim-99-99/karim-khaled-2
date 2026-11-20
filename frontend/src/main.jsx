@@ -5,6 +5,7 @@ import { AuthProvider } from "./auth/AuthContext";
 import { startApiKeepAlive } from "./api/client";
 import App from "./App";
 import "./index.css";
+import "./styles/maram-design.css";
 
 function Root() {
   useEffect(() => startApiKeepAlive(), []);

@@ -1,0 +1,23 @@
+.courses-exact{max-width:1150px;margin:30px auto 60px;padding:0 20px}
+.courses-exact h1{font-size:32px;font-weight:800}
+.courses-exact .sub{color:#6b7280;margin:10px 0 26px;font-size:16px}
+.courses-exact .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.courses-exact .card{background:#fff;border-radius:18px;padding:22px 18px 18px;display:flex;flex-direction:column;align-items:center;
+  border:1px solid #edf0f6;box-shadow:0 10px 26px rgba(20,33,61,.07);position:relative;overflow:hidden;cursor:pointer;font:inherit;color:inherit;width:100%}
+@media (max-width:900px){.courses-exact .grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.courses-exact .grid{grid-template-columns:1fr}.courses-exact .final{flex-direction:column;text-align:center}}
+.courses-exact .card::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:var(--c)}
+.courses-exact .card img{width:100%;height:170px;object-fit:contain}
+.courses-exact .card .go{margin-top:14px;width:100%;text-align:center;padding:10px;border-radius:10px;font-weight:700;font-size:14px;color:var(--c);background:var(--bg)}
+.courses-exact .math{--c:#5f8f2e;--bg:#f1f7e8}
+.courses-exact .phys{--c:#6d28d9;--bg:#f3eefe}
+.courses-exact .chem{--c:#c0182f;--bg:#fdecee}
+.courses-exact .bio{--c:#c58a00;--bg:#fff6dc}
+.courses-exact .final{margin-top:26px;background:#fff;border-radius:18px;border:1px solid #edf0f6;box-shadow:0 10px 26px rgba(20,33,61,.07);
+  display:flex;align-items:center;gap:30px;padding:26px 34px;position:relative;overflow:hidden}
+.courses-exact .final::before{content:"";position:absolute;right:0;top:0;bottom:0;width:6px;background:linear-gradient(#156eb0,#3fa3e0)}
+.courses-exact .final img{height:120px}
+.courses-exact .final .txt{flex:1}
+.courses-exact .final h2{font-size:28px;font-weight:800;color:#0d467d}
+.courses-exact .final p{color:#6b7280;margin-top:8px;font-size:15px}
+.courses-exact .soon{background:linear-gradient(180deg,#3fa3e0,#156eb0);color:#fff;font-weight:800;font-size:18px;padding:12px 30px;border-radius:12px;box-shadow:0 6px 14px rgba(21,110,176,.35)}

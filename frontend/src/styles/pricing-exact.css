@@ -1,0 +1,57 @@
+.pricing-exact{--navy:#0d467d;--blue:#156eb0;--lb:#3fa3e0;--line:#e5ecf5;--mu:#6b7280}
+.pricing-exact{max-width:1080px;margin:34px auto 60px;padding:0 20px}
+.pricing-exact .head{text-align:center;margin-bottom:30px}
+.pricing-exact .head small{color:var(--blue);font-weight:800}
+.pricing-exact .head h1{font-size:40px;font-weight:800;color:var(--navy);margin:6px 0 10px}
+.pricing-exact .head p{color:#475569;font-size:17px;line-height:1.8}
+.pricing-exact .note{display:inline-flex;gap:14px;margin-top:14px;font-size:14px;color:#334155;font-weight:700}
+.pricing-exact .note span{background:#fff;border:1px solid var(--line);padding:6px 14px;border-radius:20px}
+.pricing-exact .cards{display:grid;grid-template-columns:1fr 1.12fr;gap:22px;align-items:stretch}
+.pricing-exact .card{background:#fff;border:1px solid var(--line);border-radius:24px;padding:28px 28px 26px;box-shadow:0 12px 28px rgba(13,70,125,.07);display:flex;flex-direction:column;position:relative}
+.pricing-exact .card h2{font-size:24px;font-weight:800}
+.pricing-exact .card .sub{color:var(--mu);font-size:14px;margin-top:4px}
+.pricing-exact .price{display:flex;align-items:baseline;gap:8px;margin:18px 0 4px}
+.pricing-exact .price strong{font-size:52px;font-weight:800;color:var(--navy);line-height:1}
+.pricing-exact .price span{font-size:18px;font-weight:800;color:var(--blue)}
+.pricing-exact .per{color:var(--mu);font-size:14px;font-weight:600}
+.pricing-exact .offer{display:flex;gap:8px;margin-top:16px}
+.pricing-exact .ob{background:#ef4444;color:#fff;font-weight:800;font-size:13px;padding:5px 12px;border-radius:20px}
+.pricing-exact .save{background:#fde047;color:#713f12;font-weight:800;font-size:13px;padding:5px 12px;border-radius:20px}
+.pricing-exact .gold .price{margin-top:12px}
+.pricing-exact .price s{font-size:20px;color:#9fb7cf;font-weight:700;margin-inline-start:6px;text-decoration-color:#f87171;text-decoration-thickness:2px}
+.pricing-exact .inst{margin-top:10px;background:rgba(255,255,255,.12);border:1px dashed rgba(255,255,255,.35);border-radius:12px;padding:9px 14px;font-size:15px;color:#e6f0fa}
+.pricing-exact .inst b{color:#fde047}
+.pricing-exact ul{list-style:none;margin:20px 0 22px;display:flex;flex-direction:column;gap:11px}
+.pricing-exact li{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;color:#1e293b}
+.pricing-exact .ck{width:22px;height:22px;border-radius:50%;background:#e8f7ee;color:#16a34a;display:grid;place-items:center;font-size:12px;font-weight:900;flex-shrink:0}
+.pricing-exact li.hl{color:var(--navy);font-weight:800}
+.pricing-exact li em{font-style:normal;font-size:11px;font-weight:800;color:#fff;background:#ef4444;padding:2px 8px;border-radius:20px}
+.pricing-exact .btn{margin-top:auto;text-align:center;padding:15px;border-radius:14px;font-weight:800;font-size:17px}
+.pricing-exact .silver .btn{border:2px solid var(--blue);color:var(--blue)}
+.pricing-exact .gold{background:linear-gradient(165deg,#0a3560,#0d467d 55%,#156eb0);color:#fff;border:0;box-shadow:0 22px 44px rgba(13,70,125,.3)}
+.pricing-exact .gold .sub,.pricing-exact .gold .per{color:#bcd7ee}
+.pricing-exact .gold .price strong{color:#fff}
+.pricing-exact .gold .price span{color:#9fd3f7}
+.pricing-exact .gold li{color:#e6f0fa}
+.pricing-exact .gold li.hl{color:#fff}
+.pricing-exact .gold .ck{background:rgba(255,255,255,.18);color:#7ee2a8}
+.pricing-exact .gold .btn{background:#fff;color:var(--navy);box-shadow:0 10px 22px rgba(0,0,0,.2)}
+.pricing-exact .pop{position:absolute;top:-15px;right:50%;transform:translateX(50%);background:#f59e0b;color:#fff;font-weight:800;font-size:13px;padding:6px 16px;border-radius:20px;box-shadow:0 6px 14px rgba(245,158,11,.35)}
+.pricing-exact .spec{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.pricing-exact .spec div{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:14px;padding:12px 6px;text-align:center}
+.pricing-exact .spec svg{width:20px;height:20px;color:#9fd3f7}
+.pricing-exact .spec strong{display:block;font-size:20px;font-weight:800;margin-top:2px}
+.pricing-exact .spec span{font-size:12px;color:#bcd7ee}
+.pricing-exact .custom{margin-top:22px;display:flex;align-items:center;justify-content:space-between;gap:20px;background:#fff;border:1.5px solid #cfe2f3;border-radius:22px;padding:22px 26px;box-shadow:0 10px 24px rgba(13,70,125,.06)}
+.pricing-exact .cl{display:flex;align-items:center;gap:16px}
+.pricing-exact .ci{width:60px;height:60px;border-radius:18px;background:#e8f3fb;display:grid;place-items:center;font-size:30px;flex-shrink:0}
+.pricing-exact .custom small{color:var(--blue);font-weight:800;font-size:13px}
+.pricing-exact .custom h3{font-size:21px;font-weight:800;color:var(--navy);margin:2px 0 10px}
+.pricing-exact .opts{display:flex;gap:8px;flex-wrap:wrap}
+.pricing-exact .opts span{background:#f3f7fc;border:1px solid var(--line);border-radius:20px;padding:6px 14px;font-size:14px;font-weight:700;color:#334155}
+.pricing-exact .cbtn{display:flex;align-items:center;gap:10px;background:#25d366;color:#fff;font-weight:800;font-size:17px;padding:14px 26px;border-radius:14px;white-space:nowrap;box-shadow:0 10px 22px rgba(37,211,102,.3)}
+.pricing-exact .rev{margin-top:22px;display:flex;align-items:center;gap:16px;background:#fff;border:1.5px dashed #b9d6ef;border-radius:18px;padding:16px 22px}
+.pricing-exact .rev .ri{font-size:30px}
+.pricing-exact .rev b{font-size:17px;color:var(--navy);display:block}
+.pricing-exact .rev small{color:var(--mu)}
+.pricing-exact .rev span.tg{margin-inline-start:auto;background:#e8f7ee;color:#15803d;font-weight:800;font-size:13px;padding:6px 14px;border-radius:20px}
