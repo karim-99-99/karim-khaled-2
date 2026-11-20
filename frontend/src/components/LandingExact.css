@@ -34,20 +34,21 @@
   position:relative;
   display:flex;
   align-items:flex-end;
-  justify-content:flex-start;
+  justify-content:center;
   min-width:0;
   height:100%;
-  overflow:hidden;
+  overflow:visible;
+  /* Keep student crop LTR so the boy (left of banner) is never clipped in RTL layout */
+  direction:ltr;
 }
 .landing-exact .hvis img{
   display:block;
-  width:148%;
-  max-width:none;
+  width:100%;
+  max-width:100%;
   height:auto;
   max-height:640px;
   object-fit:contain;
   object-position:left bottom;
-  transform:translateX(-2%);
   user-select:none;
   pointer-events:none;
 }
@@ -199,11 +200,11 @@
 @media (max-width:1100px){
  .landing-exact .hero-row{min-height:0;padding:56px 20px 20px;gap:10px 18px}
  .landing-exact .hin h1{font-size:38px}
- .landing-exact .hvis img{max-height:540px;width:155%}
+ .landing-exact .hvis img{max-height:540px}
 }
 @media (max-width:900px){
  .landing-exact .hero-row{
-   grid-template-columns:minmax(0,1fr) minmax(240px,.9fr);
+   grid-template-columns:minmax(0,1fr) minmax(240px,.95fr);
    align-items:end;
    padding:48px 18px 12px;
    min-height:0;
@@ -213,7 +214,7 @@
  .landing-exact .hin p{font-size:16px;max-width:none}
  .landing-exact .cta{flex-wrap:wrap}
  .landing-exact .b1,.landing-exact .b2{padding:13px 18px;font-size:15px}
- .landing-exact .hvis img{max-height:440px;width:165%;transform:none}
+ .landing-exact .hvis img{max-height:440px;width:100%}
  .landing-exact .ribbon{top:54px;left:-120px;width:380px;font-size:15px;padding:10px 0}
  .landing-exact .stats{margin-top:-36px}
  .landing-exact .stats,.landing-exact .feats,.landing-exact .subj,.landing-exact .offer{grid-template-columns:1fr 1fr}
@@ -234,18 +235,17 @@
  }
  .landing-exact .hvis{
    order:2;
-   justify-content:flex-start;
+   justify-content:center;
    width:100%;
-   overflow:hidden;
+   overflow:visible;
+   direction:ltr;
  }
  .landing-exact .hvis img{
-   width:130%;
-   max-width:none;
+   width:100%;
+   max-width:520px;
    max-height:360px;
    object-fit:contain;
-   object-position:left bottom;
-   transform:none;
-   margin-inline-start:0;
+   object-position:center bottom;
  }
  .landing-exact .ribbon{
    position:relative;
@@ -266,6 +266,6 @@
  .landing-exact .hin h1{font-size:28px}
  .landing-exact .cta{flex-direction:column}
  .landing-exact .b1,.landing-exact .b2{width:100%;text-align:center}
- .landing-exact .hvis img{max-height:320px;width:140%}
+ .landing-exact .hvis img{max-height:300px;width:100%;max-width:100%}
  .landing-exact .coupon{width:100%;transform:none}
 }
