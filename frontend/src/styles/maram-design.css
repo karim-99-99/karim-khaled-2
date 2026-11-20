@@ -70,10 +70,10 @@ body {
 }
 
 .logo-img {
-  height: 46px;
+  height: auto;
   width: auto;
-  max-width: 200px;
-  max-height: 52px;
+  max-width: 210px;
+  max-height: 64px;
   object-fit: contain;
   object-position: center;
   background: transparent;
@@ -85,8 +85,6 @@ body {
 }
 
 html[data-subject] .logo-img {
-  height: auto;
-  width: auto;
   max-height: 58px;
   max-width: 220px;
 }
@@ -94,20 +92,16 @@ html[data-subject] .logo-img {
 @media (max-width: 900px) {
   .logo-img,
   html[data-subject] .logo-img {
-    height: auto;
-    width: auto;
-    max-height: 48px;
-    max-width: 180px;
+    max-height: 52px;
+    max-width: 190px;
   }
 }
 
 @media (max-width: 560px) {
   .logo-img,
   html[data-subject] .logo-img {
-    height: auto;
-    width: auto;
-    max-height: 44px;
-    max-width: 160px;
+    max-height: 46px;
+    max-width: 168px;
   }
 }
 
