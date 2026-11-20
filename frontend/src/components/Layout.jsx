@@ -203,19 +203,7 @@ export default function Layout() {
           )}
         </div>
       </header>
-      <main
-        className={
-          location.pathname === "/" ||
-          location.pathname === "/pricing" ||
-          location.pathname === "/courses" ||
-          location.pathname === "/tests" ||
-          location.pathname.startsWith("/courses/") ||
-          location.pathname.startsWith("/smart-plan") ||
-          location.pathname.startsWith("/tests/simulator")
-            ? "container container--bleed"
-            : "container"
-        }
-      >
+      <main className={location.pathname === "/" ? "container container--bleed" : "container"}>
         <Outlet />
       </main>
       <SiteFooter />

@@ -1331,50 +1331,75 @@ a.card:hover,
   transform: scale(1.1) rotate(-4deg);
 }
 
-/* Subject themes: same pages — only CSS variables + logo swap (matches Canva) */
+/* Subject themes: swap primary/logo; chrome follows --primary */
 html[data-subject="math"] {
-  --primary: #5b8c2a;
-  --primary-dark: #4a7422;
-  --primary-light: #eef5e4;
-  --accent: #ffc400;
-  --accent-dark: #e6b000;
-  --accent-soft: #f5fbe8;
+  --primary: #5f8f2e;
+  --primary-dark: #3f6a1f;
+  --primary-light: #f1f7e8;
+  --accent: #5f8f2e;
+  --accent-dark: #3f6a1f;
+  --accent-soft: #f1f7e8;
+  --lb: #5f8f2e;
+  --blue: #3f6a1f;
+  --navy: #3f6a1f;
+  --y: #5f8f2e;
+  --yd: #3f6a1f;
   --bg: #f7faf2;
 }
 html[data-subject="physics"] {
-  --primary: #7c3aed;
-  --primary-dark: #6d28d9;
-  --primary-light: #ede9fe;
-  --accent: #e8b84a;
-  --accent-dark: #c9972e;
-  --accent-soft: #fdf6e3;
+  --primary: #6d28d9;
+  --primary-dark: #5b21b6;
+  --primary-light: #f5f0ff;
+  --accent: #6d28d9;
+  --accent-dark: #5b21b6;
+  --accent-soft: #f5f0ff;
+  --lb: #6d28d9;
+  --blue: #5b21b6;
+  --navy: #5b21b6;
+  --y: #6d28d9;
+  --yd: #5b21b6;
   --bg: #faf7fc;
 }
 html[data-subject="chem"] {
-  --primary: #c41e3a;
-  --primary-dark: #9b1b30;
-  --primary-light: #fce8ec;
-  --accent: #d4af37;
-  --accent-dark: #b8941f;
-  --accent-soft: #fbf5e0;
+  --primary: #c0182f;
+  --primary-dark: #9f1239;
+  --primary-light: #fff1f2;
+  --accent: #c0182f;
+  --accent-dark: #9f1239;
+  --accent-soft: #fff1f2;
+  --lb: #c0182f;
+  --blue: #9f1239;
+  --navy: #9f1239;
+  --y: #c0182f;
+  --yd: #9f1239;
   --bg: #fdf6f7;
 }
 html[data-subject="bio"] {
-  --primary: #e6a800;
-  --primary-dark: #c88a00;
+  --primary: #c58a00;
+  --primary-dark: #a16207;
   --primary-light: #fff8e1;
-  --accent: #9a7400;
-  --accent-dark: #7a5c00;
-  --accent-soft: #fff3cd;
+  --accent: #c58a00;
+  --accent-dark: #a16207;
+  --accent-soft: #fff8e1;
+  --lb: #c58a00;
+  --blue: #a16207;
+  --navy: #a16207;
+  --y: #c58a00;
+  --yd: #a16207;
   --bg: #fffdf5;
 }
 html[data-subject="multi"] {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
-  --primary-light: #dbeafe;
-  --accent: #38bdf8;
-  --accent-dark: #0284c7;
-  --accent-soft: #e0f2fe;
+  --primary: #156eb0;
+  --primary-dark: #0d467d;
+  --primary-light: #e8f3fb;
+  --accent: #3fa3e0;
+  --accent-dark: #156eb0;
+  --accent-soft: #e8f3fb;
+  --lb: #3fa3e0;
+  --blue: #156eb0;
+  --navy: #0d467d;
+  --y: #3fa3e0;
+  --yd: #156eb0;
   --bg: #f0f7ff;
 }
 
@@ -1385,22 +1410,35 @@ html[data-subject] .hero {
   box-shadow: 0 12px 28px color-mix(in srgb, var(--primary) 30%, transparent);
 }
 html[data-subject] .app-header {
-  border-bottom-color: var(--accent);
+  border-bottom-color: var(--primary);
 }
 html[data-subject] .logo-img {
-  height: 56px;
-  max-width: 200px;
+  height: 52px;
+  max-width: 180px;
 }
 html[data-subject] .lesson-thumb {
   background: linear-gradient(135deg, var(--primary-dark), var(--primary));
 }
 html[data-subject] .btn-primary {
-  background: var(--accent);
-  color: var(--text);
+  background: var(--primary);
+  color: #fff;
 }
 html[data-subject="bio"] .btn-primary {
   background: var(--primary);
   color: #3d2e00;
+}
+html[data-subject] .nav a.active {
+  background: var(--primary);
+  color: #fff;
+}
+html[data-subject] .avatar {
+  background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+}
+html[data-subject] .site-footer {
+  border-top-color: var(--primary);
+}
+html[data-subject] .site-footer__brand .site-footer__name {
+  color: var(--primary);
 }
 html[data-subject] body,
 html[data-subject] {

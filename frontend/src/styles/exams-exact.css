@@ -114,3 +114,14 @@
   .exams-exact .row{flex-wrap:wrap}
   .exams-exact .t{width:auto;max-width:100%}
 }
+
+@media (max-width:980px){
+  .exams-exact .grid, .exams-exact .cards, .exams-exact .subs, .exams-exact .egrid, .exams-exact .layout, .exams-exact .split, .exams-exact .feats{grid-template-columns:1fr 1fr !important}
+  .exams-exact .layout{display:flex !important;flex-direction:column !important}
+  .exams-exact .side, .exams-exact .sum, .exams-exact aside, .exams-exact .sticky-summary{position:static !important;width:100% !important}
+}
+@media (max-width:640px){
+  .exams-exact .grid, .exams-exact .cards, .exams-exact .subs, .exams-exact .egrid, .exams-exact .split, .exams-exact .feats{grid-template-columns:1fr !important}
+  .exams-exact h1{font-size:28px !important}
+}
+

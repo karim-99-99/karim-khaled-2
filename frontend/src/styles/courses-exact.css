@@ -21,3 +21,14 @@
 .courses-exact .final h2{font-size:28px;font-weight:800;color:#0d467d}
 .courses-exact .final p{color:#6b7280;margin-top:8px;font-size:15px}
 .courses-exact .soon{background:linear-gradient(180deg,#3fa3e0,#156eb0);color:#fff;font-weight:800;font-size:18px;padding:12px 30px;border-radius:12px;box-shadow:0 6px 14px rgba(21,110,176,.35)}
+
+@media (max-width:980px){
+  .courses-exact .grid, .courses-exact .cards, .courses-exact .subs, .courses-exact .egrid, .courses-exact .layout, .courses-exact .split, .courses-exact .feats{grid-template-columns:1fr 1fr !important}
+  .courses-exact .layout{display:flex !important;flex-direction:column !important}
+  .courses-exact .side, .courses-exact .sum, .courses-exact aside, .courses-exact .sticky-summary{position:static !important;width:100% !important}
+}
+@media (max-width:640px){
+  .courses-exact .grid, .courses-exact .cards, .courses-exact .subs, .courses-exact .egrid, .courses-exact .split, .courses-exact .feats{grid-template-columns:1fr !important}
+  .courses-exact h1{font-size:28px !important}
+}
+

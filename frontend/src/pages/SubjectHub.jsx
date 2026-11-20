@@ -76,10 +76,17 @@ export default function SubjectHub() {
   const theme = getSubjectTheme(key);
 
   return (
-    <div className={`subject-exact tone-${key}`}>
+    <div
+      className={`subject-exact tone-${key}`}
+      style={{
+        "--g": theme?.color || "#5f8f2e",
+        "--gd": theme?.color || "#5f8f2e",
+        "--gl": theme?.soft || "#f1f7e8",
+      }}
+    >
       <div className="top">
         <div className="crumb">
-          دورات &lt; <b>{subject?.name || "…"}</b>
+          دورات &gt; <b>{subject?.name || "…"}</b>
         </div>
         <Link to="/courses" className="back">
           → العودة للدورات

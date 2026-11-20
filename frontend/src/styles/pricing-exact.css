@@ -55,3 +55,14 @@
 .pricing-exact .rev b{font-size:17px;color:var(--navy);display:block}
 .pricing-exact .rev small{color:var(--mu)}
 .pricing-exact .rev span.tg{margin-inline-start:auto;background:#e8f7ee;color:#15803d;font-weight:800;font-size:13px;padding:6px 14px;border-radius:20px}
+
+@media (max-width:980px){
+  .pricing-exact .grid, .pricing-exact .cards, .pricing-exact .subs, .pricing-exact .egrid, .pricing-exact .layout, .pricing-exact .split, .pricing-exact .feats{grid-template-columns:1fr 1fr !important}
+  .pricing-exact .layout{display:flex !important;flex-direction:column !important}
+  .pricing-exact .side, .pricing-exact .sum, .pricing-exact aside, .pricing-exact .sticky-summary{position:static !important;width:100% !important}
+}
+@media (max-width:640px){
+  .pricing-exact .grid, .pricing-exact .cards, .pricing-exact .subs, .pricing-exact .egrid, .pricing-exact .split, .pricing-exact .feats{grid-template-columns:1fr !important}
+  .pricing-exact h1{font-size:28px !important}
+}
+
