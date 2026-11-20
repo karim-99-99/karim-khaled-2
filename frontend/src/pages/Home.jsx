@@ -140,42 +140,43 @@ export default function Home() {
       {showMarketing && (
         <>
           <section className="landing-hero" aria-label="مرام للتحصيلي">
-            <div className="landing-hero__media" aria-hidden="true">
-              <img
-                src="/maram-hero-students.jpg"
-                alt=""
-                className="landing-hero__img"
-                width={1600}
-                height={900}
-                decoding="async"
-                fetchPriority="high"
-              />
-              <div className="landing-hero__veil" />
+            <div className="landing-hero__inner">
+              <div className="landing-hero__content">
+                <p className="landing-hero__tagline">مرام .. للتحصيلي بإتقان</p>
+                <h1 className="landing-hero__title">
+                  تعبت من الحصص المسجّلة؟ معلمك معك أول بأول
+                </h1>
+                <p className="landing-hero__lead">
+                  مع مرام، التحصيلي صار أسهل — رحلة تعليم ومتابعة لين تحقق هدفك.
+                </p>
+                <div className="landing-hero__actions">
+                  <Link to={ctaTo} className="btn landing-hero__cta">
+                    احجز مقعدك الآن
+                  </Link>
+                  <a href="#trial-week" className="btn landing-hero__cta-ghost">
+                    ▶ جرب الأسبوع التجريبي
+                  </a>
+                </div>
+              </div>
+              <div className="landing-hero__media">
+                <img
+                  src="/maram-hero-official.jpg"
+                  alt="طلاب مرام للتحصيلي"
+                  className="landing-hero__img"
+                  width={1200}
+                  height={900}
+                  decoding="async"
+                  fetchPriority="high"
+                />
+              </div>
             </div>
-            <div className="landing-hero__content">
-              <p className="landing-hero__tagline">مرام .. للتحصيلي بإتقان</p>
-              <h1 className="landing-hero__title">
-                تعبت من الحصص المسجّلة؟ معلمك معك أول بأول
-              </h1>
-              <p className="landing-hero__lead">
-                مع مرام، التحصيلي صار أسهل — رحلة تعليم ومتابعة لين تحقق هدفك.
-              </p>
-              <div className="landing-hero__actions">
-                <Link to={ctaTo} className="btn btn-primary landing-hero__cta">
-                  احجز مقعدك الآن
-                </Link>
-                <a href="#trial-week" className="btn btn-secondary landing-hero__cta-ghost">
-                  جرب الأسبوع التجريبي
-                </a>
-              </div>
-              <div className="landing-stats">
-                {STATS.map((s) => (
-                  <div key={s.label} className="landing-stats__item">
-                    <strong>{s.value}</strong>
-                    <span>{s.label}</span>
-                  </div>
-                ))}
-              </div>
+            <div className="landing-stats">
+              {STATS.map((s) => (
+                <div key={s.label} className="landing-stats__item">
+                  <strong>{s.value}</strong>
+                  <span>{s.label}</span>
+                </div>
+              ))}
             </div>
           </section>
 
