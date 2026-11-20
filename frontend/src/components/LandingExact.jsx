@@ -107,33 +107,28 @@ export default function LandingExact({ ctaTo = "/register", courseTo = "/login" 
     <div className="landing-exact">
       <section className="hero">
         <div className="ribbon">🔥 لا يفوتك عرض التسجيل المبكر</div>
-        <div className="hero-row">
-          <div className="hin">
-            <span className="tag">
-              <i className="dot" />
-              التسجيل مفتوح الآن · المقاعد محدودة
-            </span>
-            <h1>
-              تعبت من الحصص المسجلة؟ <em>معلمك معك</em> أولاً بأول
-            </h1>
-            <p>مع مرام صار التحصيلي أسهل. مو مجرد حصص، رحلة تعليم ومتابعة لين تحقق هدفك.</p>
-            <div className="cta">
-              <Link className="b1" to={ctaTo}>احجز مقعدك الآن ←</Link>
-              <a className="b2" href="#ld-trial">جرّب الأسبوع التجريبي</a>
-            </div>
-            <div className="seats">
-              <span className="pulse" />
-              <b>تبقى 4 مقاعد فقط</b> في المجموعة القادمة
-              <div className="mini"><i style={{ width: "60%" }} /></div>
-            </div>
-            <div className="trust">
-              <span>✓ حصص مباشرة</span>
-              <span>✓ مجموعات صغيرة</span>
-              <span>✓ بنوك تجميعات</span>
-            </div>
+        <div className="hin">
+          <span className="tag">
+            <i className="dot" />
+            التسجيل مفتوح الآن · المقاعد محدودة
+          </span>
+          <h1>
+            تعبت من الحصص المسجلة؟ <em>معلمك معك</em> أولاً بأول
+          </h1>
+          <p>مع مرام صار التحصيلي أسهل. مو مجرد حصص، رحلة تعليم ومتابعة لين تحقق هدفك.</p>
+          <div className="cta">
+            <Link className="b1" to={ctaTo}>احجز مقعدك الآن ←</Link>
+            <a className="b2" href="#ld-trial">جرّب الأسبوع التجريبي</a>
           </div>
-          <div className="hvis" aria-hidden="true">
-            <img src="/banner.png" alt="" decoding="async" fetchPriority="high" />
+          <div className="seats">
+            <span className="pulse" />
+            <b>تبقى 4 مقاعد فقط</b> في المجموعة القادمة
+            <div className="mini"><i style={{ width: "60%" }} /></div>
+          </div>
+          <div className="trust">
+            <span>✓ حصص مباشرة</span>
+            <span>✓ مجموعات صغيرة</span>
+            <span>✓ بنوك تجميعات</span>
           </div>
         </div>
       </section>
