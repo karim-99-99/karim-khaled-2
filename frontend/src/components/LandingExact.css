@@ -3,7 +3,7 @@
   position:relative;
   height:700px;
   overflow:hidden;
-  background:url(/banner.jpg) left 33%/cover no-repeat;
+  background:url(/banner.png) left 33%/cover no-repeat;
 }
 .landing-exact .hin{position:relative;max-width:1180px;margin:auto;padding:80px 20px 0;color:var(--navy)}
 .landing-exact .hin .tag{display:inline-block;background:#e8f3fb;border:1px solid #b9dcf3;color:#0d467d;font-weight:700;padding:6px 16px;border-radius:30px;font-size:14px}

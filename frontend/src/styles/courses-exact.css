@@ -7,8 +7,8 @@
 @media (max-width:900px){.courses-exact .grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:560px){.courses-exact .grid{grid-template-columns:1fr}.courses-exact .final{flex-direction:column;text-align:center;gap:18px;padding:22px}}
 .courses-exact .card::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:var(--c);border-radius:18px 18px 0 0;pointer-events:none}
-.courses-exact .card .logo-wrap{width:100%;display:flex;align-items:center;justify-content:center;padding:8px 6px 4px;min-height:150px;box-sizing:border-box}
-.courses-exact .card img{width:auto;max-width:100%;height:auto;max-height:160px;object-fit:contain;object-position:center;display:block}
+.courses-exact .card .logo-wrap{width:100%;display:flex;align-items:center;justify-content:center;padding:10px 8px 6px;min-height:170px;box-sizing:border-box;overflow:visible}
+.courses-exact .card img{width:auto;max-width:100%;height:auto;max-height:180px;object-fit:contain;object-position:center;display:block}
 .courses-exact .card .go{margin-top:14px;width:100%;text-align:center;padding:10px;border-radius:10px;font-weight:700;font-size:14px;color:var(--c);background:var(--bg)}
 .courses-exact .math{--c:#5f8f2e;--bg:#f1f7e8}
 .courses-exact .phys{--c:#6d28d9;--bg:#f3eefe}
@@ -25,8 +25,8 @@
 
 @media (max-width:980px){
   .courses-exact .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .courses-exact .card .logo-wrap{min-height:130px;padding:10px 8px}
-  .courses-exact .card img{max-height:130px}
+  .courses-exact .card .logo-wrap{min-height:160px;padding:12px 10px;overflow:visible}
+  .courses-exact .card img{max-height:160px;max-width:100%;width:auto;height:auto}
   .courses-exact .final{gap:18px;padding:22px 20px}
   .courses-exact .final img{max-height:88px;max-width:120px}
   .courses-exact .final h2{font-size:22px}
@@ -34,9 +34,9 @@
 @media (max-width:640px){
   .courses-exact .grid{grid-template-columns:1fr}
   .courses-exact h1{font-size:28px}
-  .courses-exact .card{padding:24px 16px 16px}
-  .courses-exact .card .logo-wrap{min-height:150px}
-  .courses-exact .card img{max-height:150px;max-width:min(100%,220px)}
+  .courses-exact .card{padding:24px 16px 16px;overflow:visible}
+  .courses-exact .card .logo-wrap{min-height:180px;overflow:visible}
+  .courses-exact .card img{max-height:180px;max-width:min(100%,260px);width:auto;height:auto}
   .courses-exact .final{flex-direction:column;text-align:center}
   .courses-exact .final img{max-height:96px;max-width:140px}
   .courses-exact .soon{width:100%;text-align:center;box-sizing:border-box}

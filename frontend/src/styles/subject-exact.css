@@ -8,11 +8,16 @@
 .subject-exact .back{background:#fff;border:1px solid #e3e8dc;padding:10px 18px;border-radius:10px;font-size:14px;color:var(--gd);font-weight:600}
 .subject-exact .crumb{font-size:14px;color:#6b7280}
 .subject-exact .crumb b{color:var(--gd)}
-.subject-exact .hero{text-align:center;margin:10px 0 30px}
-.subject-exact .hero img{height:230px;filter:drop-shadow(0 10px 18px rgba(63,106,31,.15))}
+.subject-exact .hero{text-align:center;margin:10px 0 30px;overflow:visible}
+.subject-exact .hero img{
+  display:block;width:auto;height:auto;
+  max-width:min(100%,420px);max-height:340px;
+  object-fit:contain;object-position:center;
+  filter:drop-shadow(0 10px 18px rgba(63,106,31,.15));
+}
 .subject-exact .cards{display:grid;grid-template-columns:1fr 1fr;gap:26px}
 .subject-exact .card{background:#fff;border-radius:18px;border:1px solid #e9eee2;box-shadow:0 12px 28px rgba(40,60,20,.08);
-  padding:36px 20px;display:flex;flex-direction:column;align-items:center;gap:16px;position:relative;overflow:hidden;transition:.2s;text-decoration:none;color:inherit}
+  padding:36px 20px;display:flex;flex-direction:column;align-items:center;gap:16px;position:relative;overflow:visible;transition:.2s;text-decoration:none;color:inherit}
 .subject-exact .back{text-decoration:none;display:inline-block}
 .subject-exact .exams a{text-decoration:none}
 .subject-exact .ic svg{color:var(--c);stroke:var(--c)}
@@ -35,8 +40,12 @@
 .subject-exact .exams a{display:flex;align-items:center;gap:8px;background:#fff;color:var(--gd);box-shadow:0 6px 14px rgba(0,0,0,.15);font-weight:700;padding:12px 26px;border-radius:10px}
 .subject-exact .dk{color:#14213d}
 .subject-exact .split{display:grid;grid-template-columns:1fr 1.15fr;gap:30px;align-items:stretch;margin-top:18px}
-.subject-exact .split .hero{margin:0;background:#fff;border-radius:18px;border:1px solid #e9eee2;box-shadow:0 12px 28px rgba(40,60,20,.08);display:grid;place-items:center;padding:30px}
-.subject-exact .split .hero img{height:300px}
+.subject-exact .split .hero{margin:0;background:#fff;border-radius:18px;border:1px solid #e9eee2;box-shadow:0 12px 28px rgba(40,60,20,.08);display:grid;place-items:center;padding:30px;overflow:visible;min-width:0}
+.subject-exact .split .hero img{
+  width:auto;height:auto;
+  max-width:100%;max-height:340px;
+  object-fit:contain;object-position:center;
+}
 .subject-exact .stack{display:flex;flex-direction:column;gap:22px}
 .subject-exact .stack .card{flex-direction:row;justify-content:flex-start;padding:28px 30px;gap:22px;flex:1}
 .subject-exact .stack .card::before{top:0;bottom:0;left:auto;right:0;width:6px;height:auto}
@@ -45,8 +54,12 @@
 .subject-exact .ex-ic{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.18);display:grid;place-items:center}
 .subject-exact .ex-ic svg{width:24px;height:24px}
 .subject-exact .exams b{font-size:22px}
-.subject-exact .split .hero{background:none;border:0;box-shadow:none;padding:0}
-.subject-exact .split .hero img{height:340px}
+.subject-exact .split .hero{background:none;border:0;box-shadow:none;padding:0;overflow:visible}
+.subject-exact .split .hero img{
+  width:auto;height:auto;
+  max-width:100%;max-height:360px;
+  object-fit:contain;object-position:center;
+}
 .subject-exact .exbox{margin-top:26px;background:#fff;border-radius:16px;border:1px solid #e9eee2;box-shadow:0 12px 28px rgba(40,60,20,.08);overflow:hidden}
 .subject-exact .exbox .exams{margin:0;border-radius:0;box-shadow:none}
 .subject-exact .exlist{list-style:none;padding:6px 28px 10px}
@@ -69,9 +82,19 @@
   .subject-exact .grid, .subject-exact .cards, .subject-exact .subs, .subject-exact .egrid, .subject-exact .layout, .subject-exact .split, .subject-exact .feats{grid-template-columns:1fr 1fr !important}
   .subject-exact .layout{display:flex !important;flex-direction:column !important}
   .subject-exact .side, .subject-exact .sum, .subject-exact aside, .subject-exact .sticky-summary{position:static !important;width:100% !important}
+  .subject-exact .split{grid-template-columns:1fr !important;gap:18px}
+  .subject-exact .split .hero{order:-1;padding:12px 8px;width:100%}
+  .subject-exact .split .hero img,
+  .subject-exact .hero img{
+    max-width:min(100%,360px);max-height:280px;width:auto;height:auto;margin:0 auto;
+  }
 }
 @media (max-width:640px){
   .subject-exact .grid, .subject-exact .cards, .subject-exact .subs, .subject-exact .egrid, .subject-exact .split, .subject-exact .feats{grid-template-columns:1fr !important}
   .subject-exact h1{font-size:28px !important}
+  .subject-exact .split .hero img,
+  .subject-exact .hero img{
+    max-width:min(100%,300px);max-height:240px;width:auto;height:auto;
+  }
 }
 

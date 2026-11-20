@@ -72,7 +72,8 @@ body {
 .logo-img {
   height: 46px;
   width: auto;
-  max-width: 160px;
+  max-width: 200px;
+  max-height: 52px;
   object-fit: contain;
   object-position: center;
   background: transparent;
@@ -84,23 +85,29 @@ body {
 }
 
 html[data-subject] .logo-img {
-  height: 52px;
-  max-width: 180px;
+  height: auto;
+  width: auto;
+  max-height: 58px;
+  max-width: 220px;
 }
 
 @media (max-width: 900px) {
   .logo-img,
   html[data-subject] .logo-img {
-    height: 42px;
-    max-width: 132px;
+    height: auto;
+    width: auto;
+    max-height: 48px;
+    max-width: 180px;
   }
 }
 
 @media (max-width: 560px) {
   .logo-img,
   html[data-subject] .logo-img {
-    height: 38px;
-    max-width: 118px;
+    height: auto;
+    width: auto;
+    max-height: 44px;
+    max-width: 160px;
   }
 }
 
