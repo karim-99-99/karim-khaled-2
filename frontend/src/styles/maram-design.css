@@ -71,16 +71,37 @@ body {
 
 .logo-img {
   height: 46px;
+  width: auto;
   max-width: 160px;
+  object-fit: contain;
+  object-position: center;
   background: transparent;
   border-radius: 0;
   padding: 0;
   box-shadow: none;
+  display: block;
+  flex-shrink: 0;
 }
 
 html[data-subject] .logo-img {
   height: 52px;
   max-width: 180px;
+}
+
+@media (max-width: 900px) {
+  .logo-img,
+  html[data-subject] .logo-img {
+    height: 42px;
+    max-width: 132px;
+  }
+}
+
+@media (max-width: 560px) {
+  .logo-img,
+  html[data-subject] .logo-img {
+    height: 38px;
+    max-width: 118px;
+  }
 }
 
 .avatar {

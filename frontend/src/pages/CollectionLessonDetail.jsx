@@ -11,6 +11,15 @@ import TeacherQuestionForm from "../components/TeacherQuestionForm";
 import VideoPlayer from "../components/VideoPlayer";
 import YearScrollPicker, { expandYearRange } from "../components/YearScrollPicker";
 import { TEACHER_TIERS, tierLabel } from "../constants/teacherTiers";
+import { lockSubjectTheme } from "../theme/subjects";
+import useSubjectSkin from "../theme/useSubjectSkin";
+import "../styles/practice-exact.css";
+
+const CheckMini = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M5 12l5 5L20 7" />
+  </svg>
+);
 
 function sortByOrder(rows) {
   return [...(rows || [])].sort(
@@ -83,6 +92,20 @@ export default function CollectionLessonDetail() {
   const canRenameLesson =
     canEdit && (user?.role === "teacher" || user?.role === "admin");
   const listUrl = `/courses/${subjectId || lesson?.subject}/collections`;
+  const { subjectName, logo, skin, key: subjectKey } = useSubjectSkin(subjectId || lesson?.subject);
+  const practiceSkin = {
+    ...skin,
+    "--p": skin["--g"],
+    "--pd": skin["--gd"],
+    "--pl": skin["--gl"],
+    "--pl2": skin["--gl2"],
+    "--y": skin["--g"],
+    "--yd": skin["--gd"],
+  };
+
+  useEffect(() => {
+    if (subjectKey) lockSubjectTheme(subjectKey);
+  }, [subjectKey]);
   const levelCounts = lesson?.collection_difficulty_counts || {
     easy: 0,
     medium: 0,
@@ -515,56 +538,48 @@ export default function CollectionLessonDetail() {
     ? focusedSubObj.title
     : lesson.title;
 
+  const totalQs =
+    (Number(levelCounts.easy) || 0) +
+    (Number(levelCounts.medium) || 0) +
+    (Number(levelCounts.hard) || 0);
+
   return (
-    <div>
-      <BackToCourses subjectId={lesson.subject} />
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-        <Link to={listUrl} className="btn btn-ghost btn-sm">
-          ← العودة لدروس التجميع
-        </Link>
-      </div>
-
-      <div className="breadcrumb">
-        تجميع &gt;{" "}
-        {focusedSubObj ? (
-          <>
-            <Link to={listUrl + `/${lessonId}`}>{lesson.title}</Link> &gt;{" "}
-            <span>{focusedSubObj.title}</span>
-          </>
-        ) : (
-          <span>{lesson.title}</span>
-        )}
-      </div>
-
-      {canRenameLesson && !focusedSubId ? (
-        <div
-          className="card"
-          style={{
-            padding: 16,
-            marginBottom: 16,
-            display: "flex",
-            gap: 8,
-            flexWrap: "wrap",
-            alignItems: "center",
-          }}
-        >
-          <input
-            className="form-control"
-            style={{ flex: 1, minWidth: 200, fontSize: 20, fontWeight: 700 }}
-            value={editTitle}
-            onChange={(e) => setEditTitle(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            disabled={busy}
-            onClick={() => saveLessonPatch({ title: editTitle.trim() }, "تم تعديل الاسم ✓")}
-          >
-            حفظ الاسم
-          </button>
+    <div className="practice-exact" style={practiceSkin}>
+      <div className="topbar">
+        <div className="crumb">
+          دورات <i>‹</i> {subjectName} <i>‹</i> تجميعات <i>‹</i>{" "}
+          {focusedSubObj ? (
+            <>
+              <Link to={`${listUrl}/${lessonId}`}>{lesson.title}</Link> <i>‹</i> <b>{focusedSubObj.title}</b>
+            </>
+          ) : (
+            <b>{pageTitle}</b>
+          )}
         </div>
-      ) : (
-        <h1 style={{ fontSize: 28, marginBottom: 8 }}>{pageTitle}</h1>
+        <div className="backs">
+          <Link className="back" to={listUrl}>→ دروس التجميعات</Link>
+          <Link className="back" to="/courses">كل المواد</Link>
+        </div>
+      </div>
+
+      <div className="hero">
+        <div className="lg"><img src={logo} alt="" /></div>
+        <span className="sep" />
+        <div>
+          <small>تجميعات · الدرس {lesson.order_number || ""}</small>
+          <h1>{pageTitle}</h1>
+        </div>
+        <div className="qn">
+          <strong>{totalQs}</strong>
+          <span>سؤال في الدرس</span>
+        </div>
+      </div>
+
+      {canRenameLesson && !focusedSubId && (
+        <div className="card" style={{ padding: 16, marginBottom: 16, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <input className="form-control" style={{ flex: 1, minWidth: 200, fontSize: 20, fontWeight: 700 }} value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+          <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={() => saveLessonPatch({ title: editTitle.trim() }, "تم تعديل الاسم ✓")}>حفظ الاسم</button>
+        </div>
       )}
 
       {focusedSubObj && (
@@ -696,197 +711,137 @@ export default function CollectionLessonDetail() {
 
       {(!canEdit || tab === "questions") && (
         <>
-          <div className="wizard-layout" style={{ marginBottom: 20 }}>
-          <div className="card" style={{ padding: 16 }}>
-            <div className="section-title" style={{ marginTop: 0 }}>
-              ابدأ بالتدريب
-            </div>
-            <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 12 }}>
-              {focusedSubObj
-                ? `اختر المستويات وسنة الاختبار — كل الأسئلة المطابقة في «${focusedSubObj.title}».`
-                : "اختر المستويات وسنة الاختبار (اختياري) — يظهر لك كل الأسئلة المطابقة في هذا الدرس. نسب المزج موجودة في المحاكي الشخصي فقط."}
-            </p>
-            <div style={{ marginBottom: 16 }}>
-              <Link
-                to={`/tests/simulator/${subjectId || lesson.subject}?lesson=${lessonId}&from=collections`}
-                className="btn btn-secondary"
-              >
-                المحاكي الشخصي (نسب صعوبة · عدة مواد · زمن) ←
-              </Link>
-            </div>
-            {focusedSubObj ? (
-              <div className="form-group" style={{ marginBottom: 16 }}>
-                <label>نطاق التدريب</label>
-                <div className="filter-row">
-                  <span className="chip active">{focusedSubObj.title}</span>
+          <div className="layout" style={{ marginBottom: 20 }}>
+            <div>
+              <div className="box">
+                <div className="bh">
+                  <h3><span className="step">1</span>مستوى الصعوبة</h3>
+                  <span className="opt">ممكن أكتر من مستوى</span>
+                </div>
+                <div className="seg">
+                  {LEVELS.map((lv) => {
+                    const on = selectedLevels.includes(lv.id);
+                    const cls = lv.id === "easy" ? "e" : lv.id === "medium" ? "m" : "h";
+                    return (
+                      <button
+                        key={lv.id}
+                        type="button"
+                        className={`ch ${cls}${on ? " on" : ""}`}
+                        onClick={() => toggleLevel(lv.id)}
+                      >
+                        <i className="cb">{on ? <CheckMini /> : null}</i>
+                        {lv.label}
+                        <em>{filteredLevelCounts[lv.id] || 0}</em>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            ) : (
-              subLessons.length > 0 && (
-              <div className="form-group" style={{ marginBottom: 16 }}>
-                <label>الدروس الفرعية — اختياري (واحد أو أكثر، أو الدرس كاملاً)</label>
-                <div className="filter-row" style={{ marginBottom: 8 }}>
-                  <span
-                    className={`chip ${selectedSubs.length === 0 ? "active" : ""}`}
-                    onClick={() => setSelectedSubs([])}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    الدرس كاملاً
-                  </span>
-                  {subLessons.map((s) => (
-                    <span
-                      key={s.id}
-                      className={`chip ${selectedSubs.includes(s.id) ? "active" : ""}`}
-                      onClick={() => toggleSub(s.id)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") toggleSub(s.id);
-                      }}
-                    >
-                      {s.title} ({subCountsForFilter[s.id] || 0})
-                    </span>
-                  ))}
-                  {studentHasDirect && (
-                    <span
-                      className={`chip ${selectedSubs.includes(0) ? "active" : ""}`}
-                      onClick={() => toggleSub(0)}
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") toggleSub(0);
-                      }}
-                    >
-                      أسئلة عامة ({subCountsForFilter[0] || 0})
-                    </span>
-                  )}
+
+              <div className="box">
+                <div className="bh">
+                  <h3><span className="step">2</span>ترشيحات المدرسين</h3>
+                  <span className="opt">اختياري</span>
+                </div>
+                <div className="seg">
+                  <button type="button" className={`ch${selectedTiers.length === 0 ? " on" : ""}`} onClick={() => setSelectedTiers([])}>
+                    <i className="cb">{selectedTiers.length === 0 ? <CheckMini /> : null}</i>
+                    كل الترشيحات
+                  </button>
+                  {TEACHER_TIERS.map((t) => {
+                    const on = selectedTiers.includes(t.id);
+                    const cls = t.id === "gold" ? "g" : t.id === "silver" ? "s" : "b";
+                    return (
+                      <button key={t.id} type="button" className={`ch ${cls}${on ? " on" : ""}`} onClick={() => toggleTier(t.id)}>
+                        <i className="cb">{on ? <CheckMini /> : null}</i>
+                        {t.label}
+                        <em>{tierCountsForFilter[t.id] || 0}</em>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-              )
-            )}
-            <div className="form-group" style={{ marginBottom: 16 }}>
-              <label>مستوى الصعوبة — يمكن اختيار أكثر من مستوى</label>
-              <div className="filter-row" style={{ marginBottom: 8 }}>
-                {LEVELS.map((lv) => (
-                  <span
-                    key={lv.id}
-                    className={`chip ${selectedLevels.includes(lv.id) ? "active" : ""}`}
-                    onClick={() => toggleLevel(lv.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") toggleLevel(lv.id);
-                    }}
-                  >
-                    {lv.label} ({filteredLevelCounts[lv.id] || 0})
-                  </span>
-                ))}
+
+              <div className="box">
+                <div className="bh">
+                  <h3><span className="step">3</span>المراجعة</h3>
+                </div>
+                <div className="rv">
+                  <button type="button" className={`rvo${reviewMode === "immediate" ? " on" : ""}`} onClick={() => setReviewMode("immediate")}>
+                    <i className="rad" />
+                    <div><b>فورية</b><small>تظهر الإجابة بعد كل سؤال</small></div>
+                  </button>
+                  <button type="button" className={`rvo${reviewMode === "final" ? " on" : ""}`} onClick={() => setReviewMode("final")}>
+                    <i className="rad" />
+                    <div><b>نهائية</b><small>بعد انتهاء الاختبار</small></div>
+                  </button>
+                </div>
               </div>
-              <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>
-                مثال: سهل فقط = كل الأسئلة السهلة · سهل + صعب = كل السهل وكل الصعب
-              </p>
-            </div>
-            <div className="form-group" style={{ marginBottom: 16 }}>
-              <label>سنة / تاريخ الاختبار — اختياري</label>
-              <YearScrollPicker
-                years={years}
-                value={yearRange}
-                onChange={setYearRange}
-                yearStats={yearStats}
-                emptyMessage="لا توجد سنوات مسجّلة على أسئلة هذا الدرس بعد."
-              />
-            </div>
-            <div className="form-group" style={{ marginBottom: 16 }}>
-              <label>ترشيحات المدرسين — اختياري (واحد أو أكثر، أو الكل)</label>
-              <div className="filter-row" style={{ marginBottom: 8 }}>
-                <span
-                  className={`chip ${selectedTiers.length === 0 ? "active" : ""}`}
-                  onClick={() => setSelectedTiers([])}
-                  role="button"
-                  tabIndex={0}
-                >
-                  كل الترشيحات
-                </span>
-                {TEACHER_TIERS.map((t) => (
-                  <span
-                    key={t.id}
-                    className={`chip ${selectedTiers.includes(t.id) ? "active" : ""}`}
-                    onClick={() => toggleTier(t.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") toggleTier(t.id);
-                    }}
-                  >
-                    {t.label} ({tierCountsForFilter[t.id] || 0})
-                  </span>
-                ))}
+
+              <div className="box">
+                <div className="bh">
+                  <h3><span className="step">4</span>سنة الاختبار</h3>
+                  <span className="opt">اختياري</span>
+                </div>
+                <YearScrollPicker
+                  years={years}
+                  value={yearRange}
+                  onChange={setYearRange}
+                  yearStats={yearStats}
+                  emptyMessage="لا توجد سنوات مسجّلة على أسئلة هذا الدرس بعد."
+                />
               </div>
-              {!tierStats.length && !filterBreakdown.some((r) => r.teacher_tier) && (
-                <p style={{ color: "var(--text-muted)", fontSize: 13, margin: 0 }}>
-                  لا توجد ترشيحات مسجّلة على أسئلة هذا الدرس بعد.
-                </p>
+
+              {!focusedSubObj && subLessons.length > 0 && (
+                <div className="box">
+                  <div className="bh">
+                    <h3><span className="step">5</span>الدروس الفرعية</h3>
+                    <span className="opt">اختياري</span>
+                  </div>
+                  <div className="seg">
+                    <button type="button" className={`ch${selectedSubs.length === 0 ? " on" : ""}`} onClick={() => setSelectedSubs([])}>
+                      <i className="cb">{selectedSubs.length === 0 ? <CheckMini /> : null}</i>
+                      الدرس كاملاً
+                    </button>
+                    {subLessons.map((s) => {
+                      const on = selectedSubs.includes(s.id);
+                      return (
+                        <button key={s.id} type="button" className={`ch${on ? " on" : ""}`} onClick={() => toggleSub(s.id)}>
+                          <i className="cb">{on ? <CheckMini /> : null}</i>
+                          {s.title}
+                          <em>{subCountsForFilter[s.id] || 0}</em>
+                        </button>
+                      );
+                    })}
+                    {studentHasDirect && (
+                      <button type="button" className={`ch${selectedSubs.includes(0) ? " on" : ""}`} onClick={() => toggleSub(0)}>
+                        <i className="cb">{selectedSubs.includes(0) ? <CheckMini /> : null}</i>
+                        أسئلة عامة
+                        <em>{subCountsForFilter[0] || 0}</em>
+                      </button>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
-            <div className="form-group" style={{ marginBottom: 16 }}>
-              <label>المراجعة</label>
-              <div className="filter-row" style={{ marginBottom: 8 }}>
-                <span
-                  className={`chip ${reviewMode === "immediate" ? "active" : ""}`}
-                  onClick={() => setReviewMode("immediate")}
-                  role="button"
-                  tabIndex={0}
+
+            <aside className="side">
+              <div className="sum">
+                <h3>ملخص التدريب</h3>
+                <div className="si"><span>الصعوبة</span><b>{selectedLevels.length ? selectedLevels.map((id) => LEVELS.find((l) => l.id === id)?.label).join(" + ") : "—"}</b></div>
+                <div className="si"><span>الترشيح</span><b>{selectedTiers.length ? selectedTiers.map((id) => tierLabel(id)).join(" + ") : "الكل"}</b></div>
+                <div className="si"><span>المراجعة</span><b>{reviewMode === "immediate" ? "فورية" : "نهائية"}</b></div>
+                <div className="big"><strong>{selectedLevels.length ? selectedCount : "—"}</strong><span>سؤال مطابق</span></div>
+                <button
+                  type="button"
+                  className="start"
+                  disabled={startBusy || !selectedLevels.length || selectedCount < 1}
+                  onClick={startExam}
                 >
-                  فورية
-                </span>
-                <span
-                  className={`chip ${reviewMode === "final" ? "active" : ""}`}
-                  onClick={() => setReviewMode("final")}
-                  role="button"
-                  tabIndex={0}
-                >
-                  نهائية
-                </span>
+                  {startBusy ? "جاري البدء…" : "ابدأ الحل ←"}
+                </button>
               </div>
-            </div>
-          </div>
-          <aside className="sticky-summary">
-            <h3>ملخص التدريب</h3>
-            <div className="sticky-summary__meta">
-              <div>
-                الصعوبة:{" "}
-                {selectedLevels.length
-                  ? selectedLevels.map((id) => LEVELS.find((l) => l.id === id)?.label).join(" + ")
-                  : "—"}
-              </div>
-              <div>
-                الترشيح:{" "}
-                {selectedTiers.length
-                  ? selectedTiers.map((id) => tierLabel(id)).join(" + ")
-                  : "الكل"}
-              </div>
-              <div>المراجعة: {reviewMode === "immediate" ? "فورية" : "نهائية"}</div>
-            </div>
-            <div className="sticky-summary__stats">
-              <div className="sticky-summary__stat">
-                <strong>{selectedLevels.length ? selectedCount : "—"}</strong>
-                <span>أسئلة مطابقة</span>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="btn btn-primary btn-block"
-              disabled={startBusy || !selectedLevels.length || selectedCount < 1}
-              onClick={startExam}
-            >
-              {startBusy
-                ? "جاري البدء…"
-                : focusedSubObj
-                  ? `ابدأ «${focusedSubObj.title}»`
-                  : "ابدأ الحل"}
-            </button>
-          </aside>
+            </aside>
           </div>
 
           {canEdit && (

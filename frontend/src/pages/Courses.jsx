@@ -96,7 +96,14 @@ export default function Courses() {
               className={`card ${cls}`}
               onClick={() => navigate(to)}
             >
-              <img src={s.theme?.logo || `/subjects/${key === "physics" ? "physics" : key}.png`} alt={s.name || ""} />
+              <span className="logo-wrap">
+                <img
+                  src={s.theme?.logo || `/subjects/${key === "physics" ? "physics" : key}.png`}
+                  alt={s.name || ""}
+                  loading="lazy"
+                  decoding="async"
+                />
+              </span>
               <div className="go">ادخل الدورة ←</div>
             </button>
           );

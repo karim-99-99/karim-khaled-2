@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import TelegramLoginButton from "../components/TelegramLoginButton";
+import "../styles/auth-exact.css";
 
 export default function Register() {
   const { register } = useAuth();
@@ -60,121 +61,112 @@ export default function Register() {
   }
 
   return (
-    <div className="card form-card">
-      <h2 style={{ textAlign: "center", marginBottom: 16 }}>إنشاء حساب جديد</h2>
+    <div className="auth-exact">
+      <div className="auth-panel card form-card">
+        <h2>إنشاء حساب جديد</h2>
 
-      <TelegramLoginButton
-        label="إنشاء حساب عبر تيليجرام"
-        onSuccess={() => navigate("/")}
-      />
+        <TelegramLoginButton
+          label="إنشاء حساب عبر تيليجرام"
+          onSuccess={() => navigate("/")}
+        />
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          margin: "8px 0 16px",
-          color: "var(--text-muted)",
-          fontSize: 13,
-        }}
-      >
-        <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-        أو بالبريد
-        <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
-      </div>
+        <div className="auth-or">
+          <i />
+          أو بالبريد
+          <i />
+        </div>
 
-      <form onSubmit={submit}>
-        <div className="form-group">
-          <label>الاسم *</label>
-          <input
-            className="form-control"
-            value={form.full_name}
-            onChange={(e) => set("full_name", e.target.value)}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label>رقم التليفون *</label>
-          <input
-            className="form-control"
-            value={form.phone}
-            onChange={(e) => set("phone", e.target.value)}
-            placeholder="01xxxxxxxxx"
-            required
-          />
-          {errors.phone && <div className="error-text">{errors.phone}</div>}
-        </div>
-        <div className="form-group">
-          <label>الجنس *</label>
-          <div style={{ display: "flex", gap: 16 }}>
-            <label style={{ fontWeight: 400 }}>
-              <input
-                type="radio"
-                checked={form.gender === "male"}
-                onChange={() => set("gender", "male")}
-              />{" "}
-              ذكر
-            </label>
-            <label style={{ fontWeight: 400 }}>
-              <input
-                type="radio"
-                checked={form.gender === "female"}
-                onChange={() => set("gender", "female")}
-              />{" "}
-              أنثى
-            </label>
-          </div>
-        </div>
-        <div className="form-group">
-          <label>البريد الإلكتروني *</label>
-          <input
-            className="form-control"
-            type="email"
-            value={form.email}
-            onChange={(e) => set("email", e.target.value)}
-            required
-          />
-          {errors.email && <div className="error-text">{errors.email}</div>}
-        </div>
-        <div className="form-group">
-          <label>كلمة المرور *</label>
-          <input
-            className="form-control"
-            type="password"
-            value={form.password}
-            onChange={(e) => set("password", e.target.value)}
-            required
-          />
-          {errors.password && <div className="error-text">{errors.password}</div>}
-        </div>
-        <div className="form-group">
-          <label className="consent-row">
+        <form onSubmit={submit}>
+          <div className="form-group">
+            <label>الاسم *</label>
             <input
-              type="checkbox"
-              checked={agreed}
-              onChange={(e) => setAgreed(e.target.checked)}
+              className="form-control"
+              value={form.full_name}
+              onChange={(e) => set("full_name", e.target.value)}
+              required
             />
-            <span>
-              أوافق على{" "}
-              <Link to="/terms" target="_blank" rel="noreferrer">الشروط والأحكام</Link> و
-              <Link to="/privacy" target="_blank" rel="noreferrer">سياسة الخصوصية</Link> و
-              <Link to="/refund-policy" target="_blank" rel="noreferrer">سياسة الاسترداد</Link>.
-            </span>
-          </label>
-          {errors.agree && <div className="error-text">{errors.agree}</div>}
-        </div>
-        {errors.detail && <div className="error-text">{errors.detail}</div>}
-        <button className="btn btn-primary btn-block" disabled={busy}>
-          {busy ? "…" : "إنشاء حساب بالبريد"}
-        </button>
-      </form>
+          </div>
+          <div className="form-group">
+            <label>رقم التليفون *</label>
+            <input
+              className="form-control"
+              value={form.phone}
+              onChange={(e) => set("phone", e.target.value)}
+              placeholder="01xxxxxxxxx"
+              required
+            />
+            {errors.phone && <div className="error-text">{errors.phone}</div>}
+          </div>
+          <div className="form-group">
+            <label>الجنس *</label>
+            <div style={{ display: "flex", gap: 16 }}>
+              <label style={{ fontWeight: 400 }}>
+                <input
+                  type="radio"
+                  checked={form.gender === "male"}
+                  onChange={() => set("gender", "male")}
+                />{" "}
+                ذكر
+              </label>
+              <label style={{ fontWeight: 400 }}>
+                <input
+                  type="radio"
+                  checked={form.gender === "female"}
+                  onChange={() => set("gender", "female")}
+                />{" "}
+                أنثى
+              </label>
+            </div>
+          </div>
+          <div className="form-group">
+            <label>البريد الإلكتروني *</label>
+            <input
+              className="form-control"
+              type="email"
+              value={form.email}
+              onChange={(e) => set("email", e.target.value)}
+              required
+            />
+            {errors.email && <div className="error-text">{errors.email}</div>}
+          </div>
+          <div className="form-group">
+            <label>كلمة المرور *</label>
+            <input
+              className="form-control"
+              type="password"
+              value={form.password}
+              onChange={(e) => set("password", e.target.value)}
+              required
+            />
+            {errors.password && <div className="error-text">{errors.password}</div>}
+          </div>
+          <div className="form-group">
+            <label className="consent-row">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+              />
+              <span>
+                أوافق على{" "}
+                <Link to="/terms" target="_blank" rel="noreferrer">الشروط والأحكام</Link> و
+                <Link to="/privacy" target="_blank" rel="noreferrer">سياسة الخصوصية</Link> و
+                <Link to="/refund-policy" target="_blank" rel="noreferrer">سياسة الاسترداد</Link>.
+              </span>
+            </label>
+            {errors.agree && <div className="error-text">{errors.agree}</div>}
+          </div>
+          {errors.detail && <div className="error-text">{errors.detail}</div>}
+          <button className="btn btn-primary btn-block" disabled={busy}>
+            {busy ? "…" : "إنشاء حساب بالبريد"}
+          </button>
+        </form>
 
-      <p style={{ textAlign: "center", marginTop: 16, color: "var(--text-muted)", fontSize: 14 }}>
-        لديك حساب؟{" "}
-        <Link to="/login" style={{ color: "var(--primary)", fontWeight: 600 }}>
-          تسجيل الدخول
-        </Link>
-      </p>
+        <p className="auth-foot">
+          لديك حساب؟{" "}
+          <Link to="/login">تسجيل الدخول</Link>
+        </p>
+      </div>
     </div>
   );
 }

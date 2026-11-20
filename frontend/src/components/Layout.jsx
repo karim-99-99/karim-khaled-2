@@ -9,6 +9,7 @@ import {
   applySubjectTheme,
   clearSubjectTheme,
   getSubjectTheme,
+  lockSubjectTheme,
   peekLockedTheme,
   resolveSubjectKey,
   unlockSubjectTheme,
@@ -63,9 +64,28 @@ function isSimulatorSurface(pathname) {
   );
 }
 
-/** Keep locked theme on exam/results and while configuring the personal simulator. */
-function isLockedThemeSurface(pathname) {
-  return isExamSurface(pathname) || isSimulatorSurface(pathname);
+function isCourseSurface(pathname) {
+  return Boolean(
+    matchPath({ path: "/courses/:subjectId/*", end: true }, pathname) ||
+      matchPath({ path: "/courses/:subjectId", end: true }, pathname)
+  );
+}
+
+function isLessonSurface(pathname) {
+  return Boolean(
+    matchPath({ path: "/lessons/:lessonId", end: true }, pathname) ||
+      matchPath({ path: "/sections/:sectionId", end: true }, pathname)
+  );
+}
+
+/** Keep subject chrome across course → lesson video/homework → exam/results. */
+function isSubjectThemeSurface(pathname) {
+  return (
+    isCourseSurface(pathname) ||
+    isLessonSurface(pathname) ||
+    isExamSurface(pathname) ||
+    isSimulatorSurface(pathname)
+  );
 }
 
 export default function Layout() {
@@ -74,13 +94,13 @@ export default function Layout() {
   const location = useLocation();
   const [subjects, setSubjects] = useState(readCachedSubjects);
   const [lockedThemeKey, setLockedThemeKey] = useState(() =>
-    isLockedThemeSurface(location.pathname) ? peekLockedTheme() : null
+    isSubjectThemeSurface(location.pathname) ? peekLockedTheme() : null
   );
 
   const initial = user?.full_name?.trim()?.[0] || "؟";
   const subjectId = useMemo(() => readSubjectId(location.pathname), [location.pathname]);
-  const lockedSurface = useMemo(
-    () => isLockedThemeSurface(location.pathname),
+  const subjectSurface = useMemo(
+    () => isSubjectThemeSurface(location.pathname),
     [location.pathname]
   );
 
@@ -106,36 +126,39 @@ export default function Layout() {
 
   const subjectFromRoute = subjects.find((s) => String(s.id) === String(subjectId));
   const routeThemeKey = resolveSubjectKey(subjectFromRoute?.name) || null;
-  const themeKey = (lockedSurface && lockedThemeKey) || routeThemeKey;
+  const themeKey = routeThemeKey || lockedThemeKey || (subjectSurface ? peekLockedTheme() : null);
   const theme = getSubjectTheme(themeKey);
   const logoSrc = theme?.logo || DEFAULT_LOGO;
   const logoAlt = theme ? `مرام ${theme.label}` : "مرام — للتحصيلي بإتقان";
 
   useEffect(() => {
-    if (lockedSurface) {
-      const locked = peekLockedTheme();
-      if (locked) {
-        setLockedThemeKey(locked);
-        applySubjectTheme(locked);
-        return undefined;
-      }
-      // Simulator with a subject in the URL: use route theme until multi is locked.
-      if (routeThemeKey) {
-        setLockedThemeKey(routeThemeKey);
-        applySubjectTheme(routeThemeKey);
-        return undefined;
-      }
+    if (!subjectSurface) {
       setLockedThemeKey(null);
+      unlockSubjectTheme();
+      clearSubjectTheme();
       return undefined;
     }
+
+    // Course URLs carry the subject — lock so lesson/homework keep the same skin.
+    if (routeThemeKey) {
+      lockSubjectTheme(routeThemeKey);
+      setLockedThemeKey(routeThemeKey);
+      return undefined;
+    }
+
+    const locked = peekLockedTheme();
+    if (locked) {
+      setLockedThemeKey(locked);
+      applySubjectTheme(locked);
+      return undefined;
+    }
+
     setLockedThemeKey(null);
-    unlockSubjectTheme();
-    applySubjectTheme(routeThemeKey);
-    return () => clearSubjectTheme();
-  }, [routeThemeKey, lockedSurface, location.pathname]);
+    return undefined;
+  }, [routeThemeKey, subjectSurface, location.pathname]);
 
   useEffect(() => {
-    if (!lockedSurface) return undefined;
+    if (!subjectSurface) return undefined;
     const onTheme = (e) => {
       const key = e.detail?.key || peekLockedTheme();
       setLockedThemeKey(key);
@@ -143,7 +166,7 @@ export default function Layout() {
     };
     window.addEventListener(SUBJECT_THEME_EVENT, onTheme);
     return () => window.removeEventListener(SUBJECT_THEME_EVENT, onTheme);
-  }, [lockedSurface]);
+  }, [subjectSurface]);
 
   function handleLogout() {
     logout();
@@ -153,7 +176,15 @@ export default function Layout() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <NavLink to="/" className="logo" onClick={() => clearSubjectTheme()}>
+        <NavLink
+          to="/"
+          className="logo"
+          onClick={() => {
+            unlockSubjectTheme();
+            clearSubjectTheme();
+            setLockedThemeKey(null);
+          }}
+        >
           <img
             className="logo-img"
             src={logoSrc}
@@ -203,7 +234,15 @@ export default function Layout() {
           )}
         </div>
       </header>
-      <main className={location.pathname === "/" ? "container container--bleed" : "container"}>
+      <main
+        className={
+          location.pathname === "/" ||
+          location.pathname === "/login" ||
+          location.pathname === "/register"
+            ? "container container--bleed"
+            : "container"
+        }
+      >
         <Outlet />
       </main>
       <SiteFooter />

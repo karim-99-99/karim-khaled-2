@@ -1,0 +1,83 @@
+.lesson-exact{--g:#5f8f2e;--gd:#3f6a1f;--gl:#f1f7e8;--gb:#d7e8c2;--line:#e7ecdf;--mu:#6b7280}
+.lesson-exact{max-width:1240px;margin:22px auto 60px;padding:0 20px}
+.lesson-exact .topbar{display:flex;justify-content:space-between;align-items:center}
+.lesson-exact .crumb{font-size:14px;color:var(--mu);display:flex;gap:8px}
+.lesson-exact .crumb b{color:var(--gd)}
+.lesson-exact .crumb i{font-style:normal;opacity:.5}
+.lesson-exact .backs{display:flex;gap:10px}
+.lesson-exact .back{background:#fff;border:1px solid var(--line);padding:9px 16px;border-radius:10px;font-size:14px;color:var(--gd);font-weight:600}
+.lesson-exact .hero{margin:16px 0 20px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px 26px;display:flex;align-items:center;gap:22px;position:relative;overflow:hidden;box-shadow:0 12px 26px rgba(40,60,20,.07)}
+.lesson-exact .hero::after{content:"";position:absolute;right:0;top:0;bottom:0;width:7px;background:linear-gradient(var(--gd),#9cc95d)}
+.lesson-exact .hero img{height:92px}
+.lesson-exact .sep{width:1px;height:70px;background:var(--line)}
+.lesson-exact .hero small{background:var(--gl);color:var(--gd);font-weight:700;padding:4px 12px;border-radius:20px;font-size:13px}
+.lesson-exact .hero h1{font-size:30px;font-weight:800;color:var(--gd);margin-top:8px}
+.lesson-exact .hstats{margin-inline-start:auto;display:flex;gap:10px}
+.lesson-exact .hstats div{background:var(--gl);border:1px solid var(--gb);border-radius:14px;padding:10px 16px;text-align:center;min-width:90px}
+.lesson-exact .hstats strong{display:block;font-size:22px;color:var(--gd);font-weight:800}
+.lesson-exact .hstats span{font-size:12px;color:var(--mu)}
+.lesson-exact .layout{display:grid;grid-template-columns:300px 1fr;gap:20px;align-items:start}
+.lesson-exact .side{background:#fff;border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:0 10px 24px rgba(40,60,20,.05)}
+.lesson-exact .side h3{font-size:17px;font-weight:800;margin:4px 6px 4px}
+.lesson-exact .side .pr{font-size:13px;color:var(--mu);margin:0 6px 10px}
+.lesson-exact .pbar{height:7px;border-radius:7px;background:var(--gl);margin:0 6px 14px;overflow:hidden}
+.lesson-exact .pbar i{display:block;height:100%;width:50%;background:var(--g)}
+.lesson-exact .st{display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;margin-bottom:6px;border:1px solid transparent}
+.lesson-exact .st .n{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;background:#f3f4f6;color:#6b7280;flex-shrink:0}
+.lesson-exact .st b{font-size:16px;display:block}
+.lesson-exact .st small{font-size:12px;color:var(--mu)}
+.lesson-exact .st.done .n{background:#16a34a;color:#fff}
+.lesson-exact .st.on{background:var(--gl);border-color:var(--gb)}
+.lesson-exact .st.on .n{background:var(--g);color:#fff}
+.lesson-exact .st.on b{color:var(--gd)}
+.lesson-exact .st .tg{margin-inline-start:auto;font-size:11px;font-weight:800;color:var(--gd);background:#fff;border:1px solid var(--gb);padding:2px 8px;border-radius:20px}
+.lesson-exact .rec{display:block;margin-top:14px;border:1.5px solid var(--gb);border-radius:16px;overflow:hidden;background:#fff}
+.lesson-exact .rth{position:relative;height:120px;background:linear-gradient(135deg,rgba(63,106,31,.85),rgba(95,143,46,.7)),repeating-linear-gradient(45deg,#2b3a1c 0 10px,#33461f 10px 20px)}
+.lesson-exact .rp{position:absolute;inset:0;margin:auto;width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.25);border:2px solid #fff;display:grid;place-items:center}
+.lesson-exact .rp svg{width:22px;height:22px;margin-right:-3px}
+.lesson-exact .live{position:absolute;top:10px;right:10px;background:#fff;color:#dc2626;font-size:11px;font-weight:800;padding:3px 9px;border-radius:20px}
+.lesson-exact .rdur{position:absolute;bottom:10px;left:10px;background:rgba(0,0,0,.55);color:#fff;font-size:12px;font-weight:700;padding:2px 8px;border-radius:6px;direction:ltr}
+.lesson-exact .rb{padding:12px 14px}
+.lesson-exact .rb b{display:block;font-size:16px;color:var(--gd)}
+.lesson-exact .rb small{font-size:12px;color:var(--mu)}
+.lesson-exact .sidecol{display:flex;flex-direction:column;gap:16px}
+.lesson-exact .recbox{padding:12px}
+.lesson-exact .recbox .rec{margin-top:0;border:0}
+.lesson-exact .mainc{background:#fff;border:1px solid var(--line);border-radius:20px;padding:20px;box-shadow:0 10px 24px rgba(40,60,20,.05)}
+.lesson-exact .mh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.lesson-exact .mh h2{font-size:24px;font-weight:800}
+.lesson-exact .mh h2 span{font-size:14px;color:var(--mu);font-weight:600;margin-inline-end:8px}
+.lesson-exact .tabs{display:flex;background:#f3f6ee;border-radius:14px;padding:5px;gap:4px}
+.lesson-exact .tabs a{display:flex;align-items:center;gap:8px;padding:9px 18px;border-radius:10px;font-weight:700;font-size:15px;color:#4b5563}
+.lesson-exact .tabs svg{width:18px;height:18px}
+.lesson-exact .tabs a.on{background:var(--g);color:#fff;box-shadow:0 4px 10px rgba(95,143,46,.35)}
+.lesson-exact .tabs em{font-style:normal;font-size:11px;background:#e2ebd5;color:var(--gd);padding:1px 7px;border-radius:10px}
+.lesson-exact .player{position:relative;border-radius:16px;overflow:hidden;aspect-ratio:16/9;background:radial-gradient(circle at 50% 40%,#2b3a1c,#0f1608 75%)}
+.lesson-exact .player .wb{position:absolute;inset:8% 10% 18%;background:#fbfaf3;border-radius:6px;opacity:.95;padding:28px 32px;color:#2b2b2b;font-size:20px;line-height:2}
+.lesson-exact .wb .q{color:#7a8c3a;font-weight:800}
+.lesson-exact .wb .sk{position:absolute;left:60px;bottom:30px;width:180px;height:120px;border:2px solid #555;transform:skewX(-20deg)}
+.lesson-exact .play{position:absolute;inset:0;display:grid;place-items:center}
+.lesson-exact .play span{width:84px;height:84px;border-radius:50%;background:rgba(95,143,46,.92);display:grid;place-items:center;box-shadow:0 0 0 12px rgba(95,143,46,.25)}
+.lesson-exact .play svg{width:34px;height:34px;margin-right:-4px}
+.lesson-exact .ctrl{position:absolute;left:0;right:0;bottom:0;padding:14px 18px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;display:flex;align-items:center;gap:14px;font-size:13px}
+.lesson-exact .ctrl .tl{flex:1;height:5px;border-radius:5px;background:rgba(255,255,255,.3)}
+.lesson-exact .ctrl .tl i{display:block;width:35%;height:100%;background:#9cc95d;border-radius:5px}
+.lesson-exact .below{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:12px}
+.lesson-exact .nb{display:flex;align-items:center;gap:8px;padding:12px 18px;border-radius:12px;border:1.5px solid var(--line);font-weight:700;color:#374151}
+.lesson-exact .cta{display:flex;align-items:center;gap:10px;background:var(--gl);border:1px solid var(--gb);border-radius:14px;padding:10px 12px 10px 18px;flex:1;justify-content:space-between}
+.lesson-exact .cta div b{display:block;color:var(--gd)}
+.lesson-exact .cta div small{color:var(--mu);font-size:13px}
+.lesson-exact .cta a{background:var(--g);color:#fff;font-weight:800;padding:11px 22px;border-radius:10px}
+@media (max-width:900px){
+ .lesson-exact .layout{display:flex;flex-direction:column}
+ .lesson-exact .grid{grid-template-columns:1fr}
+ .lesson-exact .hero{flex-wrap:wrap}
+ .lesson-exact .hstats{width:100%}
+ .lesson-exact .sidecol, .lesson-exact .side{width:100%}
+ .lesson-exact .backs{flex-wrap:wrap}
+}
+@media (max-width:640px){
+ .lesson-exact h1{font-size:24px}
+ .lesson-exact .hero img, .lesson-exact .lg img{max-height:90px}
+ .lesson-exact .qn{margin-inline-start:auto}
+}
