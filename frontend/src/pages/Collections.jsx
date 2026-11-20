@@ -258,17 +258,14 @@ export default function Collections() {
     <div>
       <BackToCourses subjectId={subjectId} />
       <div className="breadcrumb">دورات &gt; <span>تجميع</span></div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap",
-          marginBottom: 12,
-        }}
-      >
-        <h1 style={{ fontSize: 28, margin: 0 }}>التجميعات — الدروس</h1>
+      <div className="collections-hero ui-card">
+        <div>
+          <h1 style={{ fontSize: 28, margin: 0 }}>التجميعات — الدروس</h1>
+          <p style={{ color: "var(--text-muted)", marginTop: 6 }}>
+            دروس وتجميعات مع عدد الأسئلة — ادخل للتدريب أو أضف دروساً فرعية.
+          </p>
+        </div>
+        <div className="collections-hero__badge">{lessons.length} درس</div>
         {canEdit && (
           <button type="button" className="btn btn-primary" onClick={() => setShowAdd((v) => !v)}>
             {showAdd ? "إلغاء" : "+ درس جديد"}
@@ -331,7 +328,7 @@ export default function Collections() {
         const lessonHref = `/courses/${subjectId}/collections/${l.id}`;
 
         return (
-          <div key={l.id} style={{ marginBottom: 16 }}>
+          <div key={l.id} className="collections-lesson" style={{ marginBottom: 16 }}>
             <div
               className="card"
               style={{

@@ -1,14 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { canEditSubject, filterSubjectsForUser } from "../auth/teacherScope";
 import client from "../api/client";
-import { resolveSubjectKey } from "../theme/subjects";
+import { getSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 
-/**
- * Top-level tests page (outside courses):
- * simulator on top (pick a subject), teacher tests listed below for all subjects.
- */
 export default function TestsPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -17,6 +13,8 @@ export default function TestsPage() {
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [subjectFilter, setSubjectFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -63,118 +61,173 @@ export default function TestsPage() {
 
   const canCreateAny = subjects.some((s) => canEditSubject(user, s.id));
 
+  const filtered = useMemo(() => {
+    return teacherTests.filter((t) => {
+      if (subjectFilter !== "all" && String(t.subject) !== String(subjectFilter) && t.subject_name !== subjectFilter) {
+        const sub = subjects.find((s) => String(s.id) === String(subjectFilter));
+        if (sub && t.subject_name !== sub.name && String(t.subject) !== String(sub.id)) return false;
+      }
+      const solved = t.solved || t.my_score != null || t.status === "solved";
+      const upcoming = t.is_upcoming || t.status === "upcoming";
+      if (statusFilter === "available" && (solved || upcoming)) return false;
+      if (statusFilter === "upcoming" && !upcoming) return false;
+      if (statusFilter === "previous" && !solved) return false;
+      return true;
+    });
+  }, [teacherTests, subjectFilter, statusFilter, subjects]);
+
+  const available = filtered.filter((t) => !(t.solved || t.my_score != null || t.status === "solved") && !(t.is_upcoming || t.status === "upcoming"));
+  const upcoming = filtered.filter((t) => t.is_upcoming || t.status === "upcoming");
+  const previous = filtered.filter((t) => t.solved || t.my_score != null || t.status === "solved");
+
+  function renderRow(t, mode) {
+    return (
+      <div key={t.id} className="test-row ui-card">
+        <div>
+          <strong>{t.name}</strong>
+          <div className="test-row__meta">
+            {t.subject_name || "مادة"} · {t.question_count} سؤال
+            {t.lesson_titles?.length ? ` · ${t.lesson_titles.join("، ")}` : ""}
+          </div>
+        </div>
+        {mode === "previous" ? (
+          <Link to="/results" className="btn btn-secondary btn-sm">مراجعة</Link>
+        ) : mode === "upcoming" ? (
+          <span className="chip">يفتح في موعده</span>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={busyId === t.id}
+            onClick={() => startTeacherTest(t.id)}
+          >
+            {busyId === t.id ? "…" : "ابدأ"}
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <h1 style={{ fontSize: 32, marginBottom: 8 }}>الاختبارات</h1>
-      <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>
+    <div className="tests-page">
+      <h1 className="page-title">الاختبارات</h1>
+      <p style={{ color: "var(--text-muted)", marginBottom: 20 }}>
         محاكي شخصي لكل المواد، واختبارات المدرسين أسفل الصفحة
       </p>
 
       {loading && <div className="spinner">جاري التحميل…</div>}
 
-      <div className="card" style={{ padding: 28, marginBottom: 28 }}>
-        <h2 style={{ fontSize: 22, marginTop: 0, marginBottom: 8 }}>المحاكي الشخصي</h2>
-        <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>
-          اختر كل المواد أو بعضها، والدروس داخل كل مادة، والسنة، ومدة الاختبار أو بدون زمن
-        </p>
+      <div className="tests-sim-banner ui-card">
+        <div>
+          <h2>المحاكي الشخصي</h2>
+          <p>اختبر نفسك الآن — اختر المواد والدروس والمدة</p>
+        </div>
         <button
           type="button"
           className="btn btn-primary"
           onClick={() => navigate("/tests/simulator")}
         >
-          إعداد المحاكي ←
+          إعداد المحاكي
         </button>
-        {subjects.length > 0 && (
-          <div className="filter-row" style={{ marginTop: 14 }}>
-            {subjects.map((s) => {
-              const key = resolveSubjectKey(s.name) || "math";
-              return (
-                <span
-                  key={s.id}
-                  className={`chip ${key}`}
-                  onClick={() => navigate(`/tests/simulator/${s.id}`)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  {s.name}
-                </span>
-              );
-            })}
-          </div>
-        )}
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap",
-          marginBottom: 12,
-        }}
-      >
-        <div className="section-title" style={{ margin: 0 }}>
-          اختبارات المدرسين
+      {subjects.length > 0 && (
+        <div className="subject-pick-grid" style={{ marginBottom: 24 }}>
+          {subjects.map((s) => {
+            const key = resolveSubjectKey(s.name) || "math";
+            const theme = getSubjectTheme(key);
+            return (
+              <button
+                key={s.id}
+                type="button"
+                className={`subject-pick subject-pick--${key}`}
+                onClick={() => navigate(`/tests/simulator/${s.id}`)}
+              >
+                {theme?.logo ? <img src={theme.logo} alt="" /> : null}
+                <strong>{s.name}</strong>
+              </button>
+            );
+          })}
         </div>
+      )}
+
+      <div className="tests-hub__head">
+        <div className="section-title" style={{ margin: 0 }}>اختبارات المدرسين</div>
         {canCreateAny && (
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             {subjects
               .filter((s) => canEditSubject(user, s.id))
               .map((s) => (
-                <Link
-                  key={s.id}
-                  to={`/tests/teacher/${s.id}`}
-                  className="btn btn-secondary btn-sm"
-                >
-                  إنشاء اختبار · {s.name}
+                <Link key={s.id} to={`/tests/teacher/${s.id}`} className="btn btn-secondary btn-sm">
+                  إنشاء · {s.name}
                 </Link>
               ))}
           </div>
         )}
       </div>
 
-      {error && (
-        <div className="banner" style={{ marginBottom: 12 }}>
-          {error}
-        </div>
-      )}
-
-      {teacherTests.map((t) => (
-        <div
-          key={t.id}
-          className="card"
-          style={{
-            padding: 16,
-            marginBottom: 12,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
+      <div className="filter-row" style={{ marginBottom: 16 }}>
+        <span
+          className={`chip ${subjectFilter === "all" ? "active" : ""}`}
+          onClick={() => setSubjectFilter("all")}
+          role="button"
+          tabIndex={0}
         >
-          <div>
-            <strong style={{ fontSize: 18 }}>{t.name}</strong>
-            <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
-              {t.subject_name || "مادة"} · {t.question_count} سؤال
-              {t.lesson_titles?.length ? ` · ${t.lesson_titles.join("، ")}` : ""}
-              {t.created_by_name ? ` · ${t.created_by_name}` : ""}
-            </div>
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={busyId === t.id}
-            onClick={() => startTeacherTest(t.id)}
+          الكل
+        </span>
+        {subjects.map((s) => (
+          <span
+            key={s.id}
+            className={`chip ${String(subjectFilter) === String(s.id) ? "active" : ""}`}
+            onClick={() => setSubjectFilter(s.id)}
+            role="button"
+            tabIndex={0}
           >
-            {busyId === t.id ? "…" : "ابدأ الاختبار"}
-          </button>
-        </div>
-      ))}
+            {s.name}
+          </span>
+        ))}
+      </div>
+      <div className="filter-row" style={{ marginBottom: 16 }}>
+        {[
+          ["all", "الكل"],
+          ["available", "متاح"],
+          ["upcoming", "قادم"],
+          ["previous", "سابق"],
+        ].map(([id, label]) => (
+          <span
+            key={id}
+            className={`chip ${statusFilter === id ? "active" : ""}`}
+            onClick={() => setStatusFilter(id)}
+            role="button"
+            tabIndex={0}
+          >
+            {label}
+          </span>
+        ))}
+      </div>
 
-      {!loading && teacherTests.length === 0 && (
-        <p style={{ color: "var(--text-muted)" }}>لا توجد اختبارات مدرس بعد.</p>
+      {error && <div className="banner" style={{ marginBottom: 12 }}>{error}</div>}
+
+      {(statusFilter === "all" || statusFilter === "available") && (
+        <>
+          <div className="section-title">متاح الآن</div>
+          {available.map((t) => renderRow(t, "available"))}
+          {!available.length && <p style={{ color: "var(--text-muted)" }}>لا اختبارات متاحة.</p>}
+        </>
+      )}
+      {(statusFilter === "all" || statusFilter === "upcoming") && (
+        <>
+          <div className="section-title">القادمة</div>
+          {upcoming.map((t) => renderRow(t, "upcoming"))}
+          {!upcoming.length && <p style={{ color: "var(--text-muted)" }}>لا اختبارات قادمة.</p>}
+        </>
+      )}
+      {(statusFilter === "all" || statusFilter === "previous") && (
+        <>
+          <div className="section-title">السابقة</div>
+          {previous.map((t) => renderRow(t, "previous"))}
+          {!previous.length && <p style={{ color: "var(--text-muted)" }}>لا اختبارات سابقة.</p>}
+        </>
       )}
     </div>
   );

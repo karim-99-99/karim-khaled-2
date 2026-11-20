@@ -696,7 +696,8 @@ export default function CollectionLessonDetail() {
 
       {(!canEdit || tab === "questions") && (
         <>
-          <div className="card" style={{ padding: 16, marginBottom: 20 }}>
+          <div className="wizard-layout" style={{ marginBottom: 20 }}>
+          <div className="card" style={{ padding: 16 }}>
             <div className="section-title" style={{ marginTop: 0 }}>
               ابدأ بالتدريب
             </div>
@@ -849,32 +850,43 @@ export default function CollectionLessonDetail() {
                 </span>
               </div>
             </div>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <button
-                type="button"
-                className="btn btn-primary"
-                disabled={startBusy || !selectedLevels.length || selectedCount < 1}
-                onClick={startExam}
-              >
-                {startBusy
-                  ? "جاري البدء…"
-                  : focusedSubObj
-                    ? `ابدأ «${focusedSubObj.title}»`
-                    : "ابدأ هذا الدرس"}
-              </button>
-              <span style={{ fontWeight: 700, fontSize: 15 }}>
-                {!selectedLevels.length
-                  ? "اختر المستوى"
-                  : `${selectedCount} سؤال سيظهر في الاختبار`}
-              </span>
+          </div>
+          <aside className="sticky-summary">
+            <h3>ملخص التدريب</h3>
+            <div className="sticky-summary__meta">
+              <div>
+                الصعوبة:{" "}
+                {selectedLevels.length
+                  ? selectedLevels.map((id) => LEVELS.find((l) => l.id === id)?.label).join(" + ")
+                  : "—"}
+              </div>
+              <div>
+                الترشيح:{" "}
+                {selectedTiers.length
+                  ? selectedTiers.map((id) => tierLabel(id)).join(" + ")
+                  : "الكل"}
+              </div>
+              <div>المراجعة: {reviewMode === "immediate" ? "فورية" : "نهائية"}</div>
             </div>
+            <div className="sticky-summary__stats">
+              <div className="sticky-summary__stat">
+                <strong>{selectedLevels.length ? selectedCount : "—"}</strong>
+                <span>أسئلة مطابقة</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary btn-block"
+              disabled={startBusy || !selectedLevels.length || selectedCount < 1}
+              onClick={startExam}
+            >
+              {startBusy
+                ? "جاري البدء…"
+                : focusedSubObj
+                  ? `ابدأ «${focusedSubObj.title}»`
+                  : "ابدأ الحل"}
+            </button>
+          </aside>
           </div>
 
           {canEdit && (

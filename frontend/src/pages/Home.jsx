@@ -7,15 +7,49 @@ import VideoPlayer from "../components/VideoPlayer";
 import { getSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 import { formatSessionWhen, sessionDisplayTitle } from "../utils/sessionDate";
 import { joinLiveSession } from "../utils/joinLiveSession";
+import { whatsappHref } from "../legal/business";
 
 const FEATURES = [
-  "حصص مباشرة وتفاعلية مع المعلمين.",
-  "مجموعات صغيرة لا يتجاوز عددها 10 طلاب.",
-  "جميع الحصص مسجلة، تقدر ترجع لها بأي وقت.",
-  "معلموك معك عبر الواتساب على مدار 24 ساعة.",
-  "جدول مرن يناسب جميع الطلاب.",
-  "واجبات يومية واختبارات دورية لمتابعة مستواك.",
-  "بنوك تجميعات محدثة تضم أكثر من 8000 سؤال.",
+  { title: "حصص مباشرة", text: "حصص تفاعلية مع المعلمين." },
+  { title: "مجموعات صغيرة", text: "لا يتجاوز العدد 10 طلاب." },
+  { title: "حصص مسجّلة", text: "ترجع لها بأي وقت." },
+  { title: "واتساب 24 ساعة", text: "معلموك معك على مدار الساعة." },
+  { title: "جدول مرن", text: "يناسب جميع الطلاب." },
+  { title: "واجبات واختبارات", text: "متابعة يومية لمستواك." },
+  { title: "بنك أسئلة", text: "أكثر من 8000 سؤال محدّث." },
+];
+
+const STEPS = [
+  "اختر باقتك",
+  "تواصل مع الدعم",
+  "يبدأ الأسبوع التجريبي",
+  "انضم للمجموعات وابدأ",
+];
+
+const FAQS = [
+  {
+    q: "هل الحصص مباشرة أم مسجّلة؟",
+    a: "الاثنان مع بعض: حصص مباشرة تفاعلية، وكل الحصص تتسجّل وترجع لها في أي وقت.",
+  },
+  {
+    q: "كم عدد الطلاب في المجموعة؟",
+    a: "المجموعات صغيرة ولا يتجاوز عددها 10 طلاب عشان التفاعل والمتابعة.",
+  },
+  {
+    q: "هل فيه أسبوع تجريبي؟",
+    a: "نعم، تقدر تستغل الأسبوع التجريبي وتستمتع بمميزات الدورة قبل الالتزام.",
+  },
+  {
+    q: "هل المدرس متواصل معايا خارج الحصة؟",
+    a: "نعم، معلموك معك عبر الواتساب على مدار 24 ساعة.",
+  },
+];
+
+const STATS = [
+  { value: "+8000", label: "بنك أسئلة" },
+  { value: "10", label: "طلاب كحد أقصى للمجموعة" },
+  { value: "24/7", label: "متابعة المعلمين" },
+  { value: "∞", label: "الحصص المسجّلة معك" },
 ];
 
 export default function Home() {
@@ -23,12 +57,15 @@ export default function Home() {
   const [content, setContent] = useState(null);
   const [next, setNext] = useState(null);
   const [joinMsg, setJoinMsg] = useState("");
+  const [openFaq, setOpenFaq] = useState(0);
+  const [dashboard, setDashboard] = useState(null);
   const isTeacher = user?.role === "teacher";
   const isAdmin = user?.role === "admin";
   const isSubscribed =
     user?.role === "student" && user?.has_active_subscription;
   const showMarketing = !user || (user.role === "student" && !user.has_active_subscription);
   const showFreePreview = !user || (user.role === "student" && !user.has_active_subscription);
+  const showStudentDash = isSubscribed;
 
   useEffect(() => {
     let cancelled = false;
@@ -53,13 +90,25 @@ export default function Home() {
         .catch(() => {
           if (!cancelled) setNext(null);
         });
-      await Promise.all([freeP, nextP]);
+      const dashP = isSubscribed
+        ? Promise.all([
+            client.get("/smart-plan/").catch(() => ({ data: null })),
+            client.get("/teacher-tests/").catch(() => ({ data: [] })),
+          ]).then(([planRes, testsRes]) => {
+            if (cancelled) return;
+            setDashboard({
+              plan: planRes.data,
+              tests: testsRes.data?.results || testsRes.data || [],
+            });
+          })
+        : Promise.resolve();
+      await Promise.all([freeP, nextP, dashP]);
     };
     load();
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, isSubscribed]);
 
   const session = next?.session;
   const sessionKey = resolveSubjectKey(session?.subject_name);
@@ -82,6 +131,9 @@ export default function Home() {
   });
 
   const ctaTo = user ? "/subscription" : "/register";
+  const waSupport = whatsappHref("مرحبا، أحتاج باقة مخصصة مع مرام");
+  const planTasks = dashboard?.plan?.tasks || dashboard?.plan?.today_tasks || [];
+  const todayTests = (dashboard?.tests || []).filter((t) => t.status === "available" || t.is_available).slice(0, 1);
 
   return (
     <div className="home-page">
@@ -103,71 +155,121 @@ export default function Home() {
             <div className="landing-hero__content">
               <p className="landing-hero__tagline">مرام .. للتحصيلي بإتقان</p>
               <h1 className="landing-hero__title">
-                تعبت من الحصص المسجلة؟ وتحتاج معلم يكون معك أول بأول؟
+                تعبت من الحصص المسجّلة؟ معلمك معك أول بأول
               </h1>
               <p className="landing-hero__lead">
-                مع مرام، التحصيلي صار أسهل! مرام مو مجرد حصص، رحلة تعليم ومتابعة لين تحقق هدفك.
+                مع مرام، التحصيلي صار أسهل — رحلة تعليم ومتابعة لين تحقق هدفك.
               </p>
               <div className="landing-hero__actions">
                 <Link to={ctaTo} className="btn btn-primary landing-hero__cta">
-                  ابدأ رحلتك مع مرام الآن
+                  احجز مقعدك الآن
                 </Link>
                 <a href="#trial-week" className="btn btn-secondary landing-hero__cta-ghost">
-                  الأسبوع التجريبي
+                  جرب الأسبوع التجريبي
                 </a>
+              </div>
+              <div className="landing-stats">
+                {STATS.map((s) => (
+                  <div key={s.label} className="landing-stats__item">
+                    <strong>{s.value}</strong>
+                    <span>{s.label}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </section>
 
-          <section className="landing-section" id="features" aria-labelledby="features-title">
+          <section className="landing-section" id="features">
             <div className="landing-section__head">
-              <h2 id="features-title">مميزات دورة مرام</h2>
+              <h2>مميزات دورة مرام</h2>
               <p>كل اللي تحتاجه عشان تذاكر بإتقان وتوصل لهدفك.</p>
             </div>
-            <ol className="landing-features">
-              {FEATURES.map((text, i) => (
-                <li key={text} className="landing-feature" style={{ animationDelay: `${i * 60}ms` }}>
-                  <span className="landing-feature__num" aria-hidden="true">
-                    {i + 1}
-                  </span>
-                  <span className="landing-feature__text">{text}</span>
+            <div className="landing-feature-grid">
+              {FEATURES.map((f, i) => (
+                <article key={f.title} className="landing-feature-card" style={{ animationDelay: `${i * 50}ms` }}>
+                  <span className="landing-feature-card__num">{i + 1}</span>
+                  <h3>{f.title}</h3>
+                  <p>{f.text}</p>
+                </article>
+              ))}
+              <Link to={ctaTo} className="landing-feature-card landing-feature-card--cta">
+                <h3>جاهز تبدأ؟</h3>
+                <p>ابدأ رحلتك مع مرام الآن</p>
+                <span className="btn btn-primary btn-sm">ابدأ الآن</span>
+              </Link>
+            </div>
+          </section>
+
+          <section className="landing-section" id="how-start">
+            <div className="landing-section__head">
+              <h2>كيف تبدأ مع مرام؟</h2>
+              <p>أربع خطوات واضحة من الاختيار لحد أول حصة.</p>
+            </div>
+            <ol className="landing-steps">
+              {STEPS.map((step, i) => (
+                <li key={step}>
+                  <span>{i + 1}</span>
+                  <strong>{step}</strong>
                 </li>
               ))}
             </ol>
           </section>
 
-          <section className="landing-trial" id="trial-week" aria-labelledby="trial-title">
-            <div className="landing-trial__inner">
-              <h2 id="trial-title">استغل الأسبوع التجريبي</h2>
-              <p>واستمتع بكل مميزات الدورة — جرّب التجربة كاملة قبل ما تلتزم.</p>
-              <Link to={ctaTo} className="btn btn-primary">
-                ابدأ الأسبوع التجريبي
-              </Link>
+          <section className="landing-promo" id="trial-week">
+            <div className="landing-promo__badge">خصم 33%</div>
+            <div>
+              <h2>استغل عرض التسجيل المبكر</h2>
+              <ul>
+                <li>وفّر على الباقة الذهبية مع عرض التسجيل المبكر.</li>
+                <li>إمكانية التقسيط على دفعات ميسّرة.</li>
+                <li>استمتع بالأسبوع التجريبي وبكل مميزات الدورة.</li>
+              </ul>
+            </div>
+            <div className="landing-promo__actions">
+              <Link to="/pricing" className="btn btn-primary">شاهد الباقات</Link>
+              <a className="btn btn-secondary" href={waSupport} target="_blank" rel="noreferrer">
+                واتساب الدعم
+              </a>
             </div>
           </section>
 
-          <section className="landing-section landing-stories" id="stories" aria-labelledby="stories-title">
+          <section className="landing-section" id="subjects-browse">
             <div className="landing-section__head">
-              <h2 id="stories-title">تجارب الطلاب</h2>
-              <p>قريباً… هنا هنحط تجارب طلاب مرام.</p>
-            </div>
-            <div className="landing-stories__empty" role="status">
-              <span>مساحة التجارب فاضية حالياً — هنملأها قريب.</span>
+              <h2>تصفح حسب المادة</h2>
+              <p>اختر مادتك وابدأ بدرس تجريبي أو ادخل الدورة.</p>
             </div>
           </section>
         </>
       )}
 
-      {user && user.role === "student" && !user.has_active_subscription && (
-        <div className="banner">
-          الدرس المجاني: فيديوهات الدرس كاملة + الواجب + ١٠ أسئلة من التجميعات —
-          للاشتراك الكامل{" "}
-          <Link to="/subscription"><strong>اشترك الآن</strong></Link>.
-        </div>
-      )}
+      {showStudentDash && (
+        <section className="dash-home">
+          <div className="dash-home__top">
+            <div className="dash-home__daily ui-card">
+              <div className="dash-home__daily-label">المهام اليومية</div>
+              <div className="dash-home__daily-main">
+                <div className="dash-home__ring">
+                  <strong>{Math.min(planTasks.filter((t) => t.done || t.completed).length, 4)}/4</strong>
+                  <span>مهام</span>
+                </div>
+                <div>
+                  <h2>خطة اليوم</h2>
+                  <p>
+                    {planTasks.length
+                      ? `${planTasks.length} مهمة في خطتك — كمّل عشان تحافظ على الستريك.`
+                      : "ما في مهام مربوطة اليوم — ولّد جدولك الذكي أو راجع جدول الحصص."}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="dash-home__streak ui-card">
+              <div className="dash-home__streak-fire">🔥</div>
+              <strong>استمر</strong>
+              <p>تابع الواجبات والتجميعات يومياً.</p>
+              <Link to="/smart-plan" className="btn btn-secondary btn-sm">الجدول الذكي</Link>
+            </div>
+          </div>
 
-      {(user && (isSubscribed || isTeacher || isAdmin)) && (
-        <>
           <div
             className={`hero${sessionKey ? " session-skin" : ""}`}
             {...(sessionKey ? { "data-subject": sessionKey } : {})}
@@ -176,29 +278,9 @@ export default function Home() {
               <div className="eyebrow">الحصة القادمة</div>
               {session ? (
                 <>
-                  <div className="meta session-date" style={{ minWidth: 0, marginBottom: 10 }}>
-                    <div
-                      className="session-date__dayline"
-                      style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "baseline" }}
-                    >
-                      {when?.weekday ? (
-                        <span style={{ fontSize: 22, fontWeight: 800 }}>{when.weekday}</span>
-                      ) : null}
-                      {when?.time ? (
-                        <span style={{ fontSize: 22, fontWeight: 800 }}>{when.time}</span>
-                      ) : null}
-                    </div>
-                    {when?.hijri ? (
-                      <div style={{ opacity: 0.95, fontSize: 15, marginTop: 4 }}>{when.hijri}</div>
-                    ) : null}
-                    {when?.gregorian ? (
-                      <div style={{ opacity: 0.75, fontSize: 13 }}>{when.gregorian}</div>
-                    ) : null}
-                  </div>
                   <h2 style={{ marginTop: 0 }}>{sessionDisplayTitle(session)}</h2>
-                  <div className="meta" style={{ marginTop: 6, opacity: 0.9, fontSize: 14 }}>
-                    {session.subject_name}
-                    {session.teacher_joined_zoom ? " · المدرس داخل الحصة ✓" : ""}
+                  <div className="meta">
+                    {when?.weekday} {when?.time} · {session.subject_name}
                   </div>
                 </>
               ) : (
@@ -231,14 +313,92 @@ export default function Home() {
               ) : (
                 <Link to="/schedule" className="btn">جدول الحصص</Link>
               )}
-              {user && (
-                <Link to="/smart-plan" className="btn btn-secondary">
-                  الجدول الذكي
-                </Link>
-              )}
             </div>
           </div>
-          {joinMsg && <div className="banner" style={{ marginBottom: 16 }}>{joinMsg}</div>}
+          {joinMsg && <div className="banner">{joinMsg}</div>}
+
+          <div className="dash-home__cols">
+            <div className="ui-card dash-home__list">
+              <h3>الواجبات — مطلوبة اليوم</h3>
+              {(planTasks.filter((t) => t.kind === "foundation") || []).slice(0, 3).map((t) => (
+                <div key={t.id || t.title} className="dash-home__row">
+                  <span>{t.title || t.lesson_title || "واجب"}</span>
+                  <Link to={t.lesson ? `/lessons/${t.lesson}` : "/smart-plan"} className="btn btn-sm btn-secondary">
+                    ابدأ
+                  </Link>
+                </div>
+              ))}
+              {!planTasks.filter((t) => t.kind === "foundation").length && (
+                <p className="dash-home__empty">لا واجبات ظاهرة الآن — راجع الجدول الذكي.</p>
+              )}
+              <Link to="/smart-plan" className="dash-home__more">عرض كل الواجبات</Link>
+            </div>
+            <div className="ui-card dash-home__list">
+              <h3>التجميعات — مقترحة اليوم</h3>
+              {(planTasks.filter((t) => t.kind === "collections") || []).slice(0, 3).map((t) => (
+                <div key={t.id || t.title} className="dash-home__row">
+                  <span>{t.title || t.lesson_title || "تجميع"}</span>
+                  <Link
+                    to={t.subject && t.lesson ? `/courses/${t.subject}/collections/${t.lesson}` : "/courses"}
+                    className="btn btn-sm btn-secondary"
+                  >
+                    ابدأ
+                  </Link>
+                </div>
+              ))}
+              {!planTasks.filter((t) => t.kind === "collections").length && (
+                <p className="dash-home__empty">لا تجميعات مقترحة الآن.</p>
+              )}
+              <Link to="/courses" className="dash-home__more">عرض كل التجميعات</Link>
+            </div>
+          </div>
+
+          <div className="ui-card dash-home__exam">
+            <div>
+              <h3>اختبار اليوم</h3>
+              {todayTests[0] ? (
+                <p>{todayTests[0].title || todayTests[0].name}</p>
+              ) : (
+                <p>ما في اختبار مفتوح الآن — جرّب المحاكي الشخصي.</p>
+              )}
+            </div>
+            <Link to={todayTests[0] ? "/tests" : "/tests/simulator"} className="btn btn-primary">
+              {todayTests[0] ? "ابدأ الاختبار" : "افتح المحاكي"}
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {user && user.role === "student" && !user.has_active_subscription && (
+        <div className="banner">
+          الدرس المجاني: فيديوهات الدرس كاملة + الواجب + ١٠ أسئلة من التجميعات —
+          للاشتراك الكامل{" "}
+          <Link to="/subscription"><strong>اشترك الآن</strong></Link>.
+        </div>
+      )}
+
+      {(user && (isTeacher || isAdmin) && !showStudentDash) && (
+        <>
+          <div
+            className={`hero${sessionKey ? " session-skin" : ""}`}
+            {...(sessionKey ? { "data-subject": sessionKey } : {})}
+          >
+            <div>
+              <div className="eyebrow">الحصة القادمة</div>
+              {session ? (
+                <>
+                  <h2 style={{ marginTop: 0 }}>{sessionDisplayTitle(session)}</h2>
+                  <div className="meta">{session.subject_name}</div>
+                </>
+              ) : (
+                <>
+                  <h2>لا توجد حصة قادمة</h2>
+                  <div className="meta">لا توجد حصص مجدولة لك حالياً</div>
+                </>
+              )}
+            </div>
+            <Link to="/schedule" className="btn">جدول الحصص</Link>
+          </div>
         </>
       )}
 
@@ -249,32 +409,20 @@ export default function Home() {
           </div>
           {showFreePreview && (
             <p className="home-subjects__lead">
-              اختر مادتك، وشاهد الدرس المجاني مباشرة أسفل كل مادة (فيديوهات + واجب + ١٠ أسئلة تجميع)
+              اختر مادتك، وشاهد الدرس المجاني مباشرة أسفل كل مادة
             </p>
           )}
-          {isSubscribed && (
+          {(isSubscribed || isTeacher) && (
             <p className="home-subjects__lead">اختر مادتك للدخول إلى الدورة</p>
-          )}
-          {isTeacher && (
-            <p className="home-subjects__lead">
-              مادتك المخصصة فقط — ادخل لإدارة الدروس والأسئلة
-            </p>
           )}
 
           {!content && (
-            <div className="spinner">
-              جاري التحميل…
-              <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 8, fontWeight: 400 }}>
-                إذا كان السيرفر نائماً قد يستغرق حتى دقيقة في أول مرة
-              </div>
-            </div>
+            <div className="spinner">جاري التحميل…</div>
           )}
 
           {content && subjectPanels.length === 0 && (
             <p style={{ color: "var(--text-muted)" }}>
-              {isTeacher
-                ? "لم تُخصص لك مادة بعد — تواصل مع الإدارة."
-                : "لا توجد مواد بعد."}
+              {isTeacher ? "لم تُخصص لك مادة بعد." : "لا توجد مواد بعد."}
             </p>
           )}
 
@@ -298,11 +446,7 @@ export default function Home() {
                   <Link to={courseTo} className="home-subject-panel__head">
                     <div className="home-subject-panel__glow" aria-hidden />
                     {theme?.logo ? (
-                      <img
-                        src={theme.logo}
-                        alt=""
-                        className="home-subject-panel__logo"
-                      />
+                      <img src={theme.logo} alt="" className="home-subject-panel__logo" />
                     ) : null}
                     <div className="home-subject-panel__titles">
                       <h3>{s.name}</h3>
@@ -311,57 +455,99 @@ export default function Home() {
                   </Link>
 
                   {showFreePreview && (
-                  <div className="home-subject-panel__free">
-                    <div className="home-subject-panel__free-label">
-                      <span className="home-subject-panel__pill">مجاني</span>
-                      <span>فيديو · واجب · ١٠ أسئلة تجميع</span>
-                    </div>
-
-                    {freeLesson ? (
-                      <>
-                        {bunnyId ? (
-                          <div className="home-subject-panel__player">
-                            <VideoPlayer bunnyId={bunnyId} />
-                          </div>
-                        ) : (
-                          <Link to={lessonTo} className="home-subject-panel__thumb">
-                            <span className="home-subject-panel__play">▶</span>
-                            <span>افتح الدرس المجاني</span>
-                          </Link>
-                        )}
-                        <Link to={lessonTo} className="home-subject-panel__lesson">
-                          <strong>{freeLesson.title}</strong>
-                          <span>شاهد الدرس ←</span>
-                        </Link>
-                        {user && (
-                          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
-                            <Link
-                              to={`/courses/${s.id}/collections/${freeLesson.id}`}
-                              className="btn btn-secondary btn-sm"
-                            >
-                              تجميع (١٠ أسئلة)
-                            </Link>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="home-subject-panel__empty">
-                        قريباً درس مجاني لهذه المادة
+                    <div className="home-subject-panel__free">
+                      <div className="home-subject-panel__free-label">
+                        <span className="home-subject-panel__pill">مجاني</span>
+                        <span>فيديو · واجب · ١٠ أسئلة</span>
                       </div>
-                    )}
-                  </div>
+                      {freeLesson ? (
+                        <>
+                          {bunnyId ? (
+                            <div className="home-subject-panel__player">
+                              <VideoPlayer bunnyId={bunnyId} />
+                            </div>
+                          ) : (
+                            <Link to={lessonTo} className="home-subject-panel__thumb">
+                              <span className="home-subject-panel__play">▶</span>
+                              <span>افتح الدرس المجاني</span>
+                            </Link>
+                          )}
+                          <Link to={lessonTo} className="home-subject-panel__lesson">
+                            <strong>{freeLesson.title}</strong>
+                            <span>شاهد الدرس ←</span>
+                          </Link>
+                        </>
+                      ) : (
+                        <div className="home-subject-panel__empty">قريباً درس مجاني لهذه المادة</div>
+                      )}
+                    </div>
                   )}
                 </article>
               );
             })}
           </div>
+
+          {(showMarketing || showStudentDash) && (
+            <div className="landing-final-banner ui-card">
+              <div>
+                <h3>دورة المراجعة النهائية</h3>
+                <p>مراجعة شاملة لكل المواد قبل اختبار التحصيلي.</p>
+              </div>
+              <span className="btn btn-secondary" aria-disabled="true">قريباً</span>
+            </div>
+          )}
         </>
       )}
 
-      {!user && (
-        <div className="landing-bottom-cta">
-          <Link to="/register" className="btn btn-primary">أنشئ حساباً وابدأ مع مرام</Link>
-        </div>
+      {showMarketing && (
+        <>
+          <section className="landing-section" id="faq">
+            <div className="landing-section__head">
+              <h2>الأسئلة الشائعة</h2>
+            </div>
+            <div className="landing-faq">
+              {FAQS.map((item, i) => (
+                <details
+                  key={item.q}
+                  className="landing-faq__item"
+                  open={openFaq === i}
+                  onToggle={(e) => {
+                    if (e.target.open) setOpenFaq(i);
+                  }}
+                >
+                  <summary>{item.q}</summary>
+                  <p>{item.a}</p>
+                </details>
+              ))}
+            </div>
+          </section>
+
+          <section className="landing-support ui-card">
+            <div>
+              <h2>محتاج باقة مختلفة؟</h2>
+              <p>نصمّم لك باقة خاصة — مادة واحدة، خصوصي، أو مواضيع محددة.</p>
+            </div>
+            <a className="btn btn-primary" href={waSupport} target="_blank" rel="noreferrer">
+              تواصل مع الدعم الفني
+            </a>
+          </section>
+
+          <section className="landing-section landing-stories" id="stories">
+            <div className="landing-section__head">
+              <h2>تجارب الطلاب</h2>
+              <p>قريباً… هنا هنحط تجارب طلاب مرام.</p>
+            </div>
+            <div className="landing-stories__empty" role="status">
+              مساحة التجارب فاضية حالياً — هنملأها قريب.
+            </div>
+          </section>
+
+          {!user && (
+            <div className="landing-bottom-cta">
+              <Link to="/register" className="btn btn-primary">أنشئ حساباً وابدأ مع مرام</Link>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

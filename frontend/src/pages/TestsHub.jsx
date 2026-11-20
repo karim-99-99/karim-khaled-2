@@ -33,86 +33,76 @@ export default function TestsHub() {
     }
   }
 
+  const solved = teacherTests.filter((t) => t.solved || t.my_score != null || t.status === "solved");
+  const upcoming = teacherTests.filter((t) => t.is_upcoming || t.status === "upcoming");
+  const available = teacherTests.filter(
+    (t) => !solved.includes(t) && !upcoming.includes(t)
+  );
+
+  function renderRow(t, mode) {
+    return (
+      <div key={t.id} className="test-row ui-card">
+        <div>
+          <strong>{t.name}</strong>
+          <div className="test-row__meta">
+            {t.question_count} سؤال
+            {t.lesson_titles?.length ? ` · ${t.lesson_titles.join("، ")}` : ""}
+            {t.created_by_name ? ` · ${t.created_by_name}` : ""}
+            {t.my_score != null ? ` · نتيجتك ${t.my_score}` : ""}
+          </div>
+        </div>
+        {mode === "solved" ? (
+          <Link to="/results" className="btn btn-secondary btn-sm">مراجعة</Link>
+        ) : mode === "upcoming" ? (
+          <span className="chip">يفتح في موعده</span>
+        ) : (
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            disabled={busyId === t.id}
+            onClick={() => startTeacherTest(t.id)}
+          >
+            {busyId === t.id ? "…" : "ابدأ"}
+          </button>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div>
       <BackToCourses subjectId={subjectId} />
       <div className="breadcrumb">دورات &gt; <span>اختبارات</span></div>
-      <h1 style={{ fontSize: 32, marginBottom: 8 }}>اختبارات</h1>
-      <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>
-        محاكي شخصي، أو اختبارات المدرس المبنية من بنك التجميعات
-      </p>
-
-      <div className="grid grid-2" style={{ marginBottom: 32 }}>
-        <div className="card" style={{ padding: 32 }}>
-          <h3 style={{ fontSize: 22, marginBottom: 8 }}>المحاكي الشخصي</h3>
-          <p style={{ color: "var(--text-muted)", marginBottom: 20 }}>
-            دروس متعددة · أسئلة جديدة/مكررة · مراجعة فورية أو نهائية · مدة مفتوحة أو محددة
-          </p>
-          <Link to={`/tests/simulator/${subjectId}`} className="btn btn-primary">
-            ابدأ الإعداد
-          </Link>
+      <div className="tests-hub__head">
+        <div>
+          <h1 className="page-title">اختبارات المدرسين</h1>
+          <p style={{ color: "var(--text-muted)" }}>محاكي شخصي أو اختبارات من بنك التجميعات</p>
         </div>
-        <div className="card" style={{ padding: 32 }}>
-          <h3 style={{ fontSize: 22, marginBottom: 8 }}>اختبار المدرس</h3>
-          <p style={{ color: "var(--text-muted)", marginBottom: 20 }}>
-            {canEdit
-              ? "أنشئ اختباراً مسمّى من دروس وأسئلة التجميعات لكل المستويات"
-              : "اختبارات وضعها المدرس — ابدأ من القائمة أدناه"}
-          </p>
-          {canEdit ? (
+        <div className="tests-hub__actions">
+          <Link to={`/tests/simulator/${subjectId}`} className="btn btn-secondary">
+            صمم اختبارك بنفسك
+          </Link>
+          {canEdit && (
             <Link to={`/tests/teacher/${subjectId}`} className="btn btn-primary">
               إنشاء / إدارة اختبار
             </Link>
-          ) : (
-            <span style={{ color: "var(--text-muted)", fontSize: 14 }}>
-              اختر اختباراً منشوراً من القائمة
-            </span>
           )}
         </div>
       </div>
 
-      <div className="section-title">اختبارات المدرس المتاحة</div>
       {error && <div className="banner" style={{ marginBottom: 12 }}>{error}</div>}
 
-      {teacherTests.map((t) => (
-        <div
-          key={t.id}
-          className="card"
-          style={{
-            padding: 16,
-            marginBottom: 12,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
-        >
-          <div>
-            <strong style={{ fontSize: 18 }}>{t.name}</strong>
-            <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
-              {t.question_count} سؤال
-              {t.lesson_titles?.length ? ` · ${t.lesson_titles.join("، ")}` : ""}
-              {t.created_by_name ? ` · ${t.created_by_name}` : ""}
-            </div>
-          </div>
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={busyId === t.id}
-            onClick={() => startTeacherTest(t.id)}
-          >
-            {busyId === t.id ? "…" : "ابدأ الاختبار"}
-          </button>
-        </div>
-      ))}
+      <div className="section-title">متاح الآن</div>
+      {available.map((t) => renderRow(t, "available"))}
+      {!available.length && <p style={{ color: "var(--text-muted)" }}>لا اختبارات متاحة الآن.</p>}
 
-      {teacherTests.length === 0 && (
-        <p style={{ color: "var(--text-muted)" }}>
-          لا توجد اختبارات مدرس بعد.
-          {canEdit ? " أنشئ اختباراً من الزر أعلاه." : ""}
-        </p>
-      )}
+      <div className="section-title">القادمة</div>
+      {upcoming.map((t) => renderRow(t, "upcoming"))}
+      {!upcoming.length && <p style={{ color: "var(--text-muted)" }}>لا اختبارات قادمة.</p>}
+
+      <div className="section-title">السابقة</div>
+      {solved.map((t) => renderRow(t, "solved"))}
+      {!solved.length && <p style={{ color: "var(--text-muted)" }}>لا اختبارات محلولة بعد.</p>}
     </div>
   );
 }

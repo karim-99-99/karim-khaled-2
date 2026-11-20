@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import LegalPage, { LegalSection } from "../../components/LegalPage";
 import { useAuth } from "../../auth/AuthContext";
-import { BUSINESS } from "../../legal/business";
+import { BUSINESS, whatsappHref } from "../../legal/business";
 import Price, { CurrencyLabel } from "../../components/Price";
 import { FEATURED_PLAN, PLAN_FEATURES, fetchPlans } from "../../utils/plans";
 
@@ -29,6 +29,7 @@ export default function Pricing() {
   const currency = data?.currency || "";
   const ctaTo = user ? "/subscription" : "/register";
   const ctaLabel = user ? "اشترك الآن" : "أنشئ حساباً واشترك";
+  const wa = whatsappHref("مرحبا، أحتاج باقة مخصصة مع مرام");
 
   return (
     <LegalPage
@@ -56,31 +57,68 @@ export default function Pricing() {
         </>
       }
     >
+      <div className="pricing-trust">
+        <span>دفع آمن</span>
+        <span>بدون تجديد تلقائي</span>
+        <span>تفعيل فوري</span>
+      </div>
+
       {error && <div className="banner">{error}</div>}
 
       <div className="pricing-grid">
-        {plans.map((p) => (
-          <div
-            key={p.id}
-            className={`card pricing-card ${p.id === FEATURED_PLAN ? "pricing-card--featured" : ""}`}
-          >
-            {p.id === FEATURED_PLAN && <div className="pricing-card__badge">الأكثر طلباً</div>}
-            <h3 className="pricing-card__name">{p.label}</h3>
-            <div className="pricing-card__price">
-              <Price amount={p.price} currency={p.currency} />
+        {plans.map((p) => {
+          const featured = p.id === FEATURED_PLAN;
+          const listPrice = Number(p.compare_at_price || p.list_price || 0);
+          const price = Number(p.price);
+          const save = listPrice > price ? Math.round(listPrice - price) : 0;
+          const installment = price > 0 ? Math.round((price / 3) * 100) / 100 : 0;
+          return (
+            <div
+              key={p.id}
+              className={`card pricing-card ${featured ? "pricing-card--featured" : ""}`}
+            >
+              {featured && <div className="pricing-card__badge">الأكثر طلباً</div>}
+              <h3 className="pricing-card__name">{p.label}</h3>
+              <div className="pricing-card__price">
+                <Price amount={p.price} currency={p.currency} />
+              </div>
+              {save > 0 && (
+                <div className="pricing-card__save">
+                  وفر {save} · تسجيل مبكر
+                </div>
+              )}
+              {featured && installment > 0 && (
+                <div className="pricing-card__install">
+                  أو قسّط على 3 دفعات × <Price amount={installment} currency={p.currency} />
+                </div>
+              )}
+              <div className="pricing-card__chips">
+                <span>{p.days} يوم</span>
+                {p.live_classes ? <span>حصص مباشرة</span> : <span>محتوى مسجّل</span>}
+              </div>
+              <div className="pricing-card__term">دفعة واحدة · لا يتجدد تلقائياً</div>
+              <ul className="pricing-card__features">
+                {(PLAN_FEATURES[p.id] || []).map((f) => (
+                  <li key={f}>{f}</li>
+                ))}
+              </ul>
+              <Link to={ctaTo} className={`btn ${featured ? "btn-primary" : "btn-secondary"} btn-block`}>
+                {ctaLabel}
+              </Link>
             </div>
-            <div className="pricing-card__term">لمدة {p.days} يوماً · دفعة واحدة</div>
-            <ul className="pricing-card__features">
-              {(PLAN_FEATURES[p.id] || []).map((f) => (
-                <li key={f}>{f}</li>
-              ))}
-            </ul>
-            <Link to={ctaTo} className="btn btn-primary btn-block">
-              {ctaLabel}
-            </Link>
-          </div>
-        ))}
+          );
+        })}
         {!error && plans.length === 0 && <div className="spinner">جاري تحميل الأسعار…</div>}
+      </div>
+
+      <div className="pricing-custom ui-card">
+        <div>
+          <h3>محتاج شيء مختلف؟</h3>
+          <p>نصمّم باقتك: مادة واحدة، خصوصي كامل، أو مواضيع محددة.</p>
+        </div>
+        <a className="btn btn-primary" href={wa} target="_blank" rel="noreferrer">
+          تواصل معنا
+        </a>
       </div>
 
       <LegalSection title="ما الذي يشمله كل اشتراك">
@@ -118,15 +156,6 @@ export default function Pricing() {
             <Link to="/refund-policy"><strong>سياسة الاسترداد والإلغاء</strong></Link>.
           </li>
         </ul>
-      </LegalSection>
-
-      <LegalSection title="جرّب مجاناً قبل الاشتراك">
-        <p>
-          بدون اشتراك يمكنك مشاهدة الدرس المجاني في كل مادة وحل أول ١٠ أسئلة من التجميعات.
-          {" "}
-          <Link to={user ? "/courses" : "/register"}><strong>ابدأ الآن</strong></Link>.
-          لأن التجربة متاحة قبل الدفع، لا يحق الاسترداد لباقة جرّبت محتواها مسبقاً.
-        </p>
       </LegalSection>
     </LegalPage>
   );

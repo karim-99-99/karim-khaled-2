@@ -151,7 +151,7 @@ export default function Layout() {
   }
 
   return (
-    <>
+    <div className="app-shell">
       <header className="app-header">
         <NavLink to="/" className="logo" onClick={() => clearSubjectTheme()}>
           <img
@@ -192,8 +192,8 @@ export default function Layout() {
               </Link>
             </>
           ) : (
-            <NavLink to="/login" className="btn btn-secondary btn-sm">
-              تسجيل الدخول / إنشاء حساب
+            <NavLink to="/login" className="btn btn-primary btn-sm">
+              تسجيل الدخول
             </NavLink>
           )}
         </div>
@@ -202,6 +202,6 @@ export default function Layout() {
         <Outlet />
       </main>
       <SiteFooter />
-    </>
+    </div>
   );
 }

@@ -4,7 +4,7 @@ import client from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { canEditSubject } from "../auth/teacherScope";
 import BackToCourses from "../components/BackToCourses";
-import { resolveSubjectKey } from "../theme/subjects";
+import { getSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 
 export default function SubjectHub() {
   const { subjectId } = useParams();
@@ -37,43 +37,65 @@ export default function SubjectHub() {
   }, [subjectId]);
 
   const key = resolveSubjectKey(subject?.name);
+  const theme = getSubjectTheme(key);
 
   return (
-    <div>
+    <div className="subject-hub">
       <BackToCourses showSubjectHub={false} />
       <div className="breadcrumb">
         دورات &gt; <span>{subject?.name || "…"}</span>
       </div>
-      <h1 className="page-title" style={{ color: "var(--primary)" }}>
-        {subject?.name}
-      </h1>
+
+      <div className={`subject-hub__hero ui-card ${key ? `tone-${key}` : ""}`}>
+        {theme?.logo ? <img src={theme.logo} alt="" className="subject-hub__logo" /> : null}
+        <div>
+          <h1 className="page-title" style={{ marginBottom: 4, color: "var(--primary)" }}>
+            {subject?.name || "…"}
+          </h1>
+          <p style={{ color: "var(--text-muted)" }}>مرام — للتحصيلي بإتقان</p>
+        </div>
+      </div>
+
       {canEdit && (
         <div className="banner" style={{ marginBottom: 20 }}>
-          <strong>تأسيس</strong>: درس ← عناوين فرعية ← واجب لمجموعاتك · <strong>تجميع</strong>: دروس (+ دروس فرعية اختيارية) وأسئلة لكل الطلاب · ثم اختبارات.
+          <strong>تأسيس</strong>: درس ← عناوين فرعية ← واجب · <strong>تجميع</strong>: دروس وأسئلة · ثم اختبارات.
         </div>
       )}
-      <div className="grid grid-2">
+
+      <div className="subject-hub__paths">
         <Link
           to={`/courses/${subjectId}/lessons`}
           className={`card path-card path-primary ${key ? `tone-${key}` : ""}`}
         >
           <div className="path-icon">ت</div>
           <h3>تأسيس</h3>
-          <p>{canEdit ? "دروس ← عناوين فرعية ← فيديو وواجب لمجموعتك" : "دروس وعناوين فرعية — فيديو وواجب"}</p>
+          <p>{canEdit ? "دروس وعناوين فرعية وفيديو وواجب" : "دروس وعناوين فرعية — فيديو وواجب"}</p>
+          <span className="btn btn-primary btn-sm">ادخل</span>
         </Link>
         <Link
           to={`/courses/${subjectId}/collections`}
           className={`card path-card path-accent ${key ? `tone-${key}` : ""}`}
         >
           <div className="path-icon">ج</div>
-          <h3>تجميع</h3>
-          <p>{canEdit ? "دروس ودروس فرعية + أسئلة للجميع" : "دروس ودروس فرعية — تدريب من بنك كل المدرسين"}</p>
+          <h3>تجميعات</h3>
+          <p>{canEdit ? "دروس فرعية + أسئلة للجميع" : "تدريب من بنك الأسئلة"}</p>
+          <span className="btn btn-secondary btn-sm">ادخل</span>
         </Link>
       </div>
-      <div style={{ marginTop: 16 }}>
-        <Link to="/tests" className="btn btn-secondary">
-          الذهاب للاختبارات (محاكي + اختبارات المدرسين) ←
-        </Link>
+
+      <div className="subject-hub__tests ui-card">
+        <div>
+          <h3>اختبارات المدرسين — {subject?.name || ""}</h3>
+          <p>محاكي شخصي أو اختبارات المدرس من بنك التجميعات</p>
+        </div>
+        <div className="subject-hub__tests-actions">
+          <Link to={`/tests/simulator/${subjectId}`} className="btn btn-secondary btn-sm">
+            صمم اختبارك
+          </Link>
+          <Link to={`/courses/${subjectId}/tests`} className="btn btn-primary btn-sm">
+            عرض الاختبارات
+          </Link>
+        </div>
       </div>
     </div>
   );

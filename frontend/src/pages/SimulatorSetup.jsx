@@ -292,6 +292,15 @@ export default function SimulatorSetup() {
   const backSubject =
     selectedSubjects.length === 1 ? selectedSubjects[0] : preSubject || null;
 
+  const timeLabel =
+    timePreset === "open"
+      ? "بدون زمن"
+      : timePreset === "custom"
+        ? `${customMinutes || "—"} دقيقة`
+        : TIME_PRESETS.find((t) => t.id === timePreset)?.label || "—";
+  const difficultyLabel = DIFFICULTY_PRESETS.find((p) => p.id === difficultyMix)?.label || "—";
+  const poolLabel = POOLS.find((p) => p.id === questionPool)?.label || "—";
+
   return (
     <div>
       {backSubject ? (
@@ -304,15 +313,21 @@ export default function SimulatorSetup() {
         </div>
       )}
 
-      <div className="card form-card" style={{ maxWidth: 820 }}>
-        <h2 style={{ marginBottom: 8 }}>
-          {fromCollections ? "تدريب التجميعات" : "المحاكي الشخصي"}
-        </h2>
-        <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>
-          اختر مادة أو أكثر، ثم الدروس داخل كل مادة، ومرّر قائمة السنوات لاختيار الفترة، ومدة الاختبار أو اتركها بدون زمن.
-        </p>
+      <h1 className="page-title" style={{ marginBottom: 8 }}>
+        {fromCollections ? "تدريب التجميعات" : "المحاكي الشخصي"}
+      </h1>
+      <p style={{ color: "var(--text-muted)", marginBottom: 20 }}>
+        اختر المواد والدروس والمدة — الملخص على الجانب يتحدّث معاك أولاً بأول.
+      </p>
 
-        <div className="form-group">
+      <div className="wizard-layout">
+        <div>
+        <div className="step-block">
+          <div className="step-block__head">
+            <span className="step-block__num">1</span>
+            <h3>المواد ({selectedSubjects.length})</h3>
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
           <div
             style={{
               display: "flex",
@@ -323,7 +338,7 @@ export default function SimulatorSetup() {
               marginBottom: 8,
             }}
           >
-            <label style={{ margin: 0 }}>المواد ({selectedSubjects.length})</label>
+            <label style={{ margin: 0 }}>اختر المواد</label>
             <div style={{ display: "flex", gap: 8 }}>
               <button type="button" className="btn btn-ghost btn-sm" onClick={selectAllSubjects}>
                 كل المواد
@@ -352,9 +367,15 @@ export default function SimulatorSetup() {
               </span>
             ))}
           </div>
+          </div>
         </div>
 
-        <div className="form-group">
+        <div className="step-block">
+          <div className="step-block__head">
+            <span className="step-block__num">2</span>
+            <h3>الدروس ({selectedLessons.length})</h3>
+          </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
           <div
             style={{
               display: "flex",
@@ -365,7 +386,7 @@ export default function SimulatorSetup() {
               marginBottom: 8,
             }}
           >
-            <label style={{ margin: 0 }}>الدروس ({selectedLessons.length})</label>
+            <label style={{ margin: 0 }}>اختر الدروس</label>
             <div style={{ display: "flex", gap: 8 }}>
               <button type="button" className="btn btn-ghost btn-sm" onClick={selectAllLessons}>
                 كل الدروس
@@ -401,8 +422,14 @@ export default function SimulatorSetup() {
               </div>
             </div>
           ))}
+          </div>
         </div>
 
+        <div className="step-block">
+          <div className="step-block__head">
+            <span className="step-block__num">3</span>
+            <h3>السنة وعدد الأسئلة</h3>
+          </div>
         <div className="form-group">
           <label>سنة / تاريخ الأسئلة — اختياري</label>
           <YearScrollPicker
@@ -414,7 +441,7 @@ export default function SimulatorSetup() {
           />
         </div>
 
-        <div className="form-group">
+        <div className="form-group" style={{ marginBottom: 0 }}>
           <label>عدد الأسئلة</label>
           <div className="filter-row" style={{ marginBottom: 8 }}>
             <span
@@ -456,7 +483,13 @@ export default function SimulatorSetup() {
             </div>
           )}
         </div>
+        </div>
 
+        <div className="step-block">
+          <div className="step-block__head">
+            <span className="step-block__num">4</span>
+            <h3>الصعوبة والنوع والمراجعة والمدة</h3>
+          </div>
         <div className="form-group">
           <label>مستوى الصعوبة</label>
           <div className="filter-row" style={{ marginBottom: 8 }}>
@@ -554,16 +587,39 @@ export default function SimulatorSetup() {
             />
           )}
         </div>
+        </div>
 
         {error && <div className="error-text">{error}</div>}
-        <button
-          type="button"
-          className="btn btn-primary btn-block"
-          onClick={start}
-          disabled={busy || optionsLoading}
-        >
-          {busy ? "…" : "ابدأ الاختبار ←"}
-        </button>
+        </div>
+
+        <aside className="sticky-summary">
+          <h3>ملخص الاختبار</h3>
+          <div className="sticky-summary__meta">
+            <div>المواد: {selectedSubjects.length}</div>
+            <div>الدروس: {selectedLessons.length}</div>
+            <div>الصعوبة: {difficultyLabel}</div>
+            <div>النوع: {poolLabel}</div>
+            <div>المراجعة: {reviewMode === "immediate" ? "فورية" : "نهائية"}</div>
+          </div>
+          <div className="sticky-summary__stats">
+            <div className="sticky-summary__stat">
+              <strong>{takeAll ? "الكل" : count}</strong>
+              <span>أسئلة</span>
+            </div>
+            <div className="sticky-summary__stat">
+              <strong>{timeLabel}</strong>
+              <span>المدة</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary btn-block"
+            onClick={start}
+            disabled={busy || optionsLoading}
+          >
+            {busy ? "…" : "ابدأ الاختبار"}
+          </button>
+        </aside>
       </div>
     </div>
   );

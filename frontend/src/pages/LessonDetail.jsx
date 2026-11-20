@@ -172,11 +172,19 @@ export default function LessonDetail() {
         تأسيس &gt; <span>{lesson.title}</span>
       </div>
 
-      <h1 style={{ fontSize: 28, marginBottom: 8 }}>{lesson.title}</h1>
-
-      <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>
-        اضغط على عنوان فرعي لإضافة أو مشاهدة الفيديو والأسئلة وملف PDF أسفله مباشرة.
-      </p>
+      <div className="lesson-hero ui-card">
+        <div>
+          <h1 style={{ fontSize: 28, marginBottom: 6 }}>{lesson.title}</h1>
+          <p style={{ color: "var(--text-muted)", margin: 0 }}>
+            اضغط على عنوان فرعي لإضافة أو مشاهدة الفيديو والأسئلة وملف PDF أسفله مباشرة.
+          </p>
+        </div>
+        <div className="lesson-hero__stats">
+          <div><strong>{sections.length}</strong><span>عناوين</span></div>
+          <div><strong>{sections.filter((s) => s.has_video || s.bunny_video_id).length || "—"}</strong><span>فيديو</span></div>
+          <div><strong>{sections.filter((s) => s.homework_count).length || "—"}</strong><span>واجبات</span></div>
+        </div>
+      </div>
 
       {canEdit && (
         <div className="banner" style={{ marginBottom: 16 }}>

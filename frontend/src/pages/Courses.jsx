@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import client from "../api/client";
 import { filterSubjectsForUser } from "../auth/teacherScope";
-import { resolveSubjectKey } from "../theme/subjects";
+import { getSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 
 const SUBJECTS_CACHE_KEY = "zad_subjects_cache_v1";
 
@@ -42,7 +42,6 @@ export default function Courses() {
         const filtered = filterSubjectsForUser(list, user);
         setSubjects(filtered);
         try {
-          // Cache full list for Layout theming; Courses filters per role.
           sessionStorage.setItem(SUBJECTS_CACHE_KEY, JSON.stringify(list));
         } catch {
           /* ignore */
@@ -60,38 +59,31 @@ export default function Courses() {
     return () => {
       cancelled = true;
     };
-    // Re-filter when user role/scope changes; network refresh stays cheap via cache paint.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, user?.role, user?.taught_subject, JSON.stringify(user?.teachable_subject_ids || [])]);
 
   return (
-    <div>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          gap: 12,
-          flexWrap: "wrap",
-          marginBottom: 8,
-        }}
-      >
-        <h1 style={{ fontSize: 32, margin: 0 }}>دورات</h1>
+    <div className="courses-page">
+      <div className="courses-page__head">
+        <div>
+          <h1 className="page-title" style={{ marginBottom: 6 }}>دورات</h1>
+          <p style={{ color: "var(--text-muted)" }}>
+            {user?.role === "teacher"
+              ? "موادك المخصصة فقط — إدارة الدروس والأسئلة داخلها"
+              : "اختر المادة — يتغيّر الشعار والألوان تلقائياً داخل المادة"}
+          </p>
+        </div>
         {refreshing && (
           <span style={{ color: "var(--text-muted)", fontSize: 13 }}>جاري التحديث…</span>
         )}
       </div>
-      <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>
-        {user?.role === "teacher"
-          ? "موادك المخصصة فقط — يمكنك إضافة وتعديل الدروس والأسئلة داخلها"
-          : "اختر المادة — يتغيّر الشعار والألوان تلقائياً داخل المادة"}
-      </p>
+
       {user?.role === "teacher" && user?.taught_subject_name && (
         <div className="banner" style={{ marginBottom: 20 }}>
-          مادتك: <strong>{user.taught_subject_name}</strong> — أسئلتك تظهر لطلاب
-          المجموعات التي تُدرّس فيها هذه المادة فقط.
+          مادتك: <strong>{user.taught_subject_name}</strong>
         </div>
       )}
+
       {loading && <div className="spinner">جاري التحميل…</div>}
       {!loading && !subjects.length && (
         <p style={{ color: "var(--text-muted)" }}>
@@ -100,21 +92,34 @@ export default function Courses() {
             : "لا توجد مواد."}
         </p>
       )}
-      <div className="grid grid-2" style={{ maxWidth: 720 }}>
+
+      <div className="courses-grid">
         {subjects.map((s) => {
           const key = resolveSubjectKey(s.name) || "math";
+          const theme = getSubjectTheme(key);
           return (
             <button
               key={s.id}
               type="button"
-              className={`btn subject-tile ${key}`}
-              style={{ minHeight: 100, fontSize: 22 }}
+              className={`courses-card courses-card--${key}`}
               onClick={() => navigate(`/courses/${s.id}`)}
             >
-              {s.name}
+              {theme?.logo ? (
+                <img src={theme.logo} alt="" className="courses-card__logo" />
+              ) : null}
+              <strong>{s.name}</strong>
+              <span className="btn btn-primary btn-sm">ادخل الدورة ←</span>
             </button>
           );
         })}
+      </div>
+
+      <div className="landing-final-banner ui-card">
+        <div>
+          <h3>دورة المراجعة النهائية</h3>
+          <p>مراجعة شاملة لكل المواد قبل اختبار التحصيلي.</p>
+        </div>
+        <span className="btn btn-secondary" aria-disabled="true">قريباً</span>
       </div>
     </div>
   );

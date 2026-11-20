@@ -1,6 +1,14 @@
 import { Link } from "react-router-dom";
 import { BUSINESS, LEGAL_LINKS } from "../legal/business";
 
+const SOCIAL = [
+  { key: "whatsapp", label: "واتساب", href: BUSINESS.social.whatsapp },
+  { key: "instagram", label: "إنستغرام", href: BUSINESS.social.instagram },
+  { key: "tiktok", label: "تيك توك", href: BUSINESS.social.tiktok },
+  { key: "telegram", label: "تيليجرام", href: BUSINESS.social.telegram },
+  { key: "x", label: "X", href: BUSINESS.social.x },
+];
+
 export default function SiteFooter() {
   const year = new Date().getFullYear();
   return (
@@ -48,9 +56,7 @@ export default function SiteFooter() {
           <div className="site-footer__heading">الدفع الآمن</div>
           <ul>
             <li>المدفوعات تتم عبر {BUSINESS.paymentProcessor} بتشفير كامل.</li>
-            <li>
-              نقبل: {BUSINESS.acceptedCards.join("، ")}
-            </li>
+            <li>نقبل: {BUSINESS.acceptedCards.join("، ")}</li>
             <li>
               يظهر الخصم باسم <span dir="ltr">{BUSINESS.statementDescriptor}</span>
             </li>
@@ -60,6 +66,22 @@ export default function SiteFooter() {
           </ul>
         </div>
       </div>
+
+      <div className="site-footer__social">
+        {SOCIAL.map((s) => (
+          <a
+            key={s.key}
+            className={`site-footer__social-link site-footer__social-link--${s.key}`}
+            href={s.href}
+            target={s.href.startsWith("http") ? "_blank" : undefined}
+            rel={s.href.startsWith("http") ? "noreferrer" : undefined}
+            aria-label={s.label}
+          >
+            {s.label}
+          </a>
+        ))}
+      </div>
+
       <div className="site-footer__bottom">
         © {year} {BUSINESS.brand} — جميع الحقوق محفوظة.
       </div>

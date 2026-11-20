@@ -33,7 +33,20 @@ export const BUSINESS = {
   acceptedCards: ["Visa", "Mastercard", "mada"],
   paymentProcessor: "Stripe",
   lastUpdated: "٧ نوفمبر ٢٠٢٦",
+  social: {
+    whatsapp: "https://wa.me/201505688548",
+    instagram: "#",
+    tiktok: "#",
+    telegram: "#",
+    x: "#",
+  },
 };
+
+export function whatsappHref(text = "") {
+  const base = BUSINESS.social.whatsapp;
+  if (!text) return base;
+  return `${base}?text=${encodeURIComponent(text)}`;
+}
 
 export const LEGAL_LINKS = [
   { to: "/about", label: "من نحن" },

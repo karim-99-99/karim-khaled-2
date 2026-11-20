@@ -201,14 +201,18 @@ export default function SmartPlan() {
       {msg && <div className="banner" style={{ marginBottom: 16 }}>{msg}</div>}
 
       {(showWizard || !plan) && (
-        <div className="card smart-plan__wizard">
+        <div className="wizard-layout smart-plan__wizard">
+          <div>
           <h2 style={{ marginTop: 0, marginBottom: 8 }}>أنشئ خطتك</h2>
           <p style={{ color: "var(--text-muted)", marginBottom: 20 }}>
             نفس فكرة خطط التحصيلي الذكية: مدة جاهزة أو مخصّصة حسب وقتك.
           </p>
 
-          <div className="form-group">
-            <label>المواد</label>
+          <div className="step-block">
+            <div className="step-block__head">
+              <span className="step-block__num">1</span>
+              <h3>المواد</h3>
+            </div>
             <div className="filter-row">
               {subjects.map((s) => {
                 const key = resolveSubjectKey(s.name);
@@ -232,7 +236,12 @@ export default function SmartPlan() {
             </div>
           </div>
 
-          <div className="form-group">
+          <div className="step-block">
+            <div className="step-block__head">
+              <span className="step-block__num">2</span>
+              <h3>مدة الخطة</h3>
+            </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label>مدة الخطة (يوم)</label>
             <div className="filter-row" style={{ marginBottom: 8 }}>
               {DAY_PRESETS.map((d) => (
@@ -258,7 +267,13 @@ export default function SmartPlan() {
               }
             />
           </div>
+          </div>
 
+          <div className="step-block">
+            <div className="step-block__head">
+              <span className="step-block__num">3</span>
+              <h3>الوقت والتواريخ</h3>
+            </div>
           <div className="form-group">
             <label>ساعات المذاكرة يومياً</label>
             <div className="filter-row" style={{ marginBottom: 8 }}>
@@ -302,8 +317,14 @@ export default function SmartPlan() {
               />
             </div>
           </div>
+          </div>
 
-          <div className="form-group">
+          <div className="step-block">
+            <div className="step-block__head">
+              <span className="step-block__num">4</span>
+              <h3>المحتوى</h3>
+            </div>
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label>المحتوى</label>
             <div className="filter-row">
               <span
@@ -328,25 +349,47 @@ export default function SmartPlan() {
               </span>
             </div>
           </div>
+          </div>
 
-          <button
-            type="button"
-            className="btn btn-primary"
-            disabled={busy || !form.subject_ids.length}
-            onClick={generate}
-          >
-            {busy ? "جاري التوليد…" : "ولّد جدولي الذكي"}
-          </button>
           {plan && (
             <button
               type="button"
               className="btn btn-ghost"
-              style={{ marginInlineStart: 8 }}
+              style={{ marginBottom: 12 }}
               onClick={() => setShowWizard(false)}
             >
               إلغاء
             </button>
           )}
+          </div>
+
+          <aside className="sticky-summary">
+            <h3>ملخص الخطة</h3>
+            <div className="sticky-summary__meta">
+              <div>المواد: {form.subject_ids.length}</div>
+              <div>المدة: {form.days_count} يوم</div>
+              <div>ساعات/يوم: {form.hours_per_day}</div>
+              <div>من: {form.start_date || "—"}</div>
+            </div>
+            <div className="sticky-summary__stats">
+              <div className="sticky-summary__stat">
+                <strong>{form.days_count}</strong>
+                <span>يوم مذاكرة</span>
+              </div>
+              <div className="sticky-summary__stat">
+                <strong>{form.subject_ids.length}</strong>
+                <span>مواد</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn btn-primary btn-block"
+              disabled={busy || !form.subject_ids.length}
+              onClick={generate}
+            >
+              {busy ? "جاري التوليد…" : "ولّد جدولي الذكي"}
+            </button>
+          </aside>
         </div>
       )}
 
