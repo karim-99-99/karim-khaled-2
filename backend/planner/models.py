@@ -3,7 +3,11 @@ from django.db import models
 
 
 class StudyPlan(models.Model):
-    """خطة مذاكرة ذكية مخصّصة لطالب حسب مدته وساعاته اليومية."""
+    """خطة مذاكرة ذكية مخصّصة لطالب حسب مدته وترتيب المواد."""
+
+    class ScheduleMode(models.TextChoices):
+        SEQUENTIAL = "sequential", "مادة بعد مادة"
+        WEEKLY = "weekly", "مادة كل أسبوع"
 
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -12,11 +16,19 @@ class StudyPlan(models.Model):
     )
     title = models.CharField(max_length=200, blank=True, default="")
     start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
     days_count = models.PositiveIntegerField()
     hours_per_day = models.DecimalField(max_digits=4, decimal_places=1, default=2)
     include_foundation = models.BooleanField(default=True)
     include_collections = models.BooleanField(default=True)
+    schedule_mode = models.CharField(
+        max_length=20,
+        choices=ScheduleMode.choices,
+        default=ScheduleMode.SEQUENTIAL,
+    )
     subject_ids = models.JSONField(default=list)
+    weekly_off = models.JSONField(default=list, blank=True)
+    custom_off = models.JSONField(default=list, blank=True)
     exam_date = models.DateField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)

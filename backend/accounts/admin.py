@@ -7,9 +7,18 @@ from .models import User
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     ordering = ["-created_at"]
-    list_display = ["email", "full_name", "phone", "role", "is_active"]
-    list_filter = ["role", "is_active"]
-    search_fields = ["email", "full_name", "phone"]
+    list_display = [
+        "email",
+        "full_name",
+        "phone",
+        "region",
+        "school_name",
+        "school_type",
+        "role",
+        "is_active",
+    ]
+    list_filter = ["role", "is_active", "region", "school_type"]
+    search_fields = ["email", "full_name", "phone", "school_name", "city"]
     fieldsets = (
         (None, {"fields": ("email", "password")}),
         (
@@ -18,7 +27,12 @@ class CustomUserAdmin(UserAdmin):
                 "fields": (
                     "full_name",
                     "phone",
+                    "guardian_phone",
                     "gender",
+                    "region",
+                    "city",
+                    "school_name",
+                    "school_type",
                     "role",
                     "telegram_id",
                     "telegram_username",

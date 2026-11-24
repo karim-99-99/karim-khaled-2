@@ -93,9 +93,14 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [subjects, setSubjects] = useState(readCachedSubjects);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [lockedThemeKey, setLockedThemeKey] = useState(() =>
     isSubjectThemeSurface(location.pathname) ? peekLockedTheme() : null
   );
+
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [location.pathname]);
 
   const initial = user?.full_name?.trim()?.[0] || "؟";
   const subjectId = useMemo(() => readSubjectId(location.pathname), [location.pathname]);
@@ -174,7 +179,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${menuOpen ? " menu-open" : ""}`}>
       <header className="app-header">
         <NavLink
           to="/"
@@ -195,7 +200,7 @@ export default function Layout() {
             fetchPriority="high"
           />
         </NavLink>
-        <nav className="nav">
+        <nav className={`nav${menuOpen ? " is-open" : ""}`}>
           <NavLink to="/" end>
             الرئيسية
           </NavLink>
@@ -209,6 +214,17 @@ export default function Layout() {
           {user?.role === "teacher" && <NavLink to="/teacher">لوحة المدرس</NavLink>}
           {user?.role === "admin" && <NavLink to="/admin">لوحة المدير</NavLink>}
         </nav>
+        <button
+          type="button"
+          className={`nav-burger${menuOpen ? " open" : ""}`}
+          aria-label={menuOpen ? "إغلاق القائمة" : "فتح القائمة"}
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((v) => !v)}
+        >
+          <i />
+          <i />
+          <i />
+        </button>
         <div className="header-actions">
           {user ? (
             <>
@@ -234,6 +250,14 @@ export default function Layout() {
           )}
         </div>
       </header>
+      {menuOpen && (
+        <button
+          type="button"
+          className="nav-scrim"
+          aria-label="إغلاق القائمة"
+          onClick={() => setMenuOpen(false)}
+        />
+      )}
       <main
         className={
           location.pathname === "/" ||

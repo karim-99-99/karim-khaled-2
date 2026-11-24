@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from django.db import transaction
 from django.db.models import Count, Q
@@ -84,36 +84,64 @@ def generate_study_plan(request):
     if not Subject.objects.filter(id__in=subject_ids).exists():
         return Response({"detail": "المواد غير موجودة"}, status=400)
 
-    days_count = data.get("days_count") or 60
+    start_date = _parse_date(data.get("start_date"), timezone.localdate())
+    end_date = _parse_date(data.get("end_date"), None)
+    exam_date = _parse_date(data.get("exam_date"), None)
+    schedule_mode = data.get("schedule_mode") or StudyPlan.ScheduleMode.SEQUENTIAL
+    if schedule_mode not in (
+        StudyPlan.ScheduleMode.SEQUENTIAL,
+        StudyPlan.ScheduleMode.WEEKLY,
+    ):
+        schedule_mode = StudyPlan.ScheduleMode.SEQUENTIAL
+
+    weekly_off = data.get("weekly_off") or []
     try:
-        days_count = int(days_count)
+        weekly_off = [int(x) for x in weekly_off]
     except (TypeError, ValueError):
-        return Response({"detail": "days_count غير صالح"}, status=400)
+        weekly_off = []
+    custom_off = data.get("custom_off") or []
+    if not isinstance(custom_off, list):
+        custom_off = []
+
+    if end_date and end_date >= start_date:
+        days_count = (end_date - start_date).days + 1
+    else:
+        days_count = data.get("days_count") or 60
+        try:
+            days_count = int(days_count)
+        except (TypeError, ValueError):
+            return Response({"detail": "days_count غير صالح"}, status=400)
+        end_date = start_date + timedelta(days=days_count - 1)
+
+    # Study days exclude weekly offs (0=Mon .. 6=Sun) and custom dates
+    study_days = 0
+    cursor = start_date
+    while cursor <= end_date:
+        iso = cursor.isoformat()
+        if cursor.weekday() not in weekly_off and iso not in custom_off:
+            study_days += 1
+        cursor += timedelta(days=1)
+    if study_days < 1:
+        return Response({"detail": "لا توجد أيام مذاكرة بعد خصم الإجازات"}, status=400)
 
     hours_per_day = data.get("hours_per_day") or 2
-    start_date = _parse_date(data.get("start_date"), timezone.localdate())
-    exam_date = _parse_date(data.get("exam_date"), None)
-    include_foundation = bool(data.get("include_foundation", True))
-    include_collections = bool(data.get("include_collections", True))
-    if not include_foundation and not include_collections:
-        return Response(
-            {"detail": "فعّل تأسيس أو تجميع (أو الاثنين)"},
-            status=400,
-        )
+    include_foundation = True
+    include_collections = True
 
     payload = generate_plan_payload(
         subject_ids=subject_ids,
-        days_count=days_count,
+        days_count=study_days,
         hours_per_day=hours_per_day,
         start_date=start_date,
         include_foundation=include_foundation,
         include_collections=include_collections,
+        schedule_mode=schedule_mode,
     )
     if payload.get("error"):
         return Response({"detail": payload["error"]}, status=400)
 
     names = " · ".join(s.name for s in payload["subjects"][:4])
-    title = (data.get("title") or "").strip() or f"خطة {days_count} يوم — {names}"
+    title = (data.get("title") or "").strip() or f"خطة {study_days} يوم — {names}"
 
     with transaction.atomic():
         StudyPlan.objects.filter(student=request.user, is_active=True).update(is_active=False)
@@ -121,10 +149,14 @@ def generate_study_plan(request):
             student=request.user,
             title=title[:200],
             start_date=start_date,
-            days_count=days_count,
+            end_date=end_date,
+            days_count=study_days,
             hours_per_day=payload["hours_per_day"],
             include_foundation=include_foundation,
             include_collections=include_collections,
+            schedule_mode=schedule_mode,
+            weekly_off=weekly_off,
+            custom_off=custom_off,
             subject_ids=subject_ids,
             exam_date=exam_date,
             is_active=True,

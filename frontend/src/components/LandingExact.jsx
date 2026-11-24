@@ -106,7 +106,10 @@ export default function LandingExact({ ctaTo = "/register", courseTo = "/login" 
   return (
     <div className="landing-exact">
       <section className="hero">
-        <div className="ribbon">🔥 لا يفوتك عرض التسجيل المبكر</div>
+        <div className="ribbon">
+          <span className="rl">🔥 لا يفوتك عرض التسجيل المبكر</span>
+          <span className="rs">🔥 التسجيل المبكر</span>
+        </div>
         <div className="hin">
           <span className="tag">
             <i className="dot" />
@@ -125,6 +128,7 @@ export default function LandingExact({ ctaTo = "/register", courseTo = "/login" 
             <b>تبقى 4 مقاعد فقط</b> في المجموعة القادمة
             <div className="mini"><i style={{ width: "60%" }} /></div>
           </div>
+          <div className="mimg" aria-hidden="true" />
           <div className="trust">
             <span>✓ حصص مباشرة</span>
             <span>✓ مجموعات صغيرة</span>
@@ -136,7 +140,7 @@ export default function LandingExact({ ctaTo = "/register", courseTo = "/login" 
       <div className="stats">
         <div className="st"><strong>+8000</strong><span>سؤال تجميعات</span></div>
         <div className="st"><strong>10</strong><span>طلاب كحد أقصى للمجموعة</span></div>
-        <div className="st"><strong>24/7</strong><span>متابعة عبر الواتساب</span></div>
+        <div className="st"><strong dir="ltr">24/7</strong><span>متابعة عبر الواتساب</span></div>
         <div className="st"><strong>∞</strong><span>اختبارات محاكية لا محدودة</span></div>
       </div>
 

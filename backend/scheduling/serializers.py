@@ -1,7 +1,9 @@
+from datetime import timedelta
+
 from django.db.models import Count, Q
 from rest_framework import serializers
 
-from .models import Session, SessionAttendance
+from .models import Session, SessionAttendance, TeacherAvailability
 
 
 class SessionSerializer(serializers.ModelSerializer):
@@ -162,6 +164,110 @@ class SessionSerializer(serializers.ModelSerializer):
                     self.fields[name].read_only = True
             if "teacher_joined_zoom" in self.fields:
                 self.fields["teacher_joined_zoom"].read_only = False
+
+    def validate(self, attrs):
+        """Reject overlapping sessions for the same teacher or group."""
+        start = attrs.get("start_time", getattr(self.instance, "start_time", None))
+        duration = (
+            attrs.get(
+                "duration_minutes", getattr(self.instance, "duration_minutes", 60)
+            )
+            or 60
+        )
+        teacher = attrs.get("teacher", getattr(self.instance, "teacher", None))
+        group = attrs.get("group", getattr(self.instance, "group", None))
+        if not start:
+            return attrs
+        end = start + timedelta(minutes=duration)
+        qs = Session.objects.all()
+        if self.instance and self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        window_start = start - timedelta(hours=6)
+        window_end = end + timedelta(hours=6)
+        candidates = qs.filter(
+            start_time__gte=window_start, start_time__lte=window_end
+        )
+        teacher_id = getattr(teacher, "id", teacher) if teacher else None
+        group_id = getattr(group, "id", group) if group else None
+        for row in candidates:
+            row_end = row.start_time + timedelta(minutes=row.duration_minutes or 60)
+            if not (row.start_time < end and row_end > start):
+                continue
+            label = (
+                (row.title or "").strip()
+                or (row.subject.name if row.subject_id else "")
+                or f"#{row.id}"
+            )
+            if teacher_id and row.teacher_id == teacher_id:
+                raise serializers.ValidationError(
+                    {
+                        "start_time": (
+                            f"تعارض موعد مع حصة «{label}» لنفس المدرس "
+                            f"({row.start_time.strftime('%Y-%m-%d %H:%M')})."
+                        )
+                    }
+                )
+            if group_id and row.group_id == group_id:
+                raise serializers.ValidationError(
+                    {
+                        "start_time": (
+                            f"تعارض موعد مع حصة «{label}» لنفس المجموعة "
+                            f"({row.start_time.strftime('%Y-%m-%d %H:%M')})."
+                        )
+                    }
+                )
+
+        # Must fall inside teacher's declared availability (if any slots exist)
+        if teacher_id:
+            slots = list(
+                TeacherAvailability.objects.filter(
+                    teacher_id=teacher_id, weekday=start.weekday()
+                )
+            )
+            if slots:
+                st = start.time()
+                et = end.time()
+                ok = any(slot.start_time <= st and slot.end_time >= et for slot in slots)
+                if not ok:
+                    raise serializers.ValidationError(
+                        {
+                            "start_time": (
+                                "الموعد خارج أوقات المعلم المتاحة. "
+                                "اختر فترة ضمن مواعيده أو حدّث صفحة المواعي المتاحة."
+                            )
+                        }
+                    )
+        return attrs
+
+
+class TeacherAvailabilitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TeacherAvailability
+        fields = ["id", "weekday", "start_time", "end_time"]
+
+    def validate(self, attrs):
+        weekday = attrs.get("weekday", getattr(self.instance, "weekday", None))
+        start = attrs.get("start_time", getattr(self.instance, "start_time", None))
+        end = attrs.get("end_time", getattr(self.instance, "end_time", None))
+        if weekday is None or not start or not end:
+            raise serializers.ValidationError("اليوم والوقت مطلوبان")
+        if end <= start:
+            raise serializers.ValidationError("وقت النهاية يجب أن يكون بعد البداية")
+        win_start, win_end = TeacherAvailability.allowed_window(int(weekday))
+        if start < win_start or end > win_end:
+            raise serializers.ValidationError(
+                "خارج النافذة المسموحة: الجمعة/السبت 12–23، وباقي الأيام 16–23 (توقيت السعودية)."
+            )
+        from datetime import datetime, date
+
+        hours = (
+            datetime.combine(date.min, end) - datetime.combine(date.min, start)
+        ).total_seconds() / 3600.0
+        if hours < 2:
+            raise serializers.ValidationError(
+                "كل فترة متاحة يجب ألا تقل عن ساعتين متتاليتين."
+            )
+        return attrs
 
 
 class SessionAttendanceRecordSerializer(serializers.Serializer):

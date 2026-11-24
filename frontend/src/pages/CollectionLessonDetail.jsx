@@ -9,7 +9,6 @@ import QuestionImportPanel from "../components/QuestionImportPanel";
 import QuestionOrderNumber from "../components/QuestionOrderNumber";
 import TeacherQuestionForm from "../components/TeacherQuestionForm";
 import VideoPlayer from "../components/VideoPlayer";
-import YearScrollPicker, { expandYearRange } from "../components/YearScrollPicker";
 import { TEACHER_TIERS, tierLabel } from "../constants/teacherTiers";
 import { lockSubjectTheme } from "../theme/subjects";
 import useSubjectSkin from "../theme/useSubjectSkin";
@@ -45,8 +44,7 @@ const LEVELS = [
 ];
 
 /**
- * داخل درس التجميع: للطالب اختيار المستويات + السنة وبدء الاختبار بكل الأسئلة المطابقة.
- * نسب المزج (سهل/متقدم/تحدي) خاصة بالمحاكي الشخصي فقط.
+ * داخل درس التجميع: للمستويات + الترشيح + المراجعة — بدون فلتر سنة (حسب الـ handoff).
  * للمدرس: فيديو / PDF / إدارة بنك الأسئلة.
  */
 export default function CollectionLessonDetail() {
@@ -67,9 +65,7 @@ export default function CollectionLessonDetail() {
   const [busy, setBusy] = useState(false);
   const [startBusy, setStartBusy] = useState(false);
   const [selectedLevels, setSelectedLevels] = useState([]);
-  const [years, setYears] = useState([]);
   const [yearStats, setYearStats] = useState([]);
-  const [yearRange, setYearRange] = useState(null);
   const [tierStats, setTierStats] = useState([]);
   const [filterBreakdown, setFilterBreakdown] = useState([]);
   const [selectedTiers, setSelectedTiers] = useState([]);
@@ -112,10 +108,7 @@ export default function CollectionLessonDetail() {
     hard: 0,
   };
 
-  const allowedYears = useMemo(() => {
-    if (!yearRange) return null;
-    return new Set(expandYearRange(years, yearRange));
-  }, [years, yearRange]);
+  const allowedYears = null;
 
   const filteredLevelCounts = useMemo(() => {
     if (!allowedYears && !selectedTiers.length && !selectedSubs.length) {
@@ -251,14 +244,12 @@ export default function CollectionLessonDetail() {
           .get(`/exams/simulator/options/?${params.toString()}`)
           .then((res) => {
             if (cancelled) return;
-            setYears(res.data.years || []);
             setYearStats(res.data.year_stats || []);
             setTierStats(res.data.tier_stats || []);
             setFilterBreakdown(res.data.filter_breakdown || []);
           })
           .catch(() => {
             if (!cancelled) {
-              setYears([]);
               setYearStats([]);
               setTierStats([]);
               setFilterBreakdown([]);
@@ -449,7 +440,7 @@ export default function CollectionLessonDetail() {
       return;
     }
     if (selectedCount < 1) {
-      setMsg("لا توجد أسئلة بالمستويات/السنوات/الترشيحات المختارة");
+      setMsg("لا توجد أسئلة بالمستويات/الترشيحات المختارة");
       return;
     }
     setStartBusy(true);
@@ -466,10 +457,6 @@ export default function CollectionLessonDetail() {
           .replace(/\s+/g, " ")
           .trim(),
       };
-      if (yearRange) {
-        const expanded = expandYearRange(years, yearRange);
-        if (expanded.length) payload.years = expanded;
-      }
       if (selectedTiers.length) {
         payload.tiers = selectedTiers;
       }
@@ -778,24 +765,10 @@ export default function CollectionLessonDetail() {
                 </div>
               </div>
 
-              <div className="box">
-                <div className="bh">
-                  <h3><span className="step">4</span>سنة الاختبار</h3>
-                  <span className="opt">اختياري</span>
-                </div>
-                <YearScrollPicker
-                  years={years}
-                  value={yearRange}
-                  onChange={setYearRange}
-                  yearStats={yearStats}
-                  emptyMessage="لا توجد سنوات مسجّلة على أسئلة هذا الدرس بعد."
-                />
-              </div>
-
               {!focusedSubObj && subLessons.length > 0 && (
                 <div className="box">
                   <div className="bh">
-                    <h3><span className="step">5</span>الدروس الفرعية</h3>
+                    <h3><span className="step">4</span>الدروس الفرعية</h3>
                     <span className="opt">اختياري</span>
                   </div>
                   <div className="seg">

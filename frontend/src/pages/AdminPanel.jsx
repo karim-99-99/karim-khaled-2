@@ -37,6 +37,8 @@ function AccountsTab() {
   const [subjects, setSubjects] = useState([]);
   const [view, setView] = useState("pending");
   const [q, setQ] = useState("");
+  const [regionFilter, setRegionFilter] = useState("");
+  const [schoolTypeFilter, setSchoolTypeFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -241,12 +243,24 @@ function AccountsTab() {
   if (!data) return null;
 
   const term = q.trim().toLowerCase();
-  const filterFn = (p) =>
-    !term ||
-    (p.full_name || "").toLowerCase().includes(term) ||
-    (p.phone || "").toLowerCase().includes(term) ||
-    (p.email || "").toLowerCase().includes(term);
+  const filterFn = (p) => {
+    if (
+      term &&
+      !(p.full_name || "").toLowerCase().includes(term) &&
+      !(p.phone || "").toLowerCase().includes(term) &&
+      !(p.email || "").toLowerCase().includes(term) &&
+      !(p.school_name || "").toLowerCase().includes(term)
+    ) {
+      return false;
+    }
+    if (regionFilter && (p.region || "") !== regionFilter) return false;
+    if (schoolTypeFilter && (p.school_type || "") !== schoolTypeFilter) return false;
+    return true;
+  };
   const students = data.students.filter(filterFn);
+  const regionOptions = [
+    ...new Set(data.students.map((s) => s.region).filter(Boolean)),
+  ].sort();
   const teachers = data.teachers.filter(filterFn);
   // "Pending activation": student accounts that have not been activated yet
   // (no active subscription). Admin either grants a subscription or converts
@@ -269,8 +283,38 @@ function AccountsTab() {
             المدرسون ({data.totals.teachers})
           </span>
         </div>
-        <input className="form-control" style={{ maxWidth: 280 }} placeholder="بحث بالاسم أو الإيميل أو التليفون"
-          value={q} onChange={(e) => setQ(e.target.value)} />
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <input
+            className="form-control"
+            style={{ maxWidth: 220 }}
+            placeholder="بحث بالاسم / الجوال / المدرسة"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <select
+            className="form-control"
+            style={{ maxWidth: 160 }}
+            value={regionFilter}
+            onChange={(e) => setRegionFilter(e.target.value)}
+          >
+            <option value="">كل المناطق</option>
+            {regionOptions.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+          <select
+            className="form-control"
+            style={{ maxWidth: 150 }}
+            value={schoolTypeFilter}
+            onChange={(e) => setSchoolTypeFilter(e.target.value)}
+          >
+            <option value="">كل المدارس</option>
+            <option value="government">حكومية</option>
+            <option value="private">أهلية</option>
+          </select>
+        </div>
       </div>
 
       {view === "pending" && (
@@ -309,8 +353,10 @@ function AccountsTab() {
             <thead>
               <tr>
                 <th>الاسم</th>
-                <th>التواصل</th>
-                <th>التليفون</th>
+                <th>الجوال</th>
+                <th>المنطقة</th>
+                <th>المدرسة</th>
+                <th>النوع</th>
                 <th>الاشتراك</th>
                 <th>مدة الاشتراك</th>
                 <th>ينتهي في</th>
@@ -326,8 +372,21 @@ function AccountsTab() {
                     <strong>{s.full_name || "—"}</strong>{" "}
                     <span style={{ color: "var(--text-muted)", fontSize: 11 }}>#{s.id}</span>
                   </td>
-                  <td>{contactLabel(s)}</td>
                   <td>{s.phone || "—"}</td>
+                  <td>{s.region || "—"}</td>
+                  <td>
+                    {s.school_name || "—"}
+                    {s.city ? (
+                      <div style={{ color: "var(--text-muted)", fontSize: 12 }}>{s.city}</div>
+                    ) : null}
+                  </td>
+                  <td>
+                    {s.school_type === "government"
+                      ? "حكومية"
+                      : s.school_type === "private"
+                        ? "أهلية"
+                        : "—"}
+                  </td>
                   <td>
                     <span className={`badge ${s.subscription.subscription_status === "active" ? "badge-active" : "badge-expired"}`}>
                       {s.subscription.subscription_status === "active" ? "مشترك" : "غير مشترك"}

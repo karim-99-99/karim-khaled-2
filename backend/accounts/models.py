@@ -55,6 +55,23 @@ class User(AbstractUser):
     )
     gender = models.CharField(max_length=10, choices=Gender.choices, blank=True)
     role = models.CharField(max_length=10, choices=Role.choices, default=Role.STUDENT)
+    class SchoolType(models.TextChoices):
+        GOVERNMENT = "government", "حكومية"
+        PRIVATE = "private", "أهلية"
+
+    region = models.CharField("المنطقة", max_length=80, blank=True, default="")
+    city = models.CharField("المدينة", max_length=80, blank=True, default="")
+    school_name = models.CharField("اسم المدرسة", max_length=200, blank=True, default="")
+    school_type = models.CharField(
+        "نوع المدرسة",
+        max_length=20,
+        choices=SchoolType.choices,
+        blank=True,
+        default="",
+    )
+    guardian_phone = models.CharField(
+        "جوال ولي الأمر", max_length=20, blank=True, default=""
+    )
     taught_subject = models.ForeignKey(
         "catalog.Subject",
         related_name="teachers",

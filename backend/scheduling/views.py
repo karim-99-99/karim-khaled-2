@@ -1,17 +1,18 @@
 from datetime import timedelta
 
+from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import permissions, status, viewsets
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from core.permissions import IsAdmin, IsTeacherOrAdmin
 from groups.models import GroupStudent, GroupTeacher
 from .bbb import BBBError, configured as bbb_configured, join_url, meeting_id_for
-from .models import Session, SessionAttendance, sync_session_statuses
-from .serializers import SessionSerializer
+from .models import Session, SessionAttendance, TeacherAvailability, sync_session_statuses
+from .serializers import SessionSerializer, TeacherAvailabilitySerializer
 
 
 class SessionViewSet(viewsets.ModelViewSet):
@@ -416,3 +417,31 @@ class SessionViewSet(viewsets.ModelViewSet):
                 "total": len(records),
             },
         }
+
+
+@api_view(["GET", "PUT"])
+@permission_classes([IsTeacherOrAdmin])
+def teacher_availability(request):
+    """
+    GET: list my weekly availability slots.
+    PUT: replace all slots with body { slots: [{weekday, start_time, end_time}, ...] }
+    """
+    teacher = request.user
+    if request.method == "GET":
+        rows = TeacherAvailability.objects.filter(teacher=teacher)
+        return Response(TeacherAvailabilitySerializer(rows, many=True).data)
+
+    slots = request.data.get("slots")
+    if not isinstance(slots, list):
+        return Response({"detail": "slots يجب أن تكون قائمة"}, status=400)
+
+    ser = TeacherAvailabilitySerializer(data=slots, many=True)
+    ser.is_valid(raise_exception=True)
+    with transaction.atomic():
+        TeacherAvailability.objects.filter(teacher=teacher).delete()
+        created = [
+            TeacherAvailability(teacher=teacher, **item) for item in ser.validated_data
+        ]
+        TeacherAvailability.objects.bulk_create(created)
+    rows = TeacherAvailability.objects.filter(teacher=teacher)
+    return Response(TeacherAvailabilitySerializer(rows, many=True).data)

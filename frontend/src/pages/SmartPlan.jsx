@@ -3,8 +3,15 @@ import { Link } from "react-router-dom";
 import client from "../api/client";
 import { resolveSubjectKey } from "../theme/subjects";
 
-const DAY_PRESETS = [40, 50, 60, 70];
-const HOUR_PRESETS = [1, 1.5, 2, 2.5, 3, 4, 5];
+const WEEKDAY_LABELS = [
+  { id: 6, label: "الأحد" },
+  { id: 0, label: "الإثنين" },
+  { id: 1, label: "الثلاثاء" },
+  { id: 2, label: "الأربعاء" },
+  { id: 3, label: "الخميس" },
+  { id: 4, label: "الجمعة" },
+  { id: 5, label: "السبت" },
+];
 
 const KIND_LABEL = {
   foundation: "تأسيس",
@@ -49,12 +56,11 @@ export default function SmartPlan() {
 
   const [form, setForm] = useState({
     subject_ids: [],
-    days_count: 60,
-    hours_per_day: 2,
     start_date: todayISO(),
-    exam_date: "",
-    include_foundation: true,
-    include_collections: true,
+    end_date: "",
+    schedule_mode: "sequential",
+    weekly_off: [4, 5],
+    custom_off: [],
   });
 
   function loadActive() {
@@ -107,10 +113,22 @@ export default function SmartPlan() {
   async function generate() {
     setBusy(true);
     setMsg("");
+    if (!form.end_date) {
+      setMsg("حدد تاريخ نهاية الخطة");
+      setBusy(false);
+      return;
+    }
     try {
       const payload = {
-        ...form,
-        exam_date: form.exam_date || null,
+        subject_ids: form.subject_ids,
+        start_date: form.start_date,
+        end_date: form.end_date,
+        schedule_mode: form.schedule_mode,
+        weekly_off: form.weekly_off,
+        custom_off: form.custom_off,
+        include_foundation: true,
+        include_collections: true,
+        hours_per_day: 2,
       };
       const { data } = await client.post("/study-plans/generate/", payload);
       setPlan(data);
@@ -118,7 +136,7 @@ export default function SmartPlan() {
       setShowWizard(false);
       setMsg(
         data.overflow_count
-          ? `تم إنشاء الخطة ✓ — تبقّى ${data.overflow_count} درس خارج المدة؛ زد الأيام أو الساعات.`
+          ? `تم إنشاء الخطة ✓ — تبقّى ${data.overflow_count} درس خارج المدة؛ مدّد تاريخ النهاية.`
           : "تم إنشاء جدولك الذكي ✓ — ابدأ بيومك الحالي"
       );
     } catch (e) {
@@ -126,6 +144,18 @@ export default function SmartPlan() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function toggleOffDay(id) {
+    setForm((f) => {
+      const has = f.weekly_off.includes(id);
+      return {
+        ...f,
+        weekly_off: has
+          ? f.weekly_off.filter((x) => x !== id)
+          : [...f.weekly_off, id],
+      };
+    });
   }
 
   async function toggleTask(task) {
@@ -239,116 +269,83 @@ export default function SmartPlan() {
           <div className="step-block">
             <div className="step-block__head">
               <span className="step-block__num">2</span>
-              <h3>مدة الخطة</h3>
+              <h3>مدة الخطة والإجازات</h3>
             </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>مدة الخطة (يوم)</label>
-            <div className="filter-row" style={{ marginBottom: 8 }}>
-              {DAY_PRESETS.map((d) => (
-                <span
-                  key={d}
-                  className={`chip ${form.days_count === d ? "active" : ""}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setForm((f) => ({ ...f, days_count: d }))}
-                >
-                  {d} يوم
-                </span>
-              ))}
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 12,
+              }}
+            >
+              <div className="form-group">
+                <label>تاريخ البداية</label>
+                <input
+                  className="form-control"
+                  type="date"
+                  value={form.start_date}
+                  onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
+                />
+              </div>
+              <div className="form-group">
+                <label>تاريخ النهاية</label>
+                <input
+                  className="form-control"
+                  type="date"
+                  value={form.end_date}
+                  onChange={(e) => setForm((f) => ({ ...f, end_date: e.target.value }))}
+                  required
+                />
+              </div>
             </div>
-            <input
-              className="form-control"
-              type="number"
-              min={7}
-              max={120}
-              value={form.days_count}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, days_count: Number(e.target.value) || 60 }))
-              }
-            />
-          </div>
+            <div className="form-group">
+              <label>أيام الإجازة الأسبوعية</label>
+              <div className="filter-row">
+                {WEEKDAY_LABELS.map((d) => (
+                  <span
+                    key={d.id}
+                    className={`chip ${form.weekly_off.includes(d.id) ? "active" : ""}`}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => toggleOffDay(d.id)}
+                  >
+                    {d.label}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="step-block">
             <div className="step-block__head">
               <span className="step-block__num">3</span>
-              <h3>الوقت والتواريخ</h3>
+              <h3>ترتيب المذاكرة</h3>
             </div>
-          <div className="form-group">
-            <label>ساعات المذاكرة يومياً</label>
-            <div className="filter-row" style={{ marginBottom: 8 }}>
-              {HOUR_PRESETS.map((h) => (
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <div className="filter-row">
                 <span
-                  key={h}
-                  className={`chip ${Number(form.hours_per_day) === h ? "active" : ""}`}
+                  className={`chip ${form.schedule_mode === "sequential" ? "active" : ""}`}
                   role="button"
                   tabIndex={0}
-                  onClick={() => setForm((f) => ({ ...f, hours_per_day: h }))}
+                  onClick={() => setForm((f) => ({ ...f, schedule_mode: "sequential" }))}
                 >
-                  {h} س
+                  مادة بعد مادة
                 </span>
-              ))}
+                <span
+                  className={`chip ${form.schedule_mode === "weekly" ? "active" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setForm((f) => ({ ...f, schedule_mode: "weekly" }))}
+                >
+                  مادة كل أسبوع
+                </span>
+              </div>
+              <small style={{ color: "var(--text-muted)", display: "block", marginTop: 8 }}>
+                {form.schedule_mode === "weekly"
+                  ? "تناوب أسبوعي بين المواد، والمادة التي تنتهي دروسها تخرج من التناوب."
+                  : "أكمل دروس المادة الحالية ثم انتقل للتالية حسب ترتيب اختيارك."}
+              </small>
             </div>
-          </div>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-              gap: 12,
-            }}
-          >
-            <div className="form-group">
-              <label>تاريخ البداية</label>
-              <input
-                className="form-control"
-                type="date"
-                value={form.start_date}
-                onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))}
-              />
-            </div>
-            <div className="form-group">
-              <label>موعد الاختبار (اختياري)</label>
-              <input
-                className="form-control"
-                type="date"
-                value={form.exam_date}
-                onChange={(e) => setForm((f) => ({ ...f, exam_date: e.target.value }))}
-              />
-            </div>
-          </div>
-          </div>
-
-          <div className="step-block">
-            <div className="step-block__head">
-              <span className="step-block__num">4</span>
-              <h3>المحتوى</h3>
-            </div>
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label>المحتوى</label>
-            <div className="filter-row">
-              <span
-                className={`chip ${form.include_foundation ? "active" : ""}`}
-                role="button"
-                tabIndex={0}
-                onClick={() =>
-                  setForm((f) => ({ ...f, include_foundation: !f.include_foundation }))
-                }
-              >
-                تأسيس
-              </span>
-              <span
-                className={`chip ${form.include_collections ? "active" : ""}`}
-                role="button"
-                tabIndex={0}
-                onClick={() =>
-                  setForm((f) => ({ ...f, include_collections: !f.include_collections }))
-                }
-              >
-                تجميعات
-              </span>
-            </div>
-          </div>
           </div>
 
           {plan && (
@@ -367,18 +364,21 @@ export default function SmartPlan() {
             <h3>ملخص الخطة</h3>
             <div className="sticky-summary__meta">
               <div>المواد: {form.subject_ids.length}</div>
-              <div>المدة: {form.days_count} يوم</div>
-              <div>ساعات/يوم: {form.hours_per_day}</div>
               <div>من: {form.start_date || "—"}</div>
+              <div>إلى: {form.end_date || "—"}</div>
+              <div>
+                الترتيب:{" "}
+                {form.schedule_mode === "weekly" ? "مادة كل أسبوع" : "مادة بعد مادة"}
+              </div>
             </div>
             <div className="sticky-summary__stats">
               <div className="sticky-summary__stat">
-                <strong>{form.days_count}</strong>
-                <span>يوم مذاكرة</span>
-              </div>
-              <div className="sticky-summary__stat">
                 <strong>{form.subject_ids.length}</strong>
                 <span>مواد</span>
+              </div>
+              <div className="sticky-summary__stat">
+                <strong>{form.weekly_off.length}</strong>
+                <span>أيام إجازة</span>
               </div>
             </div>
             <button
@@ -399,7 +399,8 @@ export default function SmartPlan() {
             <div>
               <strong>{plan.title}</strong>
               <div style={{ color: "var(--text-muted)", fontSize: 14, marginTop: 4 }}>
-                {plan.days_count} يوم · {plan.hours_per_day} ساعة/يوم ·{" "}
+                {plan.days_count} يوم مذاكرة ·{" "}
+                {plan.schedule_mode === "weekly" ? "مادة كل أسبوع" : "مادة بعد مادة"} ·{" "}
                 {plan.done_count}/{plan.total_count} مهمة
               </div>
             </div>

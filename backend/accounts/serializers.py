@@ -25,6 +25,11 @@ class UserSerializer(serializers.ModelSerializer):
             "telegram_username",
             "gender",
             "role",
+            "region",
+            "city",
+            "school_name",
+            "school_type",
+            "guardian_phone",
             "taught_subject",
             "taught_subject_name",
             "teachable_subject_ids",
@@ -74,10 +79,28 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=6)
+    first_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    last_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    guardian_phone = serializers.CharField(
+        required=False, allow_blank=True, default=""
+    )
 
     class Meta:
         model = User
-        fields = ["full_name", "phone", "gender", "email", "password"]
+        fields = [
+            "full_name",
+            "first_name",
+            "last_name",
+            "phone",
+            "guardian_phone",
+            "gender",
+            "email",
+            "password",
+            "region",
+            "city",
+            "school_name",
+            "school_type",
+        ]
 
     def validate_email(self, value):
         if User.objects.filter(email__iexact=value).exists():
@@ -87,13 +110,52 @@ class RegisterSerializer(serializers.ModelSerializer):
     def validate_phone(self, value):
         normalized = normalize_phone(value)
         if len(normalized) < 10:
-            raise serializers.ValidationError("رقم التليفون غير صحيح")
+            raise serializers.ValidationError("رقم الجوال غير صحيح")
         for candidate in phones_match_query(value):
             if User.objects.filter(phone=candidate).exists():
-                raise serializers.ValidationError("رقم التليفون مسجل بالفعل")
+                raise serializers.ValidationError("رقم الجوال مسجل بالفعل")
         if User.objects.filter(phone=normalized).exists():
-            raise serializers.ValidationError("رقم التليفون مسجل بالفعل")
+            raise serializers.ValidationError("رقم الجوال مسجل بالفعل")
         return normalized
+
+    def validate_guardian_phone(self, value):
+        if not value:
+            return ""
+        normalized = normalize_phone(value)
+        if len(normalized) < 10:
+            raise serializers.ValidationError("رقم جوال ولي الأمر غير صحيح")
+        return normalized
+
+    def validate_region(self, value):
+        if not (value or "").strip():
+            raise serializers.ValidationError("المنطقة مطلوبة")
+        return value.strip()
+
+    def validate_city(self, value):
+        if not (value or "").strip():
+            raise serializers.ValidationError("المدينة مطلوبة")
+        return value.strip()
+
+    def validate_school_name(self, value):
+        if not (value or "").strip():
+            raise serializers.ValidationError("اسم المدرسة مطلوب")
+        return value.strip()
+
+    def validate_school_type(self, value):
+        allowed = {User.SchoolType.GOVERNMENT, User.SchoolType.PRIVATE}
+        if value not in allowed:
+            raise serializers.ValidationError("اختر نوع المدرسة")
+        return value
+
+    def validate(self, attrs):
+        first = (attrs.pop("first_name", "") or "").strip()
+        last = (attrs.pop("last_name", "") or "").strip()
+        full = (attrs.get("full_name") or "").strip()
+        if first or last:
+            attrs["full_name"] = f"{first} {last}".strip()
+        elif not full:
+            raise serializers.ValidationError({"full_name": "الاسم مطلوب"})
+        return attrs
 
     def create(self, validated_data):
         password = validated_data.pop("password")

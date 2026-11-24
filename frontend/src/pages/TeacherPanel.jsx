@@ -64,6 +64,9 @@ export default function TeacherPanel() {
           <Link to="/teacher/schedule" className="btn btn-secondary">
             جدول الحصص
           </Link>
+          <Link to="/teacher/availability" className="btn btn-secondary">
+            مواعيدي المتاحة
+          </Link>
           <Link to="/teacher/questions" className="btn btn-ghost">
             محرر الأسئلة القديم
           </Link>

@@ -147,25 +147,53 @@
 .landing-exact .offer .b1{display:inline-block}
 .landing-exact .final .b1{display:inline-flex}
 .landing-exact .ribbon{pointer-events:none}
+.landing-exact .ribbon .rs{display:none}
+.landing-exact .mimg{display:none}
 .landing-exact .q summary{list-style:none;cursor:pointer}
 .landing-exact .q summary::-webkit-details-marker{display:none}
 .landing-exact .q summary b{display:flex;justify-content:space-between;width:100%;font-size:17px}
 .landing-exact .q summary i{font-style:normal;color:var(--blue);font-size:22px;line-height:1}
 @media (max-width:980px){
- .landing-exact .hero{height:auto;min-height:560px;background-position:left center;background-size:cover}
- .landing-exact .hin{padding:56px 18px 40px}
- .landing-exact .hin h1{font-size:34px}
  .landing-exact .stats,.landing-exact .feats,.landing-exact .subj,.landing-exact .offer{grid-template-columns:1fr 1fr}
  .landing-exact .steps{flex-wrap:wrap}
  .landing-exact .steps .ar{display:none}
 }
-@media (max-width:640px){
- .landing-exact .hero{min-height:520px;background-position:left 20% center;background-size:cover}
- .landing-exact .hin{padding:40px 16px 36px}
- .landing-exact .hin h1{font-size:28px}
- .landing-exact .cta{flex-direction:column}
- .landing-exact .b1,.landing-exact .b2{width:100%;text-align:center}
- .landing-exact .stats,.landing-exact .feats,.landing-exact .subj,.landing-exact .offer{grid-template-columns:1fr}
- .landing-exact .ribbon{top:48px;left:-130px;width:360px;font-size:14px;padding:9px 0}
- .landing-exact .coupon{width:100%;transform:none}
+@media (max-width:700px){
+ .landing-exact .hero{
+   height:auto!important;
+   background:linear-gradient(180deg,#ffffff 0%,#eef6fd 55%,#d7eaf9 100%)!important;
+   overflow:hidden;
+ }
+ .landing-exact .ribbon .rl{display:none}
+ .landing-exact .ribbon .rs{display:inline}
+ .landing-exact .ribbon{top:26px!important;left:-52px!important;width:200px!important;font-size:10.5px!important;padding:5px 0!important}
+ .landing-exact .hin{padding:74px 18px 0!important;text-align:center}
+ .landing-exact .hin .tag{font-size:12px!important;padding:5px 12px!important}
+ .landing-exact .hin h1{font-size:30px!important;max-width:none!important;line-height:1.35!important;margin-top:12px!important}
+ .landing-exact .hin p{font-size:15px!important;max-width:none!important;margin:10px auto 0!important;line-height:1.7!important}
+ .landing-exact .cta{flex-direction:column;gap:10px!important;margin-top:20px!important}
+ .landing-exact .cta a,.landing-exact .b1,.landing-exact .b2{text-align:center;padding:14px!important;font-size:16px!important;width:100%;box-sizing:border-box}
+ .landing-exact .seats{margin:12px auto 0!important;font-size:13px!important;white-space:nowrap}
+ .landing-exact .seats .mini{display:none}
+ .landing-exact .mimg{
+   display:block;height:290px;margin:-6px -18px 0;
+   background:url(/banner.png) 8% 22%/auto 125% no-repeat;
+   -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 8%);
+   mask-image:linear-gradient(180deg,transparent 0,#000 8%);
+ }
+ .landing-exact .trust{justify-content:center;flex-wrap:wrap;gap:8px!important;margin:0 -18px!important;padding:12px 10px 50px;background:#0d467d;color:#fff!important;font-size:12px!important}
+ .landing-exact .stats{grid-template-columns:1fr 1fr!important;margin:-34px 14px 0!important;border-radius:16px!important}
+ .landing-exact .st{padding:14px 8px!important;border-left:0!important;border-bottom:1px solid #edf0f6}
+ .landing-exact .st strong{font-size:24px!important}
+ .landing-exact .st span{font-size:12px!important}
+ .landing-exact .wrap{padding:0 14px!important}
+ .landing-exact .sh{margin:46px 0 20px!important}
+ .landing-exact .sh h2{font-size:26px!important}
+ .landing-exact .feats{grid-template-columns:1fr 1fr!important;gap:10px!important}
+ .landing-exact .steps{flex-direction:column!important;gap:8px!important}
+ .landing-exact .steps .ar{display:none}
+ .landing-exact .offer{grid-template-columns:1fr!important;margin-top:40px!important}
+ .landing-exact .subj{grid-template-columns:1fr 1fr!important;gap:10px!important}
+ .landing-exact .coupon{width:100%!important;transform:none}
+ .landing-exact .final{padding:28px 18px!important;margin-top:46px!important}
 }

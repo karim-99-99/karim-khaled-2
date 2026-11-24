@@ -25,6 +25,7 @@ const SmartPlan = lazy(() => import("./pages/SmartPlan"));
 const Subscription = lazy(() => import("./pages/Subscription"));
 const TeacherPanel = lazy(() => import("./pages/TeacherPanel"));
 const TeacherSchedule = lazy(() => import("./pages/TeacherSchedule"));
+const TeacherAvailability = lazy(() => import("./pages/TeacherAvailability"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const QuestionEditor = lazy(() => import("./pages/QuestionEditor"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -84,6 +85,7 @@ export default function App() {
           <Route path="/teacher" element={<RequireRole roles={["teacher", "admin"]}><TeacherPanel /></RequireRole>} />
           <Route path="/teacher/questions" element={<RequireRole roles={["teacher", "admin"]}><QuestionEditor /></RequireRole>} />
           <Route path="/teacher/schedule" element={<RequireRole roles={["teacher", "admin"]}><TeacherSchedule /></RequireRole>} />
+          <Route path="/teacher/availability" element={<RequireRole roles={["teacher", "admin"]}><TeacherAvailability /></RequireRole>} />
           <Route path="/admin" element={<RequireRole roles={["admin"]}><AdminPanel /></RequireRole>} />
         </Route>
       </Routes>

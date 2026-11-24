@@ -53,7 +53,7 @@ from core.views import (
     video_token,
 )
 from groups.views import AdminGroupViewSet, TeacherGroupViewSet
-from scheduling.views import SessionViewSet
+from scheduling.views import SessionViewSet, teacher_availability
 from planner.views import (
     active_study_plan,
     generate_study_plan,
@@ -137,6 +137,7 @@ api_patterns = [
     path("subscription/checkout/", checkout),
     # Teacher scheduling helpers
     path("teacher/assignments/", teacher_assignments),
+    path("teacher/availability/", teacher_availability),
     # Analytics
     path("teacher/students/<int:student_id>/analytics/", teacher_student_analytics),
     # Routers

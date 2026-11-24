@@ -32,52 +32,67 @@ def _round_robin(queues: list[list]) -> list:
     return out
 
 
-def build_work_units(subject_ids, include_foundation, include_collections):
-    subjects = list(
-        Subject.objects.filter(id__in=subject_ids).order_by("order", "id")
+def _lesson_units_for_subject(subj, lessons):
+    units = []
+    for lesson in lessons:
+        units.append(
+            {
+                "kind": "foundation",
+                "subject": subj,
+                "lesson": lesson,
+                "title": f"تأسيس · {subj.name} · {lesson.title}",
+                "detail": "شاهد الدرس والعناوين الفرعية وحل الواجب.",
+                "minutes": MINUTES_FOUNDATION,
+            }
+        )
+        units.append(
+            {
+                "kind": "collections",
+                "subject": subj,
+                "lesson": lesson,
+                "title": f"تجميع · {subj.name} · {lesson.title}",
+                "detail": "تمرّن على أسئلة التجميع.",
+                "minutes": MINUTES_COLLECTIONS,
+            }
+        )
+    return units
+
+
+def build_work_units(
+    subject_ids,
+    include_foundation=True,
+    include_collections=True,
+    schedule_mode="sequential",
+):
+    """
+    schedule_mode:
+      - sequential: مادة بعد مادة (كل دروس المادة ثم التالية)
+      - weekly: تناوب أسبوعي بين المواد
+    تأسيس/تجميعات دائماً ضمن الوحدات (الـ handoff ألغى التبديل).
+    """
+    del include_foundation, include_collections  # always both
+    id_order = list(subject_ids)
+    subjects = list(Subject.objects.filter(id__in=id_order))
+    subjects.sort(
+        key=lambda s: id_order.index(s.id) if s.id in id_order else 999
     )
     if not subjects:
         return [], []
 
-    foundation_queues = []
-    collection_queues = []
+    per_subject = []
     for subj in subjects:
         lessons = list(
             Lesson.objects.filter(subject=subj, is_archived=False).order_by(
                 "order_number", "id"
             )
         )
-        if include_foundation:
-            foundation_queues.append(
-                [
-                    {
-                        "kind": "foundation",
-                        "subject": subj,
-                        "lesson": lesson,
-                        "title": f"تأسيس · {subj.name} · {lesson.title}",
-                        "detail": "شاهد الدرس والعناوين الفرعية وحل الواجب.",
-                        "minutes": MINUTES_FOUNDATION,
-                    }
-                    for lesson in lessons
-                ]
-            )
-        if include_collections:
-            collection_queues.append(
-                [
-                    {
-                        "kind": "collections",
-                        "subject": subj,
-                        "lesson": lesson,
-                        "title": f"تجميع · {subj.name} · {lesson.title}",
-                        "detail": "تمرّن على أسئلة التجميع (سهل / متوسط / صعب).",
-                        "minutes": MINUTES_COLLECTIONS,
-                    }
-                    for lesson in lessons
-                ]
-            )
+        per_subject.append(_lesson_units_for_subject(subj, lessons))
 
-    # تأسيس أولاً ثم تجميعات (مثل خطط التحصيلي الشاملة).
-    units = _round_robin(foundation_queues) + _round_robin(collection_queues)
+    if schedule_mode == "weekly":
+        units = _round_robin(per_subject)
+    else:
+        # مادة بعد مادة
+        units = [u for queue in per_subject for u in queue]
     return subjects, units
 
 
@@ -163,8 +178,9 @@ def generate_plan_payload(
     start_date,
     include_foundation=True,
     include_collections=True,
+    schedule_mode="sequential",
 ):
-    days_count = max(7, min(120, int(days_count)))
+    days_count = max(7, min(180, int(days_count)))
     hours_per_day = Decimal(str(hours_per_day or 2))
     if hours_per_day < 1:
         hours_per_day = Decimal("1")
@@ -172,7 +188,10 @@ def generate_plan_payload(
         hours_per_day = Decimal("10")
 
     subjects, units = build_work_units(
-        subject_ids, include_foundation, include_collections
+        subject_ids,
+        include_foundation,
+        include_collections,
+        schedule_mode=schedule_mode or "sequential",
     )
     if not units:
         return {

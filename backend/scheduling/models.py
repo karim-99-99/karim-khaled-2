@@ -117,6 +117,43 @@ def sync_session_statuses(queryset=None):
         )
 
 
+class TeacherAvailability(models.Model):
+    """Weekly availability slots for a teacher (Asia/Riyadh windows)."""
+
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="availability_slots",
+        on_delete=models.CASCADE,
+    )
+    # Python weekday: Monday=0 … Sunday=6
+    weekday = models.PositiveSmallIntegerField()
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+
+    class Meta:
+        ordering = ["weekday", "start_time", "id"]
+        verbose_name_plural = "teacher availabilities"
+
+    def __str__(self):
+        return f"{self.teacher_id} · {self.weekday} {self.start_time}-{self.end_time}"
+
+    @staticmethod
+    def allowed_window(weekday):
+        """Friday/Saturday 12:00–23:00; other days 16:00–23:00."""
+        from datetime import time
+
+        if weekday in (4, 5):  # Fri, Sat
+            return time(12, 0), time(23, 0)
+        return time(16, 0), time(23, 0)
+
+    def duration_hours(self):
+        from datetime import datetime, date
+
+        start = datetime.combine(date.min, self.start_time)
+        end = datetime.combine(date.min, self.end_time)
+        return (end - start).total_seconds() / 3600.0
+
+
 class SessionAttendance(models.Model):
     """Present / absent mark for a student in a live session."""
 
