@@ -1,0 +1,16 @@
+---
+description: Maram development brief — always follow
+alwaysApply: true
+---
+- The full spec is in `docs/maram-brief/MARAM-DEV-BRIEF.md` (+ `screenshots/`, `mockups/`, `renders/`). It is the single source of truth.
+- You are in IMPLEMENTATION mode: edit the code. Never answer with only a plan or a summary.
+- Work only on the phase the user gives you. Finish ALL its items before stopping.
+- Before editing an area, inspect the existing code for it and reuse/extend it. Don't rewrite working code.
+- NEVER modify the BigBlueButton integration code.
+- DB changes: additive migrations only; destructive steps only after a backup and only where the brief says so.
+- Every permission/lock rule must be enforced in the API, not only hidden in the UI.
+- One shared time-rules service for classes/tasks/locks (brief rule 0.4). Times stored UTC, shown Asia/Riyadh.
+- For UI: copy structure and CSS values from `mockups/*.html` and `mockups/_shared.css`; compare your result with `renders/*.png` at the same width.
+- After each item: run the build/lint/tests and list the files you changed.
+- If the brief conflicts with the existing code or data, STOP and ask.
+- End every phase with: done / tested / remaining / questions.

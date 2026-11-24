@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>المهام — مدرس الأحياء</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+:root{--c:#C58A00;--c2:#E0A400;--cl:#FFF6DC;--ink:#0f2a4a;--mut:#6b7a90;--line:#e6ebf2;--bg:#f2f5fa;--blue:#1565c0;--green:#16a34a;--red:#dc2626}
+*{box-sizing:border-box}body{margin:0;font-family:Tajawal,system-ui,sans-serif;background:var(--bg);color:var(--ink)}
+nav{background:#fff;border-bottom:3px solid #3b9be0;display:flex;align-items:center;justify-content:space-between;padding:14px 40px}
+.logo{font-weight:800;color:#1565c0;font-size:26px}.links{display:flex;gap:30px;font-size:17px;color:#334}.links .on{background:#3b9be0;color:#fff;padding:8px 18px;border-radius:12px;font-weight:700}
+.acc{display:flex;gap:10px}.acc span{border:1px solid var(--line);padding:8px 18px;border-radius:12px;color:#556}.av{background:#1565c0;color:#fff;border-radius:50%;width:42px;height:42px;display:grid;place-items:center;font-weight:700}
+.wrap{max-width:1500px;margin:0 auto;padding:22px 40px 50px}
+.crumb{color:var(--mut);font-size:14px;margin-bottom:12px}.crumb b{color:var(--blue)}
+.hero{background:linear-gradient(90deg,#8a6000,#b88200 45%,#e0a400);border-radius:24px;color:#fff;padding:26px 32px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 10px 30px rgba(197,138,0,.25)}
+.hero h1{margin:4px 0 6px;font-size:32px}.hero p{margin:0;opacity:.92}
+.stats{display:flex;gap:12px}.st{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);border-radius:16px;padding:12px 20px;text-align:center;min-width:120px}.st b{font-size:26px;display:block}.st small{opacity:.9}
+.bar{background:#fff;border-radius:18px;margin-top:18px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line)}
+.bar .lbl{font-weight:700;margin-left:12px}
+.chips{display:flex;gap:8px;align-items:center}.chip{padding:9px 18px;border-radius:12px;border:1px solid var(--line);font-weight:700;color:#445;background:#fff}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}.chip .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-left:6px}
+.hint{font-size:14px;color:var(--mut)}
+.grid{display:grid;grid-template-columns:1fr 380px;gap:20px;margin-top:18px}
+.card{background:#fff;border-radius:20px;border:1px solid var(--line);padding:20px}
+.card h2{margin:0 0 4px;font-size:21px}.sub{color:var(--mut);font-size:14px}
+.lesson{border:1px solid var(--line);border-radius:16px;margin-top:14px;overflow:hidden}
+.lh{display:flex;align-items:center;gap:14px;padding:14px 16px}
+.num{width:42px;height:42px;border-radius:12px;background:var(--cl);color:var(--c);font-weight:800;display:grid;place-items:center;font-size:18px;flex:none}
+.lesson.open .num{background:var(--c);color:#fff}
+.lt{flex:1}.lt b{font-size:17px}.meta{font-size:13px;color:var(--mut);margin-top:3px}
+.pill{font-size:12px;font-weight:700;padding:4px 10px;border-radius:99px;margin-right:8px}
+.p-g{background:#e8f7ee;color:var(--green)}.p-o{background:#fff4e0;color:#c26a00}.p-gr{background:#eef1f5;color:#667}.p-r{background:#fdecec;color:var(--red)}.p-b{background:#e8f1fd;color:var(--blue)}
+.counts{display:flex;gap:8px}.cnt{font-size:13px;font-weight:700;padding:6px 10px;border-radius:10px;background:#f4f6fa;color:#445}
+.lb{background:#fffdf6;border-top:1px dashed #f0dfb0;padding:14px 16px;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.col h4{margin:0 0 10px;font-size:15px;color:var(--c);display:flex;gap:6px;align-items:center}
+.task{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);border-right:4px solid var(--c);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.drag{color:#b7c0cc;cursor:grab;font-size:18px}.task .tt{flex:1;font-weight:700;font-size:14.5px}.task small{display:block;color:var(--mut);font-weight:500}
+.x{color:var(--red);background:#fdecec;border-radius:8px;width:28px;height:28px;display:grid;place-items:center;font-weight:700}
+.add{border:1.5px dashed #e3c674;color:var(--c);border-radius:12px;padding:10px;text-align:center;font-weight:700;background:#fffaf0}
+.btn{background:var(--c);color:#fff;border-radius:12px;padding:10px 18px;font-weight:700;display:inline-block}
+.btn.ghost{background:#fff;color:var(--c);border:1px solid #e9d39a}
+.ovr{background:#fff7e6;border:1px solid #f5d48a;color:#8a5a00;border-radius:12px;padding:10px 14px;font-size:14px;display:flex;justify-content:space-between;align-items:center;margin:12px 16px 0}
+.extra .num{background:#e8f1fd;color:var(--blue)}
+.side .tabs{display:flex;background:#f2f4f8;border-radius:12px;padding:4px;margin:12px 0}.side .tabs span{flex:1;text-align:center;padding:9px;border-radius:9px;font-weight:700;color:#556}.side .tabs .on{background:#fff;color:var(--c);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.search{border:1px solid var(--line);border-radius:12px;padding:11px 14px;color:#99a;margin-bottom:10px}
+.item{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;margin-bottom:8px}
+.item .it{flex:1;font-weight:700;font-size:14.5px}.item small{display:block;color:var(--mut);font-weight:500}
+.item.sel{border-color:var(--c);background:var(--cl)}
+.ck{width:22px;height:22px;border-radius:6px;border:2px solid #cfd6e0;flex:none}.item.sel .ck{background:var(--c);border-color:var(--c)}
+.used{font-size:11.5px;color:var(--green);font-weight:700}
+.foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.legend{display:flex;gap:16px;font-size:13px;color:var(--mut);margin-top:14px}
+</style></head><body>
+<nav><div class="logo">مرام</div>
+<div class="links"><span>الرئيسية</span><span>حصصي</span><span>الطلاب</span><span class="on">المهام</span><span>الاختبارات</span><span>إدارة المادة</span></div>
+<div class="acc"><span>خروج</span><span>حسابي</span><div class="av">م</div></div></nav>
+<div class="wrap">
+<div class="crumb">المهام › <b>ربط الدروس بالمهام</b></div>
+<div class="hero"><div><div style="opacity:.9;font-weight:700">مدرس الأحياء · المدرس الأساسي</div><h1>ربط الدروس بالتجميعات</h1><p>المهام تظهر للطالب تلقائياً بعد انتهاء حصة الدرس في مجموعته</p></div>
+<div class="stats"><div class="st"><b>12/17</b><small>درس مربوط</small></div><div class="st"><b>46</b><small>مهمة مربوطة</small></div><div class="st"><b>2</b><small>تخصيص لمجموعات</small></div></div></div>
+
+<div class="bar"><div class="chips"><span class="lbl">عرض المهام لـ</span><span class="chip on">الافتراضي · كل المجموعات</span><span class="chip">مجموعة أ</span><span class="chip"><span class="dot"></span>مجموعة ب</span><span class="chip">مجموعة ج</span></div>
+<div class="hint">● = مجموعة فيها تخصيص مختلف عن الافتراضي</div></div>
+
+<div class="grid">
+<div class="card">
+<div style="display:flex;justify-content:space-between;align-items:end"><div><h2>دروس التأسيس (17)</h2><div class="sub">الواجبات بتتربط تلقائي من عناوين الدرس · اختار التجميعات ورتّبها بالسحب · التعديل على "الافتراضي" يطبَّق على كل المجموعات اللي مش متخصصة</div></div>
+<div class="counts"><span class="cnt">📘 واجبات</span><span class="cnt">📚 تجميعات</span></div></div>
+
+<div class="lesson"><div class="lh"><div class="num">1</div><div class="lt"><b>مقدمة في علم الأحياء</b><span class="pill p-g">ظهرت لكل المجموعات</span><div class="meta">2 واجب · 2 تجميعة · 75 سؤال</div></div><div class="counts"><span class="cnt">📘 2</span><span class="cnt">📚 2</span></div><span class="btn ghost">تعديل</span></div></div>
+
+<div class="lesson open"><div class="lh"><div class="num">2</div><div class="lt"><b>التصنيف الحديث</b><span class="pill p-o">ظهرت لمجموعة أ · ب — ج بعد 5:00 م اليوم</span><span class="pill p-b">تخصيص مجموعة ب</span><div class="meta">4 واجبات · 3 تجميعات · 162 سؤال</div></div><div class="counts"><span class="cnt">📘 4</span><span class="cnt">📚 3</span></div><span class="btn">إغلاق</span></div>
+<div class="lb">
+<div class="col"><h4>📘 الواجبات <span class="pill p-gr" style="margin:0">تلقائي · عناوين الدرس الفرعية</span></h4>
+<div class="task" style="border-right-color:#cfd6e0;background:#fbfcfe"><span class="drag">🔒</span><div class="tt">الممالك الخمس<small>واجب فرعي · 15 سؤال</small></div></div>
+<div class="task" style="border-right-color:#cfd6e0;background:#fbfcfe"><span class="drag">🔒</span><div class="tt">التسمية الثنائية<small>واجب فرعي · 10 أسئلة</small></div></div>
+<div class="task" style="border-right-color:#cfd6e0;background:#fbfcfe"><span class="drag">🔒</span><div class="tt">مفاتيح التصنيف<small>واجب فرعي · 12 سؤال</small></div></div>
+<div class="task" style="border-right-color:#cfd6e0;background:#fbfcfe"><span class="drag">🔒</span><div class="tt">مراجعة الفصل<small>واجب فرعي · 20 سؤال</small></div></div>
+<div class="sub" style="font-size:12.5px">تُضاف وتُعدَّل من "إدارة المادة" داخل الدرس نفسه</div></div>
+<div class="col"><h4>📚 التجميعات</h4>
+<div class="task"><span class="drag">⋮⋮</span><div class="tt">التصنيف الحديث › الممالك وبدائيات النوى<small>فرعي · 120 سؤال</small></div><span class="x">✕</span></div>
+<div class="task"><span class="drag">⋮⋮</span><div class="tt">التصنيف الحديث › التسمية الثنائية<small>فرعي · 20 سؤال</small></div><span class="x">✕</span></div>
+<div class="task"><span class="drag">⋮⋮</span><div class="tt">مقدمة في علم الأحياء <span class="pill p-b">كل الفرعيات</span><small>رئيسي · 2 عنوان · 60 سؤال</small></div><span class="x">✕</span></div>
+<div class="add">+ إضافة تجميعة</div></div>
+</div></div>
+
+<div class="lesson"><div class="lh"><div class="num">3</div><div class="lt"><b>الطلائعيات والفطريات</b><span class="pill p-gr">تظهر بعد حصة الأربعاء 25 نوفمبر</span><div class="meta">1 واجب · 2 تجميعة · 70 سؤال</div></div><div class="counts"><span class="cnt">📘 1</span><span class="cnt">📚 2</span></div><span class="btn ghost">تعديل</span></div></div>
+
+<div class="lesson"><div class="lh"><div class="num">4</div><div class="lt"><b>المملكة الحيوانية (اللافقاريات)</b><span class="pill p-r">لا توجد مهام مربوطة</span><div class="meta">الطلاب مش هيشوفوا مهام يوم الحصة دي</div></div><div class="counts"><span class="cnt">📘 0</span><span class="cnt">📚 0</span></div><span class="btn">+ ربط مهام</span></div></div>
+
+<div class="lesson"><div class="lh"><div class="num">5</div><div class="lt"><b>المملكة الحيوانية (الفقاريات)</b><span class="pill p-gr">تظهر بعد حصة السبت 28 نوفمبر</span><div class="meta">2 واجب · 1 تجميعة · 55 سؤال</div></div><div class="counts"><span class="cnt">📘 2</span><span class="cnt">📚 1</span></div><span class="btn ghost">تعديل</span></div></div>
+
+<div class="legend"><span>+ 12 درس آخر</span><span>·</span><span>الحصص الإضافية تظهر عند اختيار مجموعة معينة</span></div>
+</div>
+
+<div class="card side">
+<h2>إضافة إلى: التصنيف الحديث</h2><div class="sub">الافتراضي · كل المجموعات</div>
+<div class="sub" style="margin:10px 0">📚 اختار تجميعة رئيسية كاملة أو عناوين فرعية منها</div>
+<div class="search">🔍 ابحث في تجميعات الأحياء (رئيسي أو فرعي)…</div>
+<div class="item" style="background:#fafbfd"><span class="ck" style="background:linear-gradient(135deg,var(--c) 50%,#fff 50%);border-color:var(--c)"></span><div class="it">التصنيف الحديث<small>تجميعة رئيسية · 4 عناوين فرعية · 170 سؤال</small></div><span style="color:var(--mut)">⌃</span></div>
+<div style="margin:-2px 26px 8px 0;border-right:2px solid #f0dfb0;padding-right:10px">
+<div class="item"><span class="ck"></span><div class="it">الممالك وبدائيات النوى<small>120 سؤال · <span class="used">✓ مربوطة بالدرس</span></small></div></div>
+<div class="item sel"><span class="ck"></span><div class="it">التسمية الثنائية<small>20 سؤال</small></div></div>
+<div class="item sel"><span class="ck"></span><div class="it">مفاتيح التصنيف<small>18 سؤال</small></div></div>
+<div class="item"><span class="ck"></span><div class="it">الفيروسات<small>12 سؤال</small></div></div>
+</div>
+<div class="item"><span class="ck"></span><div class="it">الطلائعيات والفطريات<small>تجميعة رئيسية · 3 عناوين فرعية · 95 سؤال</small></div><span style="color:var(--mut)">⌄</span></div>
+<div class="item"><span class="ck"></span><div class="it">مقدمة في علم الأحياء<small>تجميعة رئيسية · 2 عنوان فرعي · 60 سؤال</small></div><span style="color:var(--mut)">⌄</span></div>
+<div class="foot"><span class="sub">2 عنوان فرعي محدد · 38 سؤال</span><span class="btn">إضافة للدرس</span></div>
+<div class="ovr" style="margin:16px 0 0;display:block"><b>💡 لما تختار مجموعة من فوق</b><br>تقدر تغيّر مهام أي درس لها بس، وتضيف مهام لحصصها الإضافية. وزرار "رجوع للافتراضي" يلغي التخصيص.</div>
+</div>
+</div></div></body></html>

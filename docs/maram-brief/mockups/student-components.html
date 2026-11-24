@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مكونات الطالب — مرجع التعديلات</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+/* Reference for the student-side FIXES (Pages 1,3,4,5,6,8,9). Each block = how the component must look/behave.
+   Subject theme via .s-bio/.s-chem/.s-phys/.s-math on the component. */
+.sec-t{font-size:15px;font-weight:800;color:#fff;background:var(--navy);display:inline-block;padding:6px 14px;border-radius:10px;margin:34px 0 14px}
+.note{color:var(--mut);font-size:14px;margin:-6px 0 14px}
+/* 1. next class card */
+.nc{display:flex;align-items:center;gap:22px;background:linear-gradient(90deg,#fff 0%,var(--c-light) 100%);border:1.5px solid color-mix(in srgb,var(--c) 35%,#fff);border-right:6px solid var(--c);border-radius:20px;padding:20px 24px}
+.nc .n{width:58px;height:58px;border-radius:50%;background:var(--c-grad);color:#fff;display:grid;place-items:center;font-weight:800;font-size:22px;flex:none}
+.nc .mid{flex:1}.nc .ttl{color:var(--c);font-weight:800;font-size:21px}.nc .sub2{font-weight:700;color:#334;margin-top:4px}
+.nc .time{font-size:34px;font-weight:800;color:var(--c-dark);line-height:1.1}
+.nc .state{min-width:220px;text-align:center}
+.cd{font-size:13px;color:var(--mut)}.cd b{display:block;font-size:24px;color:var(--ink);font-variant-numeric:tabular-nums}
+.live{display:inline-flex;align-items:center;gap:6px;background:var(--green);color:#fff;border-radius:10px;padding:5px 12px;font-weight:800;font-size:14px;margin-bottom:8px}
+.live i{width:8px;height:8px;border-radius:50%;background:#fff;animation:p 1s infinite}@keyframes p{50%{opacity:.3}}
+.soon{display:inline-block;background:var(--orange-l);color:var(--orange-d);border-radius:10px;padding:5px 12px;font-weight:800;font-size:14px;margin-bottom:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+/* 3. courses */
+.courses{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.course{background:#fff;border-radius:20px;border:1px solid var(--line);border-top:6px solid var(--c);padding:22px;display:flex;flex-direction:column;align-items:center;min-height:330px}
+.logo-box{width:100%;height:190px;display:grid;place-items:center;background:var(--c-light);border-radius:14px;color:var(--c);font-weight:800}
+.course .btn{margin-top:auto;width:100%}
+/* 4. lessons header */
+.lh{display:flex;align-items:center;gap:26px;background:linear-gradient(270deg,#fff 0%,#fff 45%,var(--c-light) 100%);border:1px solid var(--line);border-right:6px solid var(--c);border-radius:24px;padding:24px 30px}
+.lh .logo-box{width:190px;height:140px;flex:none;background:#fff;border:1px dashed color-mix(in srgb,var(--c) 40%,#fff)}
+.lh .div{width:1px;align-self:stretch;background:var(--line)}
+.lh h1{color:var(--c-dark);margin:10px 0 0;font-size:34px}
+.lh .cnt{margin-right:auto;width:120px;height:120px;border-radius:22px;background:var(--c-grad);color:#fff;display:grid;place-items:center;text-align:center}
+.lh .cnt b{font-size:40px;display:block;line-height:1}
+/* lessons list hover */
+.lessons{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.ls{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px 20px;transition:all .18s;cursor:pointer}
+.ls b{flex:1;font-size:19px}.ls .go{width:52px;height:52px;border-radius:50%;background:var(--c);color:#fff;display:grid;place-items:center;font-size:20px}
+.ls:hover,.ls.demo-hover{border-color:var(--c);background:linear-gradient(270deg,#fff,var(--c-light));box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.ls:hover .num-badge,.ls.demo-hover .num-badge{background:var(--c);color:#fff}
+/* 6. question page */
+.qp{display:grid;grid-template-columns:1fr 330px;gap:22px}
+.qtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+.sel{border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-weight:700;background:#fff;min-width:240px;display:flex;justify-content:space-between}
+.q{font-size:20px;font-weight:800;margin:14px 0 16px;line-height:1.7}
+.opt{display:flex;align-items:center;gap:14px;border:1px solid var(--line);border-radius:14px;padding:10px 14px;margin-bottom:10px;font-weight:700;font-size:17px}
+.opt span{width:36px;height:36px;border-radius:10px;background:#eef2f8;display:grid;place-items:center;flex:none}
+.opt.sel2{border-color:var(--c);background:var(--c-light)}.opt.sel2 span{background:var(--c);color:#fff}
+.qnav{display:flex;justify-content:space-between;margin-top:18px}
+.map{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.map span{border:1px solid var(--line);border-radius:10px;padding:9px 0;text-align:center;font-weight:700;font-size:14px}
+.map .a{background:var(--c-light);border-color:var(--c);color:var(--c)}.map .cur{background:var(--c);color:#fff;border-color:var(--c)}
+.map .lock{background:#f3f4f6;color:#b0b7c3}
+/* break */
+.brk{text-align:center;padding:40px 20px}
+.brk .ring.lg::before{background:#fff}.brk .ring.lg b{font-size:30px;color:var(--ink)}
+/* 9. simulator */
+.opts3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.oc{border:1.5px solid var(--line);border-radius:16px;padding:16px;background:#fff}
+.oc.on{border-color:var(--brand);background:#f1f7ff}
+.oc b{display:block;font-size:17px;margin-bottom:4px}
+.step{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;width:max-content;margin-top:10px}
+.step span{padding:8px 16px;font-weight:800}.step .v{background:#fff;border-inline:1px solid var(--line);min-width:60px;text-align:center}
+.tsh{display:flex;gap:10px}.tsh span{display:flex;gap:8px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:10px 18px;font-weight:800}
+.tsh .g.on{background:#fff6dc;border-color:#e0a400}.tsh .s.on{background:#f1f3f6;border-color:#9aa3af}
+.tsh .ck{width:18px;height:18px;border-radius:5px;border:2px solid #cfd6e0}.tsh .on .ck{background:var(--brand);border-color:var(--brand)}
+.lesson-pick{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.lp{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-weight:700;background:#fff}
+.lp .ck{width:20px;height:20px;border-radius:5px;background:var(--brand);flex:none}
+.lp.off{background:#f6f7f9;color:#a3abb8}.lp.off s{flex:1}.lp.off .ck{background:#e5e8ee}
+@media (max-width:1100px){ .courses{grid-template-columns:1fr 1fr} .qp{grid-template-columns:1fr} .grid2,.opts3{grid-template-columns:1fr} .lh{flex-wrap:wrap} }
+@media (max-width:480px){ .courses,.lessons,.lesson-pick{grid-template-columns:1fr} .nc{flex-wrap:wrap} }
+</style></head>
+<body>
+<nav class="nav"><div class="logo">مرام</div>
+<div class="links"><a class="on">الرئيسية</a><a>المهام اليومية</a><a>دورات</a><a>اختبارات</a><a>نتائج</a><a>جدول الحصص</a><a>الأسعار</a></div>
+<div class="acc"><a>خروج</a><a>حسابي</a><div class="av">h</div><div class="burger">☰</div></div></nav>
+<div class="wrap">
+<h1 style="margin:6px 0 4px">مكونات صفحات الطالب — مرجع التعديلات</h1>
+<p class="mut">كل بلوك هنا = الشكل المطلوب لمكوّن موجود في الموقع. الألوان من جدول ألوان المواد.</p>
+
+<div class="sec-t">1 · كارت الحصة القادمة (الرئيسية) — 4 حالات × لون المادة</div>
+<p class="note">السطر الأول: المادة · اسم المدرس. الميعاد في سطر لوحده كبير. الزرار مقفول لحد ما المدرس يدخل (BigBlueButton).</p>
+<div class="grid2">
+ <div class="nc s-bio"><span class="n">3</span><div class="mid"><div class="ttl">مقدمة في علم الأحياء</div><div class="sub2">أحياء · أ. محمد</div><div class="time">3:00 م</div><small class="mut">الثلاثاء 24 نوفمبر</small></div><div class="state"><div class="cd">تبدأ بعد<b>02:14:35</b></div><span class="btn dis" style="margin-top:8px">ادخل الحصة</span></div></div>
+ <div class="nc s-chem"><span class="n">5</span><div class="mid"><div class="ttl">الاتزان الكيميائي</div><div class="sub2">كيمياء · أ. سارة</div><div class="time">5:00 م</div><small class="mut">اليوم</small></div><div class="state"><span class="soon">ستبدأ قريبًا</span><br><span class="btn dis">ادخل الحصة</span><div class="cd" style="margin-top:6px">في انتظار دخول المعلم</div></div></div>
+ <div class="nc s-phys"><span class="n">2</span><div class="mid"><div class="ttl">الحركة في بعدين</div><div class="sub2">فيزياء · أ. خالد</div><div class="time">8:00 م</div><small class="mut">اليوم</small></div><div class="state"><span class="live"><i></i>مباشر الآن</span><br><a class="btn">ادخل الحصة ←</a></div></div>
+ <div class="nc s-math"><span class="n">7</span><div class="mid"><div class="ttl">المثلثات <span class="pill p-blue">حصة إضافية</span></div><div class="sub2">رياضيات · أ. أحمد</div><div class="time">6:00 م</div><small class="mut">الأربعاء 25 نوفمبر</small></div><div class="state"><div class="cd">تبدأ بعد<b>1 يوم 03:10</b></div><span class="btn dis" style="margin-top:8px">ادخل الحصة</span></div></div>
+</div>
+
+<div class="sec-t">3 · صفحة الدورات — كروت متساوية واللوجو في برواز ثابت</div>
+<p class="note">اتشال سطر "اختر المادة – يتغيّر الشعار…". برواز اللوجو 100% × 190px، object-fit:contain. الزرار مثبت في آخر الكارت.</p>
+<div class="courses">
+ <div class="course s-math"><div class="logo-box">[شعار الرياضيات]</div><a class="btn soft">ادخل الدورة ←</a></div>
+ <div class="course s-phys"><div class="logo-box">[شعار الفيزياء]</div><a class="btn soft">ادخل الدورة ←</a></div>
+ <div class="course s-chem"><div class="logo-box">[شعار الكيمياء]</div><a class="btn soft">ادخل الدورة ←</a></div>
+ <div class="course s-bio"><div class="logo-box">[شعار الأحياء]</div><a class="btn soft">ادخل الدورة ←</a></div>
+</div>
+
+<div class="sec-t">4/5 · هيدر صفحة الدروس (تأسيس / تجميعات) — أبيض → لون المادة</div>
+<p class="note">نفس الهيدر للأربع مواد وللتأسيس والتجميعات. اللوجو بألوانه الأصلية. نفس العرض لكل الصفحات (أكبر مقاس = الرياضيات).</p>
+<div class="lh s-math"><div class="logo-box">[شعار الرياضيات]</div><span class="div"></span><div><span class="pill p-subj" style="font-size:14px">رياضيات</span><h1>تأسيس — الدروس</h1></div><div class="cnt"><div><b>17</b>درس</div></div></div>
+<div style="height:14px"></div>
+<div class="lh s-phys"><div class="logo-box">[شعار الفيزياء]</div><span class="div"></span><div><span class="pill p-subj" style="font-size:14px">فيزياء</span><h1>التجميعات — الدروس</h1></div><div class="cnt"><div><b>15</b>درس</div></div></div>
+
+<div class="sec-t">4.3 · قائمة الدروس — مفيش كارت منوّر افتراضيًا، النور على hover بس</div>
+<p class="note">الكارت التاني هنا معمول له demo-hover للتوضيح بس. على التاتش: :active.</p>
+<div class="lessons s-chem">
+ <div class="ls"><span class="num-badge">1</span><b>مقدمة في علم الكيمياء</b><span class="go">←</span></div>
+ <div class="ls demo-hover"><span class="num-badge">2</span><b>الحسابات الكيميائية</b><span class="go">←</span></div>
+ <div class="ls"><span class="num-badge">3</span><b>الاتزان الكيميائي</b><span class="go">←</span></div>
+ <div class="ls"><span class="num-badge">4</span><b>الأحماض والقواعد</b><span class="go">←</span></div>
+</div>
+
+<div class="sec-t">6 · صفحة حل الأسئلة — كارت مضغوط + أقسام</div>
+<p class="note">التجميعات: أقسام 50 في قائمة منسدلة، ترقيم مكمّل، تنقّل حر. الاختبارات/المحاكي: أقسام 22، القسم اللي خلص مقفول. "تحقق" → "التالي ←".</p>
+<div class="qp s-bio">
+ <div class="card">
+  <div class="qtop"><div class="chips"><span class="pill p-subj">أحياء</span><span class="pill p-subj">المملكة الحيوانية (اللافقاريات)</span><span class="pill p-subj">1446 هـ</span><span class="pill p-green">سهل</span></div>
+  <div class="sel"><span>القسم 2 · أسئلة 51–100</span><span>⌄</span></div></div>
+  <div class="q">52. التكاثر الذي تُنتج فيه الإناث بيوضاً تصبح أفراداً دون حدوث تلقيح، يسمى ........</div>
+  <div class="opt sel2"><span>أ</span>التكاثر العذري</div><div class="opt"><span>ب</span>التبرعم</div><div class="opt"><span>ج</span>التجدد</div><div class="opt"><span>د</span>التجزؤ</div>
+  <div class="qnav"><a class="btn ghost">→ السابق</a><a class="btn">التالي ←</a></div>
+ </div>
+ <div class="card"><div class="card-h"><h2>خريطة الأسئلة</h2><span class="mut sm">القسم 2</span></div>
+  <div class="map"><span class="a">51</span><span class="cur">52</span><span>53</span><span>54</span><span>55</span><span>56</span><span>57</span><span>58</span><span>59</span><span>60</span><span>61</span><span>62</span><span>63</span><span>64</span><span>65</span></div>
+  <p class="mut sm">… لحد 100 (القسم الحالي بس)</p>
+  <div class="card-h" style="margin-top:18px"><h2 style="font-size:17px">في الاختبارات</h2></div>
+  <div class="map"><span class="lock">🔒 1–22</span><span class="cur" style="grid-column:span 2">القسم 2 (23–44)</span><span style="grid-column:span 2">القسم 3 (45)</span></div>
+ </div>
+</div>
+<div class="card brk s-bio" style="margin-top:16px">
+ <div class="ring lg" style="--p:64;--rc:var(--c);margin:0 auto"><div><b>03:12</b><small class="mut" style="display:block">استراحة</small></div></div>
+ <h2 style="margin:18px 0 6px">خلصت القسم 1 من 5 👏</h2><p class="mut">خد نفسك — القسم التالي هيبدأ تلقائيًا بعد انتهاء الاستراحة (5 دقائق كحد أقصى). مش هتقدر ترجع للقسم اللي خلص.</p>
+ <a class="btn">متابعة القسم التالي (23–44) ←</a>
+</div>
+
+<div class="sec-t">9 · إعداد المحاكي الشخصي — بدون سنوات</div>
+<div class="card">
+ <h2 style="margin:0 0 12px">عدد الأسئلة</h2>
+ <div class="opts3">
+  <div class="oc on"><b>عدد محدد</b><span class="mut sm">مقسّم على المواد بنسبة 30:30:25:25</span><div class="step"><span>+</span><span class="v">22</span><span>−</span></div><small class="mut">الأربع مواد = رياضيات 6 · أحياء 6 · كيمياء 5 · فيزياء 5</small></div>
+  <div class="oc"><b>محاكي حسب المواد</b><span class="mut sm">رياضيات 30 · أحياء 30 · كيمياء 25 · فيزياء 25</span><div style="margin-top:12px;font-weight:800;font-size:22px">110 سؤال</div></div>
+  <div class="oc"><b>كل الأسئلة المختارة</b><span class="mut sm">كل أسئلة الدروس اللي اخترتها</span></div>
+ </div>
+ <h2 style="margin:22px 0 12px">الترشيح <small class="mut sm">(اختار واحد أو أكتر)</small></h2>
+ <div class="tsh"><span class="g on"><i class="ck"></i>★ ذهبي</span><span class="s on"><i class="ck"></i>★ فضي</span><span class="b"><i class="ck"></i>★ برونزي</span></div>
+ <h2 style="margin:22px 0 12px">الدروس</h2>
+ <div class="lesson-pick">
+  <div class="lp"><span class="ck"></span>1. مقدمة في علم الأحياء</div><div class="lp"><span class="ck"></span>2. التصنيف الحديث</div>
+  <div class="lp"><span class="ck"></span>3. الطلائعيات والفطريات</div><div class="lp off"><span class="ck"></span><s>4. المملكة الحيوانية (اللافقاريات)</s><small>(لم نأخذها بعد)</small></div>
+ </div>
+ <p class="mut sm">مفيش قسم "السنة" خالص. السنة بتظهر على السؤال بس. الطالب الفضي: كل الدروس متاحة.</p>
+</div>
+</div></body></html>

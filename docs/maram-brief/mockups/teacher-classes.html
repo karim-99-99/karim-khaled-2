@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>حصصي — مدرس</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+/* B2.1 — حصصي › جدول الحصص (tab 1 of 3). Theme = teacher subject (Biology). */
+.ph{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.ph h1{margin:0;font-size:36px;color:var(--brand-dark)}
+.tabs{display:flex;gap:28px;border-bottom:1px solid var(--line);margin:18px 0 20px}
+.tabs a{padding:12px 4px;font-weight:700;color:#556;font-size:17px}.tabs a.on{color:var(--brand-dark);border-bottom:3px solid var(--brand-dark)}
+.alert{display:flex;justify-content:space-between;align-items:center;background:#fff1f1;border:1px solid #f6c5c5;border-radius:18px;padding:16px 22px;color:#9b1c1c;font-size:17px}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:12px}
+.wd{border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center;background:#fff}
+.wd small{color:var(--mut)}.wd b{display:block;font-size:26px;margin:4px 0}.wd span{color:var(--c);font-weight:800;font-size:14px}
+.wd.on{background:var(--brand-dark);color:#fff;border-color:var(--brand-dark)}.wd.on small,.wd.on span{color:#cfe3ff}
+.cl{display:flex;align-items:center;gap:18px;border:1px solid var(--line);border-right:5px solid var(--c);border-radius:18px;padding:16px 20px;margin-bottom:12px;background:#fff}
+.cl .tm{background:var(--c-light);border-radius:12px;padding:10px 16px;text-align:center;min-width:96px}.cl .tm b{display:block;color:var(--c-dark);font-size:21px}.cl .tm small{color:var(--mut)}
+.cl .t{flex:1}.cl .t b{font-size:20px}.cl .t small{display:block;color:var(--mut);margin-top:4px;font-size:15px}
+.cl.rate{background:#fff7f7;border-color:#f3c2c2;border-right-color:var(--red)}
+.cl.soon{background:#fffbea}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:22px}
+@media (max-width:1100px){ .week{grid-template-columns:repeat(7,120px);overflow-x:auto} .two{grid-template-columns:1fr} .alert{flex-direction:column;gap:10px;align-items:flex-start} }
+@media (max-width:480px){ .cl{flex-wrap:wrap} .cl .btn{width:100%} }
+</style></head>
+<body class="s-bio">
+<nav class="nav"><div class="logo">مرام</div>
+<div class="links"><a>الرئيسية</a><a class="on">حصصي</a><a>الطلاب</a><a>المهام</a><a>الاختبارات</a><a>إدارة المادة</a></div>
+<div class="acc"><a>خروج</a><a>حسابي</a><div class="av">م</div><div class="burger">☰</div></div></nav>
+<div class="wrap">
+<div class="ph"><div><h1>حصصي</h1><span class="mut">مدرس الأحياء · 3 مجموعات · 27 طالب</span></div>
+ <div class="chips"><span class="chip on">الكل</span><span class="chip">مجموعة أ</span><span class="chip">مجموعة ب</span><span class="chip">مجموعة ج</span></div></div>
+<div class="tabs"><a class="on">جدول الحصص</a><a>مواعيدي المتاحة</a><a>الحصص السابقة</a></div>
+
+<div class="alert"><span>⭐ لديك <b>حصة واحدة</b> تحتاج تقييم · يظهر التقييم لولي الأمر في تقرير الطالب</span><a class="btn red">قيّم الآن ←</a></div>
+
+<div class="card" style="margin-top:20px"><div class="week">
+ <div class="wd"><small>السبت</small><b>21</b><span>3 حصص</span></div>
+ <div class="wd"><small>الأحد</small><b>22</b><span>3 حصص</span></div>
+ <div class="wd on"><small>الاثنين</small><b>23</b><span>3 حصص</span></div>
+ <div class="wd"><small>الثلاثاء</small><b>24</b><span>حصتان</span></div>
+ <div class="wd"><small>الأربعاء</small><b>25</b><span>3 حصص</span></div>
+ <div class="wd"><small>الخميس</small><b>26</b><span>حصتان</span></div>
+ <div class="wd"><small>الجمعة</small><b>27</b><span>إجازة</span></div>
+</div></div>
+
+<div class="card" style="margin-top:20px"><div class="card-h"><h2>اليوم · الاثنين 23 نوفمبر</h2></div>
+ <div class="cl rate"><div class="tm"><b>3:00 م</b><small>ساعتان</small></div><div class="t"><b>التصنيف الحديث</b> <span class="pill p-red">انتهت · لم تُقيّم</span><small>مجموعة ج · 8 طالب · حضور 7 من 8</small></div><a class="btn red">⭐ قيّم الحصة</a></div>
+ <div class="cl soon"><div class="tm"><b>5:00 م</b><small>ساعتان</small></div><div class="t"><b>الطلائعيات والفطريات</b> <span class="pill p-green">تبدأ بعد 25 د</span><small>مجموعة أ · 9 طالب</small></div><a class="btn">دخول الحصة</a></div>
+ <div class="cl"><div class="tm"><b>8:00 م</b><small>ساعتان</small></div><div class="t"><b>الطلائعيات والفطريات</b><small>مجموعة ب · 10 طالب</small></div><a class="btn ghost" style="color:var(--ink)">تفاصيل</a></div>
+ <div class="cl" style="border-right-color:var(--brand)"><div class="tm" style="background:var(--blue-l)"><b style="color:var(--brand)">9:30 م</b><small>ساعة</small></div><div class="t"><b>التصنيف الحديث — حصة إضافية</b> <span class="pill p-blue">حصة إضافية</span><small>مجموعة ج فقط · عنوان من الإدارة</small></div><a class="btn ghost" style="color:var(--ink)">تفاصيل</a></div>
+</div>
+
+<div class="two">
+ <div class="card"><div class="card-h"><h2>غداً · الثلاثاء 24 نوفمبر</h2></div>
+  <div class="cl"><div class="tm"><b>5:00 م</b><small>ساعتان</small></div><div class="t"><b>المملكة الحيوانية (اللافقاريات)</b><small>مجموعة أ · 9 طالب</small></div><a class="btn ghost" style="color:var(--ink)">تفاصيل</a></div>
+  <div class="cl"><div class="tm"><b>8:00 م</b><small>ساعتان</small></div><div class="t"><b>المملكة الحيوانية (اللافقاريات)</b><small>مجموعة ب · 10 طالب</small></div><a class="btn ghost" style="color:var(--ink)">تفاصيل</a></div>
+ </div>
+ <div class="card"><div class="card-h"><h2>حصص سابقة</h2><a style="color:var(--brand);font-weight:700">عرض الكل ←</a></div>
+  <div class="cl"><div class="tm"><b>5:00 م</b><small>ساعتان</small></div><div class="t"><b>التصنيف الحديث</b> <span class="pill p-grey">تم التقييم</span><small>مجموعة أ · 9 طالب · حضور 9 من 9</small></div><a class="btn done">✓ عرض التقييم</a></div>
+  <div class="cl"><div class="tm"><b>8:00 م</b><small>ساعتان</small></div><div class="t"><b>التصنيف الحديث</b> <span class="pill p-grey">تم التقييم</span><small>مجموعة ب · 10 طالب · حضور 8 من 10</small></div><a class="btn done">✓ عرض التقييم</a></div>
+ </div>
+</div>
+</div></body></html>

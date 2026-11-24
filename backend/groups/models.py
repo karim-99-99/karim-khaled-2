@@ -67,3 +67,41 @@ class GroupTeacher(models.Model):
 
     def __str__(self):
         return f"{self.teacher.full_name} teaches {self.subject.name} @ {self.group.name}"
+
+
+class TeacherSubjectRole(models.Model):
+    """
+    Main vs secondary teacher per subject (brief B5 / Global — Roles).
+    Only ONE main teacher per subject (plus admin).
+    """
+
+    class Role(models.TextChoices):
+        MAIN = "main", "مدرس أساسي"
+        SECONDARY = "secondary", "مدرس ثانوي"
+
+    teacher = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="subject_roles",
+        on_delete=models.CASCADE,
+    )
+    subject = models.ForeignKey(
+        "catalog.Subject",
+        related_name="teacher_roles",
+        on_delete=models.CASCADE,
+    )
+    role = models.CharField(
+        max_length=20, choices=Role.choices, default=Role.SECONDARY
+    )
+
+    class Meta:
+        unique_together = ("teacher", "subject")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["subject"],
+                condition=models.Q(role="main"),
+                name="uniq_main_teacher_per_subject",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.teacher_id} · {self.subject_id} · {self.role}"

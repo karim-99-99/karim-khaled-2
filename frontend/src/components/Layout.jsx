@@ -207,8 +207,9 @@ export default function Layout() {
           <NavLink to="/courses">دورات</NavLink>
           <NavLink to="/tests">اختبارات</NavLink>
           <NavLink to="/results">نتائج</NavLink>
-          <NavLink to="/schedule">جدول الحصص</NavLink>
-          <NavLink to="/smart-plan">الجدول الذكي</NavLink>
+          {!(user?.role === "student" && user?.is_silver) && (
+            <NavLink to="/schedule">جدول الحصص</NavLink>
+          )}
           <NavLink to="/pricing">الأسعار</NavLink>
           {user?.role === "student" && <NavLink to="/subscription">اشتراكي</NavLink>}
           {user?.role === "teacher" && <NavLink to="/teacher">لوحة المدرس</NavLink>}

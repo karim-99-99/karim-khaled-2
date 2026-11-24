@@ -12,7 +12,8 @@ from rest_framework.views import APIView
 
 from catalog.models import Lesson, Subject
 from core.access import (
-    assert_teacher_can_manage_subject,
+    assert_teacher_can_edit_content as assert_teacher_can_manage_subject,
+    assert_teacher_can_manage_subject as assert_teacher_can_teach_subject,
     free_question_limit,
     lesson_is_free_preview,
     teacher_subject_ids,
@@ -1330,7 +1331,11 @@ class StartTeacherTestView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        from core.plans import assert_gold_feature, is_silver_student
+
         user = request.user
+        if getattr(user, "is_student", False) and is_silver_student(user):
+            assert_gold_feature(user, "اختبارات المدرسين")
         teacher_test_id = request.data.get("teacher_test")
 
         if teacher_test_id:
@@ -1456,8 +1461,13 @@ class TeacherTestViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
 
     def list(self, request):
+        from core.plans import is_silver_student
+
         subject_id = request.query_params.get("subject")
         user = request.user
+        # Silver: teacher tests are Gold-only
+        if getattr(user, "is_student", False) and is_silver_student(user):
+            return Response([])
         qs = TeacherTest.objects.select_related("created_by", "subject").all()
         if subject_id:
             qs = qs.filter(subject_id=subject_id)
@@ -1470,7 +1480,6 @@ class TeacherTestViewSet(viewsets.ViewSet):
         return Response(TeacherTestSerializer(qs.order_by("-created_at", "-id"), many=True).data)
 
     def create(self, request):
-        from core.access import assert_teacher_can_manage_subject
         from core.permissions import IsTeacherOrAdmin
 
         if not IsTeacherOrAdmin().has_permission(request, self):
@@ -1481,7 +1490,8 @@ class TeacherTestViewSet(viewsets.ViewSet):
         data = ser.validated_data
         user = request.user
         subject_id = data["subject"]
-        assert_teacher_can_manage_subject(user, subject_id)
+        # Secondary teachers may create tests for their subject (B4 / B5)
+        assert_teacher_can_teach_subject(user, subject_id)
 
         lesson_ids = list(dict.fromkeys(data["lesson_ids"]))
         question_ids = list(dict.fromkeys(data["question_ids"]))
@@ -1552,7 +1562,6 @@ class TeacherTestViewSet(viewsets.ViewSet):
 
     def question_bank(self, request):
         """All collection questions for selected lessons (any teacher) — for building a test."""
-        from core.access import assert_teacher_can_manage_subject
         from core.permissions import IsTeacherOrAdmin
 
         if not IsTeacherOrAdmin().has_permission(request, self):
@@ -1563,7 +1572,7 @@ class TeacherTestViewSet(viewsets.ViewSet):
             return Response(
                 {"detail": "subject مطلوب"}, status=status.HTTP_400_BAD_REQUEST
             )
-        assert_teacher_can_manage_subject(request.user, subject_id)
+        assert_teacher_can_teach_subject(request.user, subject_id)
 
         raw = request.query_params.get("lessons") or ""
         lesson_ids = [int(x) for x in raw.split(",") if x.strip().isdigit()]

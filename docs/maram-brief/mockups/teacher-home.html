@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>الرئيسية — مدرس</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+/* B1 — Teacher home. Theme = teacher's subject (here Biology). Scoped to HIS groups/students only. */
+.th{background:var(--c-grad);border-radius:26px;padding:26px 34px;display:flex;justify-content:space-between;align-items:center;gap:24px;color:#fff;box-shadow:0 14px 30px rgba(0,0,0,.12)}
+.th .who{display:flex;align-items:center;gap:20px}
+.th .lg{width:112px;height:104px;background:#fff;border-radius:20px;display:grid;place-items:center;color:var(--c);font-weight:800;text-align:center}
+.th h1{margin:4px 0 8px;font-size:34px}.th .role{opacity:.9;font-weight:700}.th p{margin:0;opacity:.92}
+.next{background:#fff;border-radius:20px;padding:16px 20px;display:flex;align-items:center;gap:18px;color:var(--ink);min-width:560px}
+.next .cd{background:var(--c-light);border-radius:14px;padding:10px 16px;text-align:center}.next .cd b{display:block;font-size:30px;color:var(--c-dark);font-variant-numeric:tabular-nums}
+.next .t{flex:1}.next .t b{font-size:20px;display:block}.next .t small{color:var(--mut)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:22px}
+.kpi{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px 22px}
+.kpi .ic{width:58px;height:58px;border-radius:14px;background:#f3f6fb;display:grid;place-items:center;font-size:26px}
+.kpi b{font-size:30px;color:var(--brand-dark);display:block;line-height:1.1}.kpi small{color:var(--mut);font-size:15px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:22px}
+.link{color:var(--brand);font-weight:700}
+.cl{display:flex;align-items:center;gap:16px;border:1px solid var(--line);border-radius:18px;padding:14px 16px;margin-bottom:12px}
+.cl .tm{background:#f3f6fb;border-radius:12px;padding:8px 14px;text-align:center;min-width:86px}.cl .tm b{display:block;color:var(--brand-dark);font-size:19px}.cl .tm small{color:var(--mut)}
+.cl .t{flex:1}.cl .t b{font-size:18px;display:block}.cl .t small{color:var(--mut)}
+.cl.rate{background:#fff7f7;border-color:#f7caca}
+.cl.now{background:#fffaeb;border-color:#f0d27a}.cl.now .tm{background:var(--c);}.cl.now .tm b,.cl.now .tm small{color:#fff}
+.grp{padding:16px 0;border-bottom:1px dashed var(--line)}.grp:last-child{border:0}
+.grp .gh{display:flex;justify-content:space-between;margin-bottom:10px}.grp .gh b{font-size:19px}
+.grp .ln{display:grid;grid-template-columns:70px 1fr 50px;gap:12px;align-items:center;margin:6px 0}
+.grp .ln span{color:var(--mut);font-weight:700}.grp .ln em{font-style:normal;font-weight:800;text-align:left}
+.st-ok{background:var(--green-l);color:var(--green)} .st-1{background:var(--orange-l);color:var(--orange-d)} .st-n{background:var(--red-l);color:var(--red)}
+@media (max-width:1100px){ .th{flex-direction:column;align-items:stretch} .next{min-width:0} .kpis{grid-template-columns:1fr 1fr} .two{grid-template-columns:1fr} .tbl{display:block;overflow-x:auto} }
+@media (max-width:480px){ .kpis{grid-template-columns:1fr} .next{flex-wrap:wrap} }
+</style></head>
+<body class="s-bio">
+<nav class="nav"><div class="logo">مرام</div>
+<div class="links"><a class="on">الرئيسية</a><a>حصصي</a><a>الطلاب</a><a>المهام</a><a>الاختبارات</a><a>إدارة المادة</a></div>
+<div class="acc"><a>خروج</a><a>حسابي</a><div class="av">م</div><div class="burger">☰</div></div></nav>
+<div class="wrap">
+
+<div class="th">
+ <div class="who"><div class="lg">[شعار<br>الأحياء]</div><div><div class="role">مدرس الأحياء</div><h1>أهلاً أ. محمد 👋</h1><p>لديك 3 حصص اليوم و10 طلاب متأخرين في المهام</p></div></div>
+ <div class="next"><div class="cd"><b>01:25</b><small class="mut">تبدأ بعد</small></div><div class="t"><b>الطلائعيات والفطريات</b><small>مجموعة أ · 5:00 م</small></div><a class="btn">دخول الحصة</a></div>
+</div>
+
+<div class="kpis">
+ <div class="kpi"><span class="ic">📅</span><div><b>3</b><small>حصص اليوم</small></div></div>
+ <div class="kpi"><span class="ic">👥</span><div><b>27</b><small>طالب في 3 مجموعات</small></div></div>
+ <div class="kpi"><span class="ic">✅</span><div><b>65%</b><small>إنجاز الواجبات والتجميعات</small></div></div>
+ <div class="kpi"><span class="ic">⭐</span><div><b style="color:var(--red)">1</b><small>حصة تحتاج تقييم</small></div></div>
+</div>
+
+<div class="two">
+ <div class="card"><div class="card-h"><h2>حصصي</h2><a class="link">جدول الحصص كامل ←</a></div>
+  <div class="cl rate"><div class="tm"><b>3:00 م</b><small>اليوم</small></div><div class="t"><b>التصنيف الحديث</b><small>مجموعة ج · 8 طالب</small></div><a class="btn red">⭐ قيّم الحصة</a></div>
+  <div class="cl now"><div class="tm"><b>5:00 م</b><small>اليوم</small></div><div class="t"><b>الطلائعيات والفطريات</b><small>مجموعة أ · 9 طالب</small></div><a class="btn">دخول الحصة</a></div>
+  <div class="cl"><div class="tm"><b>8:00 م</b><small>اليوم</small></div><div class="t"><b>الطلائعيات والفطريات</b><small>مجموعة ب · 10 طالب</small></div><span class="btn dis">لم تبدأ</span></div>
+  <div class="cl"><div class="tm"><b>5:00 م</b><small>أمس</small></div><div class="t"><b>التصنيف الحديث</b><small>مجموعة أ · 9 طالب</small></div><span class="btn done">✓ تم التقييم</span></div>
+ </div>
+ <div class="card"><div class="card-h"><h2>إنجاز المهام اليوم</h2><a class="link">كل المهام ←</a></div>
+  <div class="grp"><div class="gh"><b>مجموعة أ</b><span class="mut">متأخرين <b style="color:var(--red)">1</b></span></div>
+   <div class="ln"><span>واجبات</span><div class="bar"><i style="width:89%;background:var(--green)"></i></div><em style="color:var(--green)">8/9</em></div>
+   <div class="ln"><span>تجميعات</span><div class="bar"><i style="width:78%;background:var(--green)"></i></div><em style="color:var(--green)">7/9</em></div></div>
+  <div class="grp"><div class="gh"><b>مجموعة ب</b><span class="mut">متأخرين <b style="color:var(--red)">4</b></span></div>
+   <div class="ln"><span>واجبات</span><div class="bar"><i style="width:60%;background:var(--orange)"></i></div><em style="color:var(--orange-d)">6/10</em></div>
+   <div class="ln"><span>تجميعات</span><div class="bar"><i style="width:60%;background:var(--orange)"></i></div><em style="color:var(--orange-d)">6/10</em></div></div>
+  <div class="grp"><div class="gh"><b>مجموعة ج</b><span class="mut">متأخرين <b style="color:var(--red)">5</b></span></div>
+   <div class="ln"><span>واجبات</span><div class="bar"><i style="width:50%;background:var(--orange)"></i></div><em style="color:var(--orange-d)">4/8</em></div>
+   <div class="ln"><span>تجميعات</span><div class="bar"><i style="width:37%;background:var(--red)"></i></div><em style="color:var(--red)">3/8</em></div></div>
+  <p class="mut sm">أخضر ≥80% · برتقالي 50–79% · أحمر &lt;50%</p>
+ </div>
+</div>
+
+<div class="card" style="margin-top:22px">
+ <div class="card-h"><h2>متابعة الطلاب</h2><div class="chips"><span class="chip on">الكل</span><span class="chip">المتأخرين</span><span class="chip">مجموعة أ</span><span class="chip">مجموعة ب</span><span class="chip">مجموعة ج</span></div></div>
+ <table class="tbl"><thead><tr><th>الطالب</th><th>واجبات اليوم</th><th>تجميعات اليوم</th><th>آخر نشاط</th><th>الحالة</th><th></th></tr></thead><tbody>
+ <tr><td><div class="row"><span class="avatar">ع</span><div>عبدالله الشهري<br><small class="mut">مجموعة ج</small></div></div></td><td>0/2</td><td>0/2</td><td>قبل 3 أيام</td><td><span class="pill st-n">متأخر 3 أيام</span></td><td><a class="btn soft" style="background:var(--green-l);color:var(--green)">تذكير</a></td></tr>
+ <tr><td><div class="row"><span class="avatar">ر</span><div>ريم القحطاني<br><small class="mut">مجموعة ب</small></div></div></td><td>1/2</td><td>0/2</td><td>أمس</td><td><span class="pill st-1">متأخر يوم</span></td><td><a class="btn soft" style="background:var(--green-l);color:var(--green)">تذكير</a></td></tr>
+ <tr><td><div class="row"><span class="avatar">ف</span><div>فيصل العتيبي<br><small class="mut">مجموعة ج</small></div></div></td><td>1/2</td><td>1/2</td><td>أمس</td><td><span class="pill st-1">متأخر يوم</span></td><td><a class="btn soft" style="background:var(--green-l);color:var(--green)">تذكير</a></td></tr>
+ <tr><td><div class="row"><span class="avatar">س</span><div>سارة الدوسري<br><small class="mut">مجموعة أ</small></div></div></td><td>2/2</td><td>2/2</td><td>اليوم</td><td><span class="pill st-ok">ملتزم</span></td><td></td></tr>
+ <tr><td><div class="row"><span class="avatar">ن</span><div>نورة الحربي<br><small class="mut">مجموعة أ</small></div></div></td><td>2/2</td><td>1/2</td><td>اليوم</td><td><span class="pill st-ok">ملتزم</span></td><td></td></tr>
+ </tbody></table>
+ <p class="mut sm">"تذكير" = رسالة تليجرام لولي الأمر بالمهام المتأخرة، وبتتسجّل في تاريخ تقارير الطالب.</p>
+</div>
+</div></body></html>

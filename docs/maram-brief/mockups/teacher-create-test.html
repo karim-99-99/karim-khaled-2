@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>إنشاء اختبار جديد — مدرس</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+/* B4 — Create teacher test. Only HIS groups. Teacher tests are NOT split into 22-question sections (B6).
+   Difficulty split must sum to the total count. 🔄 = replace with another question of the SAME title & difficulty. */
+.ph{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px}
+.ph h1{margin:0;font-size:32px;color:var(--brand-dark)}
+.lay{display:grid;grid-template-columns:1fr 360px;gap:22px;align-items:start}
+.stp{display:flex;align-items:center;gap:12px;margin-bottom:16px}.stp i{width:34px;height:34px;border-radius:50%;background:var(--brand-dark);color:#fff;font-style:normal;font-weight:800;display:grid;place-items:center}.stp h2{margin:0;font-size:21px}
+label{display:block;font-weight:700;color:#556;font-size:14px;margin-bottom:6px}
+.fld{border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-weight:700;background:#fff;min-height:48px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.gchip{background:var(--blue-l);color:var(--brand-dark);border-radius:8px;padding:4px 10px;font-size:14px}
+.qwrap{display:grid;grid-template-columns:330px 1fr;gap:18px}
+.tree{border:1px solid var(--line);border-radius:16px;padding:14px;background:#fcfdff}
+.search{border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:#9aa5b5;background:#fff;margin:10px 0}
+.tl{display:flex;align-items:center;gap:10px;padding:8px 4px;font-weight:700;font-size:14.5px}
+.tl .n{background:#eef1f5;border-radius:99px;padding:1px 9px;font-size:12px;color:#556}
+.tl .n.y{background:#fff6dc;color:#8a6000}
+.ck{width:20px;height:20px;border-radius:5px;border:2px solid #cfd6e0;flex:none;display:grid;place-items:center;font-size:12px;color:#fff}
+.ck.on{background:var(--c);border-color:var(--c)}.ck.part{background:#fff;border-color:var(--c);position:relative}.ck.part::after{content:"";width:10px;height:2.5px;background:var(--c)}
+.sub{margin-right:28px;border-right:2px solid #f0dfb0;padding-right:10px}
+.sub .tl{font-weight:500;font-size:14px}
+.mode{display:flex;background:#f1f3f6;border-radius:12px;padding:4px;margin-bottom:14px}.mode span{flex:1;text-align:center;padding:10px;border-radius:9px;font-weight:800;color:#667}.mode .on{background:#fff;color:var(--c-dark);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.auto{background:#fffbef;border:1px solid #f3dd9c;border-radius:16px;padding:16px}
+.stepper{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}.stepper span{padding:7px 12px;font-weight:800}.stepper .v{border-inline:1px solid var(--line);min-width:50px;text-align:center}
+.diff{display:flex;gap:12px}.diff div{text-align:center}.diff b{display:block;margin-bottom:6px}
+.vstep{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;width:52px;text-align:center}.vstep span{padding:4px 0;font-weight:800}.vstep .v{border-block:1px solid var(--line);padding:7px 0}
+.opt{display:inline-block;border:1px solid var(--line);border-radius:10px;padding:7px 12px;font-weight:700;font-size:14px;background:#fff;margin:3px}.opt.on{background:var(--c);color:#fff;border-color:var(--c)}
+.ql{display:flex;align-items:center;gap:10px;border:1px solid #f3e3b3;background:#fffdf7;border-radius:12px;padding:10px 12px;margin-bottom:8px;font-size:14px}
+.ql .t{flex:1;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ql .ti{color:var(--mut);width:160px}
+.ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:800}.ic.r{background:#eef4ff;color:var(--brand)}.ic.x{background:var(--red-l);color:var(--red)}
+.sum{background:linear-gradient(160deg,#0d3b70,#1565c0);color:#fff;border-radius:22px;padding:22px;position:sticky;top:90px}
+.sum h3{margin:0 0 14px;font-size:21px}.sum .r{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.12);font-size:14.5px}.sum .r span{opacity:.8}
+.sum .bx{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0}.sum .bx div{background:rgba(255,255,255,.14);border-radius:14px;padding:12px;text-align:center}.sum .bx b{font-size:32px;display:block}
+.pub{display:block;background:#fff;color:var(--brand-dark);text-align:center;border-radius:14px;padding:14px;font-weight:800;font-size:18px}
+.radio{border:1.5px solid var(--line);border-radius:16px;padding:16px;display:flex;align-items:center;gap:14px}.radio.on{border-color:var(--brand);background:#f1f7ff}
+.radio .rd{width:20px;height:20px;border-radius:50%;border:2px solid #cfd6e0;flex:none}.radio.on .rd{border:6px solid var(--brand)}
+@media (max-width:1100px){ .lay{grid-template-columns:1fr} .sum{position:static} .qwrap{grid-template-columns:1fr} }
+@media (max-width:480px){ .g2,.g3{grid-template-columns:1fr} .ql .ti{display:none} }
+</style></head>
+<body class="s-bio">
+<nav class="nav"><div class="logo">مرام</div>
+<div class="links"><a>الرئيسية</a><a>حصصي</a><a>الطلاب</a><a>المهام</a><a class="on">الاختبارات</a><a>إدارة المادة</a></div>
+<div class="acc"><a>خروج</a><a>حسابي</a><div class="av">م</div><div class="burger">☰</div></div></nav>
+<div class="wrap">
+<div class="crumb">الاختبارات › <b>اختبار جديد</b></div>
+<div class="ph"><div><h1>إنشاء اختبار جديد</h1><span class="mut">اختر الدروس والعناوين، ثم حدد طريقة اختيار الأسئلة</span></div><a class="btn ghost" style="color:var(--brand)">حفظ كمسودة</a></div>
+<div class="lay">
+<div>
+ <div class="card"><div class="stp"><i>1</i><h2>بيانات الاختبار</h2></div>
+  <div class="g2"><div><label>اسم الاختبار</label><div class="fld">اختبار الخلية والوراثة</div></div>
+  <div><label>المجموعات (مجموعاتك فقط)</label><div class="fld"><span class="gchip">مجموعة أ ×</span><span class="gchip">مجموعة ب ×</span><span style="color:var(--brand)">+ إضافة</span></div></div></div></div>
+
+ <div class="card" style="margin-top:18px"><div class="stp"><i>2</i><h2>الأسئلة</h2></div>
+  <div class="qwrap">
+   <div class="tree">
+    <div class="row" style="justify-content:space-between"><b>الدروس</b><span class="pill p-subj">3 دروس · 11 عنوان</span></div>
+    <div class="search">🔍 ابحث عن درس أو عنوان فرعي…</div>
+    <div class="row sm" style="gap:14px;color:var(--brand);font-weight:700"><span>تحديد الكل</span><span>إلغاء التحديد</span></div>
+    <div class="tl"><span class="ck"></span><span class="grow">مقدمة في علم الأحياء</span><span class="n">42</span><span>⌄</span></div>
+    <div class="tl"><span class="ck"></span><span class="grow">التصنيف الحديث</span><span class="n">58</span><span>⌄</span></div>
+    <div class="tl"><span class="ck on">✓</span><span class="grow">الطلائعيات والفطريات</span><span class="n y">51 من 51</span><span>⌄</span></div>
+    <div class="tl"><span class="ck"></span><span class="grow">المملكة الحيوانية (اللافقاريات)</span><span class="n">77</span><span>⌄</span></div>
+    <div class="tl"><span class="ck part"></span><span class="grow">الخلية</span><span class="n y">33 من 66</span><span>⌃</span></div>
+    <div class="sub"><div class="tl"><span class="ck on">✓</span><span class="grow">تركيب الخلية</span><span class="n">18</span></div><div class="tl"><span class="ck on">✓</span><span class="grow">الغشاء البلازمي</span><span class="n">15</span></div><div class="tl"><span class="ck"></span><span class="grow">العضيات</span><span class="n">19</span></div><div class="tl"><span class="ck"></span><span class="grow">انقسام الخلية</span><span class="n">14</span></div></div>
+    <div class="tl"><span class="ck part"></span><span class="grow">الوراثة</span><span class="n y">77 من 112</span><span>⌃</span></div>
+    <div class="sub"><div class="tl"><span class="ck on">✓</span><span class="grow">قوانين مندل</span><span class="n">24</span></div><div class="tl"><span class="ck on">✓</span><span class="grow">السيادة غير التامة</span><span class="n">16</span></div><div class="tl"><span class="ck on">✓</span><span class="grow">الصفات المرتبطة بالجنس</span><span class="n">21</span></div><div class="tl"><span class="ck"></span><span class="grow">الطفرات</span><span class="n">18</span></div><div class="tl"><span class="ck"></span><span class="grow">الوراثة الجزيئية</span><span class="n">17</span></div><div class="tl"><span class="ck on">✓</span><span class="grow">مسائل الوراثة</span><span class="n">16</span></div></div>
+    <div class="tl" style="color:var(--brand);justify-content:center">+ 8 دروس أخرى ⌄</div>
+    <div class="mut sm" style="text-align:center;border-top:1px solid var(--line);padding-top:10px">إجمالي الأسئلة المتاحة: <b style="color:var(--ink);font-size:17px">186</b></div>
+   </div>
+   <div>
+    <div class="mode"><span class="on">⚡ اختيار تلقائي</span><span>✋ اختيار يدوي</span></div>
+    <div class="auto">
+     <div class="g2">
+      <div><label>عدد الأسئلة</label><div class="stepper"><span>+</span><span class="v">30</span><span>−</span></div><div class="mut sm" style="margin-top:4px">من 186 متاح</div></div>
+      <div><label>توزيع الصعوبة (المجموع = 30)</label><div class="diff"><div><b style="color:var(--green)">سهل</b><div class="vstep"><span>+</span><span class="v">12</span><span>−</span></div></div><div><b style="color:var(--orange-d)">متوسط</b><div class="vstep"><span>+</span><span class="v">12</span><span>−</span></div></div><div><b style="color:var(--red)">صعب</b><div class="vstep"><span>+</span><span class="v">6</span><span>−</span></div></div></div></div>
+     </div>
+     <div class="g2" style="margin-top:14px">
+      <div><label>الترشيح</label><span class="opt on">الكل</span><span class="opt">★ ذهبي فقط</span><span class="opt">ذهبي + فضي</span></div>
+      <div><label>التوزيع على الدروس</label><span class="opt on">حسب عدد أسئلة كل عنوان</span><span class="opt">بالتساوي</span></div>
+     </div>
+     <a class="btn" style="width:100%;margin-top:14px">🎲 اختر الأسئلة</a>
+    </div>
+    <div class="row" style="justify-content:space-between;margin:18px 0 10px"><div class="row"><b>الأسئلة المختارة</b><span class="pill p-subj">30</span><span class="mut sm">🔄 تبديل بسؤال من نفس العنوان والصعوبة · ✕ حذف</span></div><span style="color:var(--brand);font-weight:700">🎲 إعادة الاختيار</span></div>
+    <div class="ql"><span class="ck on">✓</span><b>1</b><span class="t">في البازلاء، صفة الطول سائدة على القصر…</span><span class="ti">قوانين مندل</span><span class="pill p-green">سهل</span><span class="pill p-subj">★ ذهبي</span><span class="ic r">🔄</span><span class="ic x">✕</span></div>
+    <div class="ql"><span class="ck on">✓</span><b>2</b><span class="t">إذا كان أحد الأبوين متماثل الجينات…</span><span class="ti">قوانين مندل</span><span class="pill p-orange">متوسط</span><span class="pill p-subj">★ ذهبي</span><span class="ic r">🔄</span><span class="ic x">✕</span></div>
+    <div class="ql"><span class="ck on">✓</span><b>3</b><span class="t">أي مما يلي يمثل السيادة غير التامة؟</span><span class="ti">السيادة غير التامة</span><span class="pill p-orange">متوسط</span><span class="pill p-grey">★ فضي</span><span class="ic r">🔄</span><span class="ic x">✕</span></div>
+    <div class="ql"><span class="ck on">✓</span><b>4</b><span class="t">الصفة المرتبطة بالجنس تنتقل عبر…</span><span class="ti">الصفات المرتبطة بالجنس</span><span class="pill p-red">صعب</span><span class="pill p-subj">★ ذهبي</span><span class="ic r">🔄</span><span class="ic x">✕</span></div>
+    <div class="ql"><span class="ck on">✓</span><b>5</b><span class="t">يتكون الغشاء البلازمي من…</span><span class="ti">الغشاء البلازمي</span><span class="pill p-green">سهل</span><span class="pill p-grey">★ فضي</span><span class="ic r">🔄</span><span class="ic x">✕</span></div>
+    <div class="ql"><span class="ck on">✓</span><b>6</b><span class="t">العضية المسؤولة عن تركيب البروتين…</span><span class="ti">تركيب الخلية</span><span class="pill p-green">سهل</span><span class="pill p-subj">★ ذهبي</span><span class="ic r">🔄</span><span class="ic x">✕</span></div>
+    <div style="border:1.5px dashed #d7dee8;border-radius:12px;padding:12px;text-align:center;color:var(--brand);font-weight:700">عرض الـ 24 سؤال الباقية ⌄</div>
+   </div>
+  </div>
+ </div>
+
+ <div class="card" style="margin-top:18px"><div class="stp"><i>3</i><h2>موعد الاختبار ومدته</h2></div>
+  <div class="g3"><div><label>اليوم</label><div class="fld">📅 الأربعاء 25 نوفمبر</div></div><div><label>يفتح الساعة</label><div class="fld">🕓 4:00 م</div></div><div><label>يُغلق الساعة</label><div class="fld">🕙 10:00 م</div></div></div>
+  <div class="g2" style="margin-top:16px">
+   <div class="radio on"><span class="rd"></span><div class="grow"><b>مدة الاختبار كامل</b><div class="mut sm">يحل الطالب الأسئلة بالترتيب الذي يناسبه</div></div><div class="stepper"><span>+</span><span class="v">45</span><span>−</span></div><span class="mut sm">دقيقة</span></div>
+   <div class="radio"><span class="rd"></span><div class="grow"><b>وقت لكل سؤال</b><div class="mut sm">يُغلق السؤال عند انتهاء وقته</div></div><div class="stepper"><span>+</span><span class="v">90</span><span>−</span></div><span class="mut sm">ثانية</span></div>
+  </div>
+ </div>
+</div>
+
+<aside class="sum"><h3>ملخص الاختبار</h3>
+ <div class="r"><span>المجموعات</span><b>أ، ب (19 طالب)</b></div>
+ <div class="r"><span>الدروس</span><b>الطلائعيات، الخلية، الوراثة</b></div>
+ <div class="r"><span>العناوين</span><b>11 عنوان فرعي</b></div>
+ <div class="r"><span>الصعوبة</span><b>12 سهل · 12 متوسط · 6 صعب</b></div>
+ <div class="r"><span>الموعد</span><b>الأربعاء 25 نوفمبر</b></div>
+ <div class="r"><span>متاح</span><b>4:00 م – 10:00 م</b></div>
+ <div class="bx"><div><b>30</b>سؤال</div><div><b>45</b>دقيقة</div></div>
+ <a class="pub">نشر الاختبار ←</a>
+ <p style="text-align:center;opacity:.8;font-size:13px;margin:10px 0 0">يظهر للطلاب في صفحة الاختبارات ويصلهم إشعار</p>
+</aside>
+</div>
+</div></body></html>

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>تقييم الحصة — مدرس</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+/* B3 — Rate class. Attendance: joined BBB = حاضر automatically; ONLY the teacher can switch to غائب here.
+   Warning pill shows when duration < 15 min (informational only). Stars disabled when غائب.
+   Save → each parent gets a Telegram report + stored in parent_reports. */
+.rh{background:var(--c-grad);border-radius:24px;color:#fff;padding:26px 32px;display:flex;justify-content:space-between;align-items:center;gap:20px}
+.rh .meta{opacity:.9;font-weight:700}.rh h1{margin:8px 0 0;font-size:34px}
+.rh .stats{display:flex;gap:12px}.rh .hstat{min-width:100px}
+.note{background:#f1f7ff;border:1px solid #cfe0f7;border-radius:14px;padding:14px 18px;margin:14px 0 6px}
+.thd{display:grid;grid-template-columns:1.3fr 230px 1.2fr 1fr;gap:20px;padding:10px 20px;color:var(--mut);font-weight:700;font-size:14px}
+.st{display:grid;grid-template-columns:1.3fr 230px 1.2fr 1fr;gap:20px;align-items:center;border:1px solid var(--line);border-radius:18px;padding:16px 20px;margin-bottom:12px;background:#fff}
+.st.abs{background:#fffafa;border-color:#f6c9c9}
+.who{display:flex;gap:12px;align-items:center}.who b{font-size:18px;display:block}.who small{color:var(--mut)}
+.warn{display:inline-block;background:#fff4e0;color:#b45309;border-radius:8px;padding:2px 8px;font-size:12.5px;font-weight:800;margin-top:4px}
+.tog{display:flex;background:#f1f3f6;border-radius:12px;padding:4px}.tog span{flex:1;text-align:center;padding:9px;border-radius:9px;font-weight:800;color:#8a94a6}
+.tog .p.on{background:var(--green);color:#fff}.tog .a.on{background:var(--red);color:#fff}
+.stars{font-size:26px;letter-spacing:2px;color:#f5b301}.stars .o{color:#d8dde5}
+.stars.dis{color:#e3e6eb}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.tags span{border:1px solid var(--line);border-radius:99px;padding:3px 10px;font-size:12.5px;font-weight:700;color:#7b8494}
+.tags span.on{background:#e8f1fd;border-color:#9cc3f0;color:var(--brand-dark)}
+.inp{border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-height:50px;color:#334}
+.inp.ph{border-style:dashed;color:#9aa5b5}
+.more{text-align:center;color:var(--brand);font-weight:800;padding:10px}
+.foot{display:flex;justify-content:space-between;align-items:center}
+@media (max-width:1100px){ .rh{flex-direction:column;align-items:flex-start} .thd{display:none} .st{grid-template-columns:1fr 1fr} }
+@media (max-width:480px){ .st{grid-template-columns:1fr} .foot{flex-direction:column;gap:12px;align-items:stretch} }
+</style></head>
+<body class="s-bio">
+<nav class="nav"><div class="logo">مرام</div>
+<div class="links"><a>الرئيسية</a><a class="on">حصصي</a><a>الطلاب</a><a>المهام</a><a>الاختبارات</a><a>إدارة المادة</a></div>
+<div class="acc"><a>خروج</a><a>حسابي</a><div class="av">م</div><div class="burger">☰</div></div></nav>
+<div class="wrap">
+<div class="crumb">حصصي › <b>تقييم الحصة</b></div>
+<div class="rh"><div><div class="meta">مجموعة ج · الاثنين 23 نوفمبر · 3:00 – 5:00 م</div><h1>تقييم حصة: التصنيف الحديث</h1></div>
+ <div class="stats"><div class="hstat"><b>6</b><small>حاضر</small></div><div class="hstat"><b style="color:#ffd0d0">2</b><small>غائب</small></div><div class="hstat"><b>4.2</b><small>متوسط التقييم</small></div></div></div>
+
+<div class="card" style="margin-top:20px">
+ <div class="card-h"><h2>الطلاب (8)</h2><div class="chips"><span class="chip on">الكل</span><span class="chip">الحاضرين</span><span class="chip">الغائبين</span><span class="chip">لم يُقيَّموا</span></div></div>
+ <div class="note">💡 يُسجَّل الحضور تلقائياً عند دخول الطالب للحصة. إذا دخل الطالب وقتاً قصيراً ثم خرج، يمكنك تغييره إلى <b style="color:var(--red)">غائب</b>.</div>
+ <div class="thd"><span>الطالب</span><span>الحضور</span><span>التقييم</span><span>ملحوظة</span></div>
+
+ <div class="st"><div class="who"><span class="avatar">س</span><div><b>سارة الدوسري</b><small>دخل 5:00 م · مدة الحضور ساعتان</small></div></div>
+  <div class="tog"><span class="p on">حاضر</span><span class="a">غائب</span></div>
+  <div><div class="stars">★★★★★</div><div class="tags"><span class="on">متفاعل</span><span>ملتزم بالواجب</span><span>يحتاج متابعة</span><span class="on">شارك بالإجابة</span></div></div>
+  <div class="inp">شاركت في كل الأسئلة وحلّت الواجب كامل</div></div>
+
+ <div class="st"><div class="who"><span class="avatar">ن</span><div><b>نورة الحربي</b><small>دخل 5:02 م · مدة الحضور ساعتان</small></div></div>
+  <div class="tog"><span class="p on">حاضر</span><span class="a">غائب</span></div>
+  <div><div class="stars">★★★★<span class="o">★</span></div><div class="tags"><span>متفاعل</span><span class="on">ملتزم بالواجب</span><span>يحتاج متابعة</span><span>شارك بالإجابة</span></div></div>
+  <div class="inp ph">✎ اكتب ملحوظة…</div></div>
+
+ <div class="st abs"><div class="who"><span class="avatar">ف</span><div><b>فيصل العتيبي</b><small>دخل 5:10 م · مدة الحضور 5 دقائق</small><br><span class="warn">⚠ حضر 5 دقائق فقط</span></div></div>
+  <div class="tog"><span class="p">حاضر</span><span class="a on">غائب</span></div>
+  <div><div class="stars dis">★★★★★</div><div class="tags"><span>متفاعل</span><span>ملتزم بالواجب</span><span>يحتاج متابعة</span><span>شارك بالإجابة</span></div></div>
+  <div class="inp">حضر 5 دقائق ثم خرج — سُجّل غائباً</div></div>
+
+ <div class="st"><div class="who"><span class="avatar">ر</span><div><b>ريم القحطاني</b><small>دخل 5:15 م · مدة الحضور 1:40 ساعة</small></div></div>
+  <div class="tog"><span class="p on">حاضر</span><span class="a">غائب</span></div>
+  <div><div class="stars">★★★<span class="o">★★</span></div><div class="tags"><span>متفاعل</span><span>ملتزم بالواجب</span><span class="on">يحتاج متابعة</span><span>شارك بالإجابة</span></div></div>
+  <div class="inp">تأخرت ربع ساعة</div></div>
+
+ <div class="st abs"><div class="who"><span class="avatar">ع</span><div><b>عبدالله الشهري</b><small>لم يدخل الحصة</small></div></div>
+  <div class="tog"><span class="p">حاضر</span><span class="a on">غائب</span></div>
+  <div><div class="stars dis">★★★★★</div></div>
+  <div class="inp ph">✎ اكتب ملحوظة…</div></div>
+ <div class="more">عرض 3 طلاب آخرين ⌄</div>
+</div>
+
+<div class="card" style="margin-top:20px"><div class="card-h"><h2>ملحوظة عامة على الحصة</h2><span class="mut">اختياري</span></div>
+ <div class="inp" style="min-height:90px">أنهينا التصنيف الحديث كاملاً. وتحتاج المجموعة مراجعة الممالك الخمس في الحصة القادمة.</div></div>
+
+<div class="card foot" style="margin-top:20px"><span class="mut">يظهر التقييم والملحوظات في تقرير الطالب لولي الأمر (رسالة تليجرام)</span>
+ <div class="row"><a class="btn ghost" style="color:var(--brand)">حفظ كمسودة</a><a class="btn brand">حفظ التقييم ✓</a></div></div>
+</div></body></html>

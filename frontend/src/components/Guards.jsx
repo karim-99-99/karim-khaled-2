@@ -16,3 +16,14 @@ export function RequireRole({ roles, children }) {
     return <Navigate to="/" replace />;
   return children;
 }
+
+/** Gold-only routes (schedule, daily tasks). Silver → home. */
+export function RequireGold({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="spinner">جاري التحميل…</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role === "student" && user.is_silver) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}

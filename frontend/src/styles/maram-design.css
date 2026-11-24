@@ -169,7 +169,6 @@ html[data-subject="bio"] .btn-primary {
 .container--bleed > .pricing-exact,
 .container--bleed > .exams-exact,
 .container--bleed > .simulator-exact,
-.container--bleed > .smartplan-exact,
 .container--bleed > .subject-exact,
 .container--bleed > .dash-exact {
   max-width: 1180px;
@@ -209,7 +208,6 @@ html[data-subject="bio"] .btn-primary {
   .container--bleed > .pricing-exact,
   .container--bleed > .exams-exact,
   .container--bleed > .simulator-exact,
-  .container--bleed > .smartplan-exact,
   .container--bleed > .subject-exact,
   .container--bleed > .dash-exact {
     padding-left: 16px;

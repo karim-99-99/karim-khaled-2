@@ -32,8 +32,11 @@ export default function Home() {
   const isTeacher = user?.role === "teacher";
   const isAdmin = user?.role === "admin";
   const isSubscribed = user?.role === "student" && user?.has_active_subscription;
+  const isGold = Boolean(user?.is_gold) || isTeacher || isAdmin;
+  const isSilver = Boolean(user?.is_silver);
   const showMarketing = !user || (user.role === "student" && !user.has_active_subscription);
   const showStudentDash = isSubscribed;
+  const showGoldHome = isSubscribed && isGold && !isSilver;
 
   useEffect(() => {
     let cancelled = false;
@@ -58,25 +61,28 @@ export default function Home() {
         .catch(() => {
           if (!cancelled) setNext(null);
         });
-      const dashP = isSubscribed
-        ? Promise.all([
-            client.get("/study-plans/active/").catch(() => ({ data: null })),
-            client.get("/teacher-tests/").catch(() => ({ data: [] })),
-          ]).then(([planRes, testsRes]) => {
-            if (cancelled) return;
-            setDashboard({
-              plan: planRes.data,
-              tests: testsRes.data?.results || testsRes.data || [],
+      const dashP =
+        isSubscribed && !isSilver
+          ? client
+              .get("/teacher-tests/")
+              .catch(() => ({ data: [] }))
+              .then((testsRes) => {
+                if (cancelled) return;
+                setDashboard({
+                  plan: null,
+                  tests: testsRes.data?.results || testsRes.data || [],
+                });
+              })
+          : Promise.resolve().then(() => {
+              if (!cancelled) setDashboard({ plan: null, tests: [] });
             });
-          })
-        : Promise.resolve();
       await Promise.all([freeP, nextP, dashP]);
     };
     load();
     return () => {
       cancelled = true;
     };
-  }, [user, isSubscribed]);
+  }, [user, isSubscribed, isSilver]);
 
   const session = next?.session;
   const sessionKey = resolveSubjectKey(session?.subject_name);
@@ -94,17 +100,9 @@ export default function Home() {
 
   const ctaTo = user ? "/subscription" : "/register";
   const courseTo = user ? "/courses" : "/login";
-  const planTasks = dashboard?.plan?.tasks || dashboard?.plan?.today_tasks || [];
-  const todayIdx = dashboard?.plan?.today_day_index;
-  const todayTasks = todayIdx
-    ? planTasks.filter((t) => t.day_index === todayIdx)
-    : planTasks.slice(0, 6);
-  const homeworkTasks = todayTasks
-    .filter((t) => t.kind === "foundation" || t.kind === "homework" || t.type === "homework" || t.kind === "review")
-    .slice(0, 3);
-  const collectionTasks = todayTasks
-    .filter((t) => t.kind === "collections" || t.type === "collections")
-    .slice(0, 3);
+  // Daily tasks come from Tasks admin (phase 2) — empty until linked
+  const homeworkTasks = [];
+  const collectionTasks = [];
   const todayTests = (dashboard?.tests || [])
     .filter((t) => !(t.solved || t.my_score != null || t.status === "solved") && !(t.is_upcoming || t.status === "upcoming"))
     .slice(0, 1);
@@ -115,7 +113,7 @@ export default function Home() {
 
   return (
     <div className={showStudentDash ? "dash-exact" : "home-page home-page--dash"}>
-      {showStudentDash && (
+      {showStudentDash && showGoldHome && (
         <>
           <section className="next">
             <div>
@@ -205,13 +203,13 @@ export default function Home() {
                   <li>
                     <div className="t-name">
                       لا واجبات الآن
-                      <div className="t-meta">من الجدول الذكي</div>
+                      <div className="t-meta">تظهر بعد انتهاء حصة مجموعتك</div>
                     </div>
                   </li>
                 )}
               </ul>
               <div className="task-foot">
-                <Link to="/smart-plan">عرض كل الواجبات</Link>
+                <Link to="/courses">عرض كل الواجبات</Link>
               </div>
             </div>
 
@@ -255,7 +253,7 @@ export default function Home() {
                   <li>
                     <div className="t-name">
                       لا تجميعات مقترحة الآن
-                      <div className="t-meta">من الجدول الذكي</div>
+                      <div className="t-meta">تظهر بعد انتهاء حصة مجموعتك</div>
                     </div>
                   </li>
                 )}
@@ -321,6 +319,11 @@ export default function Home() {
             </div>
           </div>
 
+        </>
+      )}
+
+      {showStudentDash && (
+        <>
           <div className="sec-head">
             <h3>تصفح حسب المادة</h3>
             <p>اختر مادتك للدخول إلى الدورة</p>

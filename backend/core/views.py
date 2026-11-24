@@ -150,54 +150,112 @@ def teacher_assignments(request):
 @permission_classes([permissions.IsAuthenticated])
 def next_session(request):
     """
-    The next upcoming live session, tailored to the current user (not a fixed
-    banner for everyone):
-    - Student: sessions for the groups they belong to.
-    - Teacher: sessions they teach (plus the subjects they teach).
-    - Admin: the nearest upcoming session overall.
+    The next upcoming live session via shared time-rules (brief 0.4).
+    Silver students: Gold-only — empty payload (UI must hide next-class card).
     """
     from django.db.models import Q
     from django.utils import timezone
     from scheduling.models import Session, sync_session_statuses
     from scheduling.serializers import SessionSerializer
-    from groups.models import GroupStudent, GroupTeacher
+    from groups.models import GroupTeacher
+    from core.plans import is_silver_student
+    from core.time_rules import next_class_for_student, snapshot_for_student
 
     user = request.user
     now = timezone.now()
 
-    sync_session_statuses(
-        Session.objects.exclude(status=Session.Status.DONE).filter(
-            Q(start_time__lte=now) | Q(status=Session.Status.LIVE)
+    if user.is_student and is_silver_student(user):
+        return Response(
+            {
+                "session": None,
+                "teaches_subjects": [],
+                "role": user.role,
+                "plan": "silver",
+                "gold_only": True,
+                "time_rules": {
+                    "next_class": None,
+                    "lessons_taken": [],
+                    "released_tasks": [],
+                },
+            }
         )
-    )
-    qs = Session.objects.filter(
-        Q(status=Session.Status.LIVE)
-        | (Q(start_time__gte=now) & ~Q(status=Session.Status.DONE))
-    ).select_related("subject")
 
     my_subjects = []
+    session = None
+    time_rules = None
     if user.is_student:
-        group_ids = list(
-            GroupStudent.objects.filter(student=user).values_list("group_id", flat=True)
+        session = next_class_for_student(user, now)
+        time_rules = snapshot_for_student(user, now)
+        # Drop non-JSON bits
+        time_rules = {
+            "now_riyadh": time_rules.get("now_riyadh"),
+            "group_ids": time_rules.get("group_ids"),
+            "next_class": time_rules.get("next_class"),
+            "lessons_taken": time_rules.get("lessons_taken"),
+            "released_tasks": time_rules.get("released_tasks"),
+        }
+    else:
+        sync_session_statuses(
+            Session.objects.exclude(status=Session.Status.DONE).filter(
+                Q(start_time__lte=now) | Q(status=Session.Status.LIVE)
+            )
         )
-        qs = qs.filter(group_id__in=group_ids)
-    elif user.is_teacher:
-        links = GroupTeacher.objects.filter(teacher=user).select_related("subject")
-        my_subjects = sorted({l.subject.name for l in links})
-        group_ids = list(links.values_list("group_id", flat=True))
-        subject_ids = list(links.values_list("subject_id", flat=True))
-        qs = qs.filter(
-            models.Q(teacher=user)
-            | (models.Q(group_id__in=group_ids) & models.Q(subject_id__in=subject_ids))
-        ).distinct()
-    # admin: no extra filter — nearest overall
+        qs = Session.objects.filter(
+            Q(status=Session.Status.LIVE)
+            | (Q(start_time__gte=now) & ~Q(status=Session.Status.DONE))
+        ).select_related("subject")
+        if user.is_teacher:
+            links = GroupTeacher.objects.filter(teacher=user).select_related("subject")
+            my_subjects = sorted({l.subject.name for l in links})
+            group_ids = list(links.values_list("group_id", flat=True))
+            subject_ids = list(links.values_list("subject_id", flat=True))
+            qs = qs.filter(
+                models.Q(teacher=user)
+                | (
+                    models.Q(group_id__in=group_ids)
+                    & models.Q(subject_id__in=subject_ids)
+                )
+            ).distinct()
+        session = qs.order_by("start_time").first()
 
-    session = qs.order_by("start_time").first()
     return Response(
         {
             "session": SessionSerializer(session).data if session else None,
             "teaches_subjects": my_subjects,
             "role": user.role,
+            "time_rules": time_rules,
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def time_rules_snapshot(request):
+    """Shared time-rules endpoint (brief 0.4) for home / locks / tasks."""
+    from core.plans import is_silver_student
+    from core.time_rules import snapshot_for_student
+
+    user = request.user
+    if not user.is_student:
+        return Response({"detail": "للطلاب فقط"}, status=400)
+    if is_silver_student(user):
+        return Response(
+            {
+                "gold_only": True,
+                "next_class": None,
+                "lessons_taken": [],
+                "released_tasks": [],
+                "group_ids": [],
+            }
+        )
+    snap = snapshot_for_student(user)
+    return Response(
+        {
+            "now_riyadh": snap.get("now_riyadh"),
+            "group_ids": snap.get("group_ids"),
+            "next_class": snap.get("next_class"),
+            "lessons_taken": snap.get("lessons_taken"),
+            "released_tasks": snap.get("released_tasks"),
         }
     )
 

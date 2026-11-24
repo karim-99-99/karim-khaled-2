@@ -50,17 +50,11 @@ from core.views import (
     next_session,
     teacher_assignments,
     teacher_student_analytics,
+    time_rules_snapshot,
     video_token,
 )
 from groups.views import AdminGroupViewSet, TeacherGroupViewSet
 from scheduling.views import SessionViewSet, teacher_availability
-from planner.views import (
-    active_study_plan,
-    generate_study_plan,
-    list_study_plans,
-    study_plan_detail,
-    toggle_study_task,
-)
 
 router = DefaultRouter()
 router.register("subjects", SubjectViewSet, basename="subject")
@@ -92,6 +86,7 @@ api_patterns = [
     path("health/", health),
     path("home/free-content/", home_free_content),
     path("home/next-session/", next_session),
+    path("home/time-rules/", time_rules_snapshot),
     path("videos/<str:bunny_id>/token/", video_token),
     # Admin user management
     path("admin/accounts/", admin_accounts),
@@ -125,12 +120,6 @@ api_patterns = [
     path("exams/<int:exam_id>/review/", ExamReviewView.as_view()),
     path("results/", MyResultsView.as_view()),
     path("my-homework/", StudentHomeworkView.as_view()),
-    # Smart study plan (الجدول الذكي)
-    path("study-plans/", list_study_plans),
-    path("study-plans/active/", active_study_plan),
-    path("study-plans/generate/", generate_study_plan),
-    path("study-plans/<int:plan_id>/", study_plan_detail),
-    path("study-plans/<int:plan_id>/tasks/<int:task_id>/toggle/", toggle_study_task),
     # Billing
     path("subscription/", my_subscription),
     path("subscription/plans/", subscription_plans),

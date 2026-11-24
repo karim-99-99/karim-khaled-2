@@ -15,13 +15,17 @@ class SessionSerializer(serializers.ModelSerializer):
     attendance_summary = serializers.SerializerMethodField()
     bbb_configured = serializers.SerializerMethodField()
     join_mode = serializers.SerializerMethodField()
+    is_extra = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Session
         fields = [
             "id",
             "title",
+            "title_override",
+            "session_type",
             "display_title",
+            "is_extra",
             "subject",
             "subject_name",
             "group",
@@ -44,6 +48,7 @@ class SessionSerializer(serializers.ModelSerializer):
         read_only_fields = [
             "id",
             "display_title",
+            "is_extra",
             "subject_name",
             "group_name",
             "teacher_name",

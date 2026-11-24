@@ -1,0 +1,98 @@
+/* =========================================================
+   Maram — shared design tokens & components (reference)
+   Use the site's existing Arabic font; Tajawal is a stand-in.
+   Theme per subject: add class s-bio / s-math / s-chem / s-phys on <body>.
+   ========================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+
+:root{
+  /* brand */
+  --brand:#1565c0; --brand-2:#3b9be0; --brand-dark:#0d3b70; --navy:#0f2a4a;
+  /* neutrals */
+  --ink:#0f2a4a; --mut:#6b7a90; --line:#e6ebf2; --bg:#f2f5fa; --card:#fff;
+  /* status */
+  --green:#16a34a; --green-l:#e8f7ee; --orange:#f59e0b; --orange-d:#c26a00; --orange-l:#fff4e0;
+  --red:#dc2626; --red-l:#fdecec; --blue-l:#e8f1fd;
+  /* subject (default = brand blue) */
+  --c:#1565c0; --c-dark:#0d3b70; --c-light:#e8f1fd; --c-grad:linear-gradient(90deg,#0d3b70,#1565c0 55%,#3b9be0);
+  --r-lg:22px; --r-md:16px; --r-sm:12px;
+  --shadow:0 8px 24px rgba(15,42,74,.06);
+}
+/* Subject palette — SOURCE OF TRUTH */
+.s-bio { --c:#C58A00; --c-dark:#8a6000; --c-light:#FFF6DC; --c-grad:linear-gradient(90deg,#8a6000,#b88200 45%,#E0A400); }
+.s-chem{ --c:#C0182F; --c-dark:#8c0f22; --c-light:#FDECEE; --c-grad:linear-gradient(90deg,#8c0f22,#b3152b 45%,#dc3a4f); }
+.s-phys{ --c:#6D28D9; --c-dark:#4c1d95; --c-light:#F3EEFE; --c-grad:linear-gradient(90deg,#4c1d95,#6324c8 45%,#8b5cf6); }
+.s-math{ --c:#5F8F2E; --c-dark:#3f6420; --c-light:#F1F7E8; --c-grad:linear-gradient(90deg,#3f6420,#56842a 45%,#7cab45); }
+
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:Tajawal,system-ui,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink);direction:rtl;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+
+/* ---------- navbar ---------- */
+.nav{background:#fff;border-bottom:3px solid var(--brand-2);display:flex;align-items:center;justify-content:space-between;padding:12px 40px;position:sticky;top:0;z-index:5}
+.nav .logo{font-weight:800;color:var(--brand);font-size:26px;letter-spacing:-.5px}
+.nav .links{display:flex;gap:6px;font-size:17px;color:#334155}
+.nav .links a{padding:9px 16px;border-radius:12px}
+.nav .links a.on{background:var(--brand-2);color:#fff;font-weight:700}
+.nav .acc{display:flex;gap:10px;align-items:center}
+.nav .acc a{border:1px solid var(--line);padding:8px 18px;border-radius:12px;color:#556}
+.nav .av{background:var(--brand);color:#fff;border-radius:50%;width:44px;height:44px;display:grid;place-items:center;font-weight:700}
+.nav .burger{display:none;width:44px;height:44px;border:1px solid var(--line);border-radius:12px;place-items:center;font-size:20px}
+@media (max-width:1100px){ .nav .links{display:none} .nav .burger{display:grid} .nav{padding:12px 20px} }
+
+/* ---------- layout ---------- */
+.wrap{max-width:1500px;margin:0 auto;padding:22px 40px 60px}
+@media (max-width:1100px){ .wrap{padding:18px 24px 40px} }
+@media (max-width:480px){ .wrap{padding:14px 14px 32px} }
+.crumb{color:var(--mut);font-size:14px;margin-bottom:14px}.crumb b{color:var(--brand)}
+.card{background:var(--card);border-radius:var(--r-lg);border:1px solid var(--line);padding:22px;box-shadow:var(--shadow)}
+.card-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px}
+.card-h h2{margin:0;font-size:21px;font-weight:800}
+.mut{color:var(--mut)} .sm{font-size:13px}
+.row{display:flex;align-items:center;gap:12px}
+.grow{flex:1}
+
+/* ---------- hero (subject gradient) ---------- */
+.hero{background:var(--c-grad);border-radius:24px;color:#fff;padding:26px 32px;display:flex;justify-content:space-between;align-items:center;gap:20px;box-shadow:0 12px 30px rgba(0,0,0,.12)}
+.hero h1{margin:4px 0 6px;font-size:32px;font-weight:800}
+.hero p{margin:0;opacity:.92}
+.hstat{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);border-radius:16px;padding:12px 20px;text-align:center;min-width:110px}
+.hstat b{font-size:28px;display:block;line-height:1.2}.hstat small{opacity:.9;font-size:13px}
+
+/* ---------- pills / chips / buttons ---------- */
+.pill{display:inline-block;font-size:12.5px;font-weight:700;padding:4px 11px;border-radius:99px;white-space:nowrap}
+.p-green{background:var(--green-l);color:var(--green)} .p-orange{background:var(--orange-l);color:var(--orange-d)}
+.p-red{background:var(--red-l);color:var(--red)} .p-grey{background:#eef1f5;color:#667} .p-blue{background:var(--blue-l);color:var(--brand)}
+.p-subj{background:var(--c-light);color:var(--c)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:9px 18px;border-radius:12px;border:1px solid var(--line);font-weight:700;color:#445;background:#fff;cursor:pointer;white-space:nowrap}
+.chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.seg{display:inline-flex;background:#f1f4f8;border-radius:14px;padding:4px;gap:2px}
+.seg span{padding:9px 18px;border-radius:10px;font-weight:700;color:#556;cursor:pointer;white-space:nowrap}
+.seg span.on{background:#fff;color:var(--brand);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--c);color:#fff;border-radius:12px;padding:11px 20px;font-weight:700;border:0;cursor:pointer;white-space:nowrap;min-height:44px}
+.btn.brand{background:var(--brand)} .btn.red{background:var(--red)} .btn.green{background:var(--green)}
+.btn.ghost{background:#fff;color:var(--c);border:1px solid var(--line)}
+.btn.soft{background:var(--c-light);color:var(--c)}
+.btn.done{background:var(--green-l);color:var(--green)}
+.btn.dis{background:#eef1f5;color:#9aa5b5;cursor:default}
+.num-badge{width:44px;height:44px;border-radius:12px;background:var(--c-light);color:var(--c);font-weight:800;display:grid;place-items:center;font-size:18px;flex:none}
+
+/* ---------- ring (progress donut) — set --p (0-100) and --rc ---------- */
+.ring{--p:50;--rc:var(--green);width:64px;height:64px;border-radius:50%;background:conic-gradient(var(--rc) calc(var(--p)*1%),#e9edf3 0);display:grid;place-items:center;flex:none}
+.ring::before{content:"";grid-area:1/1;width:calc(100% - 12px);height:calc(100% - 12px);border-radius:50%;background:#fff}
+.ring > *{grid-area:1/1;position:relative;font-weight:800;font-size:14px}
+.ring.lg{width:140px;height:140px}.ring.lg::before{width:calc(100% - 22px);height:calc(100% - 22px);background:var(--brand-dark)}
+
+/* ---------- bars ---------- */
+.bar{height:10px;border-radius:99px;background:#e9edf3;overflow:hidden;flex:1}
+.bar > i{display:block;height:100%;border-radius:99px;background:var(--c)}
+
+/* ---------- avatar ---------- */
+.avatar{width:46px;height:46px;border-radius:50%;background:#fff4d6;color:#8a6000;font-weight:800;display:grid;place-items:center;flex:none;font-size:18px}
+
+/* ---------- tables ---------- */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:14px;color:var(--mut);font-weight:700;text-align:right;padding:12px 10px;border-bottom:1px solid var(--line)}
+.tbl td{padding:14px 10px;border-bottom:1px solid var(--line);font-weight:700}

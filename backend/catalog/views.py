@@ -4,7 +4,7 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.access import assert_teacher_can_manage_subject
+from core.access import assert_teacher_can_edit_content as assert_teacher_can_manage_subject
 from core.permissions import IsAdminOrReadOnly
 from .models import Lesson, LessonSection, Subject
 from .serializers import (

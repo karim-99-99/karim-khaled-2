@@ -13,6 +13,11 @@ class UserSerializer(serializers.ModelSerializer):
         source="taught_subject.name", read_only=True
     )
     teachable_subject_ids = serializers.SerializerMethodField()
+    editable_subject_ids = serializers.SerializerMethodField()
+    teacher_subject_roles = serializers.SerializerMethodField()
+    subscription_plan = serializers.SerializerMethodField()
+    is_gold = serializers.SerializerMethodField()
+    is_silver = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -33,7 +38,12 @@ class UserSerializer(serializers.ModelSerializer):
             "taught_subject",
             "taught_subject_name",
             "teachable_subject_ids",
+            "editable_subject_ids",
+            "teacher_subject_roles",
             "has_active_subscription",
+            "subscription_plan",
+            "is_gold",
+            "is_silver",
             "created_at",
         ]
         read_only_fields = [
@@ -43,8 +53,58 @@ class UserSerializer(serializers.ModelSerializer):
             "telegram_id",
             "telegram_username",
             "teachable_subject_ids",
+            "editable_subject_ids",
+            "teacher_subject_roles",
+            "subscription_plan",
+            "is_gold",
+            "is_silver",
             "created_at",
         ]
+
+    def get_subscription_plan(self, obj):
+        from core.plans import active_plan_code
+
+        return active_plan_code(obj)
+
+    def get_is_gold(self, obj):
+        from core.plans import is_gold_student
+
+        return is_gold_student(obj)
+
+    def get_is_silver(self, obj):
+        from core.plans import is_silver_student
+
+        return is_silver_student(obj)
+
+    def get_editable_subject_ids(self, obj):
+        from core.access import teacher_can_edit_content, teacher_subject_ids
+
+        if getattr(obj, "is_admin_role", False):
+            from catalog.models import Subject
+
+            return list(Subject.objects.values_list("id", flat=True))
+        return [
+            sid
+            for sid in teacher_subject_ids(obj)
+            if teacher_can_edit_content(obj, sid)
+        ]
+
+    def get_teacher_subject_roles(self, obj):
+        from core.access import teacher_role_for_subject, teacher_subject_ids
+
+        if getattr(obj, "is_admin_role", False):
+            from catalog.models import Subject
+
+            return {
+                str(sid): "main"
+                for sid in Subject.objects.values_list("id", flat=True)
+            }
+        out = {}
+        for sid in teacher_subject_ids(obj):
+            role = teacher_role_for_subject(obj, sid)
+            if role:
+                out[str(sid)] = role
+        return out
 
     def get_teachable_subject_ids(self, obj):
         from core.access import teacher_subject_ids

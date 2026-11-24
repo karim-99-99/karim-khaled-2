@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import { Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
-import { RequireAuth, RequireRole } from "./components/Guards";
+import { RequireAuth, RequireGold, RequireRole } from "./components/Guards";
 
 const Home = lazy(() => import("./pages/Home"));
 const Login = lazy(() => import("./pages/Login"));
@@ -21,7 +21,6 @@ const TestRunner = lazy(() => import("./pages/TestRunner"));
 const Results = lazy(() => import("./pages/Results"));
 const ResultReview = lazy(() => import("./pages/ResultReview"));
 const Schedule = lazy(() => import("./pages/Schedule"));
-const SmartPlan = lazy(() => import("./pages/SmartPlan"));
 const Subscription = lazy(() => import("./pages/Subscription"));
 const TeacherPanel = lazy(() => import("./pages/TeacherPanel"));
 const TeacherSchedule = lazy(() => import("./pages/TeacherSchedule"));
@@ -78,8 +77,7 @@ export default function App() {
 
           <Route path="/results" element={<RequireAuth><Results /></RequireAuth>} />
           <Route path="/results/:examId" element={<RequireAuth><ResultReview /></RequireAuth>} />
-          <Route path="/schedule" element={<RequireAuth><Schedule /></RequireAuth>} />
-          <Route path="/smart-plan" element={<RequireAuth><SmartPlan /></RequireAuth>} />
+          <Route path="/schedule" element={<RequireAuth><RequireGold><Schedule /></RequireGold></RequireAuth>} />
           <Route path="/subscription" element={<RequireAuth><Subscription /></RequireAuth>} />
 
           <Route path="/teacher" element={<RequireRole roles={["teacher", "admin"]}><TeacherPanel /></RequireRole>} />

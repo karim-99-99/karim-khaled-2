@@ -6,18 +6,34 @@ from django.utils import timezone
 
 
 class Session(models.Model):
-    """A live Zoom class session."""
+    """A live class session (BBB join is separate — do not change BBB code)."""
 
     class Status(models.TextChoices):
         SCHEDULED = "scheduled", "مجدولة"
         LIVE = "live", "مباشر الآن"
         DONE = "done", "منتهية"
 
+    class SessionType(models.TextChoices):
+        FOUNDATION = "foundation", "تأسيس"
+        EXTRA = "extra", "حصة إضافية"
+
     title = models.CharField(
         max_length=200,
         blank=True,
         default="",
         help_text="اسم اختياري للحصة (مثال: مراجعة الباب الأول)",
+    )
+    title_override = models.CharField(
+        max_length=200,
+        blank=True,
+        default="",
+        help_text="عنوان حر لحصص إضافية يكتبه المدير",
+    )
+    session_type = models.CharField(
+        max_length=20,
+        choices=SessionType.choices,
+        default=SessionType.FOUNDATION,
+        db_index=True,
     )
     subject = models.ForeignKey(
         "catalog.Subject", related_name="sessions", on_delete=models.CASCADE
@@ -60,7 +76,14 @@ class Session(models.Model):
 
     @property
     def display_title(self):
+        override = (self.title_override or "").strip()
+        if override:
+            return override
         return (self.title or "").strip() or self.subject.name
+
+    @property
+    def is_extra(self):
+        return self.session_type == self.SessionType.EXTRA
 
     @property
     def end_time(self):

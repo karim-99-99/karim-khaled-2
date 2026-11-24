@@ -53,6 +53,11 @@ class SessionViewSet(viewsets.ModelViewSet):
                 | (Q(group_id__in=group_ids) & Q(subject_id__in=subject_ids))
             ).distinct()
         else:
+            from core.plans import is_silver_student
+
+            # Silver: no class schedule (Gold-only) — return empty
+            if is_silver_student(user):
+                return qs.none()
             group_ids = list(
                 GroupStudent.objects.filter(student=user).values_list(
                     "group_id", flat=True

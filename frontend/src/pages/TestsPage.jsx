@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { canEditSubject, filterSubjectsForUser } from "../auth/teacherScope";
+import { canTeachSubject, filterSubjectsForUser } from "../auth/teacherScope";
 import client from "../api/client";
 import { getSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 import "../styles/exams-exact.css";
@@ -39,11 +39,15 @@ export default function TestsPage() {
   const [loading, setLoading] = useState(true);
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const hideTeacherTests = user?.role === "student" && user?.is_silver;
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    Promise.all([client.get("/subjects/"), client.get("/teacher-tests/")])
+    const testsP = hideTeacherTests
+      ? Promise.resolve({ data: [] })
+      : client.get("/teacher-tests/");
+    Promise.all([client.get("/subjects/"), testsP])
       .then(([subjRes, testsRes]) => {
         if (cancelled) return;
         const list = filterSubjectsForUser(subjRes.data.results || subjRes.data || [], user);
@@ -64,7 +68,7 @@ export default function TestsPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id, user?.role]);
+  }, [user?.id, user?.role, user?.is_silver, hideTeacherTests]);
 
   async function startTeacherTest(id) {
     setError("");
@@ -78,7 +82,8 @@ export default function TestsPage() {
     }
   }
 
-  const canCreateAny = subjects.some((s) => canEditSubject(user, s.id));
+  // Secondary teachers may create tests (B4); content edit is main-only
+  const canCreateAny = subjects.some((s) => canTeachSubject(user, s.id));
 
   function togglePick(id) {
     setPicked((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
@@ -224,15 +229,17 @@ export default function TestsPage() {
         </div>
       </section>
 
+      {!hideTeacherTests && (
       <div className="sec-head">
         <h3>اختبارات المدرسين</h3>
         <i />
       </div>
+      )}
 
-      {canCreateAny && (
+      {!hideTeacherTests && canCreateAny && (
         <div className="create-row">
           {subjects
-            .filter((s) => canEditSubject(user, s.id))
+            .filter((s) => canTeachSubject(user, s.id))
             .map((s) => (
               <Link key={s.id} to={`/tests/teacher/${s.id}`} className="btn go" style={{ "--c": getSubjectTheme(resolveSubjectKey(s.name))?.color || "#156eb0", marginTop: 0, padding: "8px 14px", fontSize: 13 }}>
                 إنشاء · {s.name}
@@ -247,6 +254,7 @@ export default function TestsPage() {
         </div>
       )}
 
+      {!hideTeacherTests && (
       <div className="ebox">
         <div className="etop">
           <div className="ftabs">
@@ -323,6 +331,7 @@ export default function TestsPage() {
           </>
         )}
       </div>
+      )}
     </div>
   );
 }

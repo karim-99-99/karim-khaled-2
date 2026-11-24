@@ -135,7 +135,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LANGUAGE_CODE = "ar"
-TIME_ZONE = env("DJANGO_TIME_ZONE", "Africa/Cairo")
+TIME_ZONE = env("DJANGO_TIME_ZONE", "Asia/Riyadh")
 USE_I18N = True
 USE_TZ = True
 

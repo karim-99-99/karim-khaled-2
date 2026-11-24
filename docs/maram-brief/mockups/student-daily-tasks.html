@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>المهام اليومية — طالب</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+/* Page 12 — student daily tasks. Today's subject theme = s-chem */
+.top{display:grid;grid-template-columns:1fr 400px;gap:22px}
+.dt-hero{background:linear-gradient(90deg,#0d3b70,#1565c0);border-radius:24px;color:#fff;padding:30px 34px;display:flex;align-items:center;gap:30px;box-shadow:0 14px 30px rgba(13,59,112,.25)}
+.dt-hero .ring.lg{--rc:#5ec8ff}
+.dt-hero .ring.lg b{color:#fff;font-size:34px;line-height:1}.dt-hero .ring.lg small{display:block;color:#cfe3ff;font-size:13px;font-weight:500;margin-top:6px}
+.dt-hero .date{color:#cfe3ff;font-weight:700}.dt-hero h1{margin:6px 0 10px;font-size:36px}
+.streak .big{display:flex;align-items:center;gap:12px}.streak .big b{font-size:34px;color:var(--brand-dark)}
+.streak .boxes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.streak .box{background:#f3f6fb;border-radius:14px;padding:14px;text-align:center}.streak .box b{font-size:24px;color:var(--brand);display:block}
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:12px}
+.day{border:1px solid var(--line);border-radius:16px;padding:14px 8px;text-align:center;background:#fff;cursor:pointer}
+.day small{color:var(--mut)}.day .d{font-size:22px;font-weight:800;margin:4px 0 8px}
+.day .ring{margin:0 auto 10px;width:58px;height:58px}
+.day.today{border:2px solid var(--brand);background:#f1f7ff}.day.today .d{color:var(--brand)}
+.legend{display:flex;gap:18px;justify-content:flex-end;margin-top:14px;font-size:14px;color:var(--mut)}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-left:6px;vertical-align:middle}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.col{border:1px solid var(--line);border-radius:18px;padding:18px}
+.col h3{margin:0 0 14px;font-size:19px;color:var(--c);display:flex;gap:10px;align-items:center}
+.col h3 .ic{width:36px;height:36px;border-radius:10px;background:var(--c-light);display:grid;place-items:center}
+.task{display:flex;align-items:center;gap:14px;border:1px solid var(--line);border-right:4px solid var(--c);border-radius:14px;padding:14px 16px;margin-bottom:12px;background:#fff}
+.task .cb{width:26px;height:26px;border-radius:7px;border:2px solid #cfd6e0;flex:none}
+.task .t{flex:1}.task .t b{font-size:17px;display:block}.task .t small{color:var(--mut)}
+.task.done{background:#f7faf8}.task.done .cb{background:var(--green);border-color:var(--green);color:#fff;display:grid;place-items:center;font-weight:800}
+.task.done .t b{text-decoration:line-through;color:#9aa5b5}
+.task.missed .t b{color:var(--red)}.task.missed .cb{border-color:#f3a5a5}
+.prog{display:flex;align-items:center;gap:10px;color:var(--mut)}.prog .bar{width:190px;flex:none}
+.acc{border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden}
+.acc-h{display:grid;grid-template-columns:150px 150px 1fr 110px 30px;align-items:center;gap:16px;padding:16px 20px}
+.acc-h .when b{display:block;font-size:18px}.acc-h .when small{color:var(--mut)}
+.acc.open .acc-h{background:#f6f9fd;border-bottom:1px solid var(--line)}
+.acc-b{padding:18px}
+.more{border:1.5px dashed #cdd7e4;border-radius:16px;padding:16px;text-align:center;color:var(--brand);font-weight:700}
+@media (max-width:1100px){ .top{grid-template-columns:1fr} .week{grid-template-columns:repeat(7,110px);overflow-x:auto} .cols{grid-template-columns:1fr} .acc-h{grid-template-columns:1fr auto;} .acc-h .barcell{grid-column:1/-1} }
+@media (max-width:480px){ .dt-hero{flex-direction:column;text-align:center;padding:22px} .dt-hero h1{font-size:28px} }
+</style></head>
+<body class="s-chem">
+<nav class="nav"><div class="logo">مرام</div>
+<div class="links"><a class="on">الرئيسية</a><a>المهام اليومية</a><a>دورات</a><a>اختبارات</a><a>نتائج</a><a>جدول الحصص</a><a>الأسعار</a></div>
+<div class="acc"><a>خروج</a><a>حسابي</a><div class="av">h</div><div class="burger">☰</div></div></nav>
+
+<div class="wrap">
+<div class="crumb">الرئيسية › <b>المهام اليومية</b></div>
+
+<div class="top">
+ <div class="dt-hero">
+  <div class="ring lg" style="--p:25"><div><b>1/4</b><small>مهام اليوم</small></div></div>
+  <div><div class="date">الجمعة · 20 نوفمبر</div><h1>المهام اليومية</h1><div style="color:#dbe8ff">مادة اليوم كيمياء · باقي لك 3 مهام — كمّل وحافظ على سلسلتك 💪</div></div>
+ </div>
+ <div class="card streak">
+  <div class="big"><span style="font-size:40px">🔥</span><div><b>3 أيام</b><div class="mut">سلسلة إنجاز متتالية</div></div></div>
+  <div class="boxes"><div class="box"><b>79%</b><span class="mut sm">نسبة الإنجاز</span></div><div class="box"><b>19 من 24</b><span class="mut sm">مهام هذا الأسبوع</span></div></div>
+ </div>
+</div>
+
+<div class="card" style="margin-top:22px">
+ <div class="card-h"><h2>هذا الأسبوع</h2><span class="mut">اضغط على أي يوم لعرض مهامه</span></div>
+ <div class="week">
+  <div class="day s-phys"><small>السبت</small><div class="d">14</div><div class="ring" style="--p:100"><span>4/4</span></div><span class="pill p-subj">فيزياء</span></div>
+  <div class="day s-bio"><small>الأحد</small><div class="d">15</div><div class="ring" style="--p:100"><span>3/3</span></div><span class="pill p-subj">أحياء</span></div>
+  <div class="day s-math"><small>الاثنين</small><div class="d">16</div><div class="ring" style="--p:33;--rc:var(--red)"><span>1/3</span></div><span class="pill p-subj">رياضيات</span></div>
+  <div class="day s-chem"><small>الثلاثاء</small><div class="d">17</div><div class="ring" style="--p:100"><span>4/4</span></div><span class="pill p-subj">كيمياء</span></div>
+  <div class="day s-phys"><small>الأربعاء</small><div class="d">18</div><div class="ring" style="--p:100"><span>3/3</span></div><span class="pill p-subj">فيزياء</span></div>
+  <div class="day s-bio"><small>الخميس</small><div class="d">19</div><div class="ring" style="--p:100"><span>3/3</span></div><span class="pill p-subj">أحياء</span></div>
+  <div class="day today s-chem"><small>الجمعة</small><div class="d">20</div><div class="ring" style="--p:25;--rc:var(--brand)"><span>1/4</span></div><span class="pill p-subj">كيمياء</span></div>
+ </div>
+ <div class="legend"><span><i style="background:var(--green)"></i>مكتمل</span><span><i style="background:var(--orange)"></i>جزئي</span><span><i style="background:var(--red)"></i>متأخر</span><span><i style="background:var(--brand)"></i>اليوم</span></div>
+</div>
+
+<div class="card" style="margin-top:22px">
+ <div class="card-h"><div class="row"><h2>مهام اليوم</h2><span class="pill p-subj" style="font-size:14px;padding:7px 14px">مادة اليوم: كيمياء</span></div><div class="prog"><span>1 من 4</span><div class="bar"><i style="width:25%;background:var(--brand)"></i></div></div></div>
+ <div class="cols">
+  <div class="col"><h3><span class="ic">☑️</span>الواجبات</h3>
+   <div class="task done"><span class="cb">✓</span><div class="t"><b>واجب الاتزان الكيميائي</b><small>15 سؤال</small></div><span class="btn done">✓ تم</span></div>
+   <div class="task"><span class="cb"></span><div class="t"><b>واجب الأحماض والقواعد</b><small>10 أسئلة</small></div><a class="btn">ابدأ ←</a></div>
+  </div>
+  <div class="col"><h3><span class="ic">▦</span>التجميعات</h3>
+   <div class="task"><span class="cb"></span><div class="t"><b>تجميعات الاتزان — البنك 3</b><small>25 سؤال</small></div><a class="btn">ابدأ ←</a></div>
+   <div class="task"><span class="cb"></span><div class="t"><b>تجميعات الأحماض — البنك 1</b><small>20 سؤال</small></div><a class="btn">ابدأ ←</a></div>
+  </div>
+ </div>
+</div>
+
+<div class="card" style="margin-top:22px">
+ <div class="card-h"><h2>الأيام السابقة</h2><span class="mut">آخر 7 أيام</span></div>
+ <div class="acc s-bio"><div class="acc-h"><div class="when"><b>الخميس</b><small>19 نوفمبر</small></div><span class="pill p-subj" style="justify-self:start">أحياء</span><div class="row barcell"><div class="bar"><i style="width:100%;background:var(--green)"></i></div><span class="mut">3 من 3 مهام</span></div><span class="pill p-green">مكتمل ✓</span><span class="mut">⌄</span></div></div>
+ <div class="acc s-phys"><div class="acc-h"><div class="when"><b>الأربعاء</b><small>18 نوفمبر</small></div><span class="pill p-subj" style="justify-self:start">فيزياء</span><div class="row barcell"><div class="bar"><i style="width:100%;background:var(--green)"></i></div><span class="mut">3 من 3 مهام</span></div><span class="pill p-green">مكتمل ✓</span><span class="mut">⌄</span></div></div>
+ <div class="acc s-chem"><div class="acc-h"><div class="when"><b>الثلاثاء</b><small>17 نوفمبر</small></div><span class="pill p-subj" style="justify-self:start">كيمياء</span><div class="row barcell"><div class="bar"><i style="width:100%;background:var(--green)"></i></div><span class="mut">4 من 4 مهام</span></div><span class="pill p-green">مكتمل ✓</span><span class="mut">⌄</span></div></div>
+ <div class="acc open s-math"><div class="acc-h"><div class="when"><b>الاثنين</b><small>16 نوفمبر</small></div><span class="pill p-subj" style="justify-self:start">رياضيات</span><div class="row barcell"><div class="bar"><i style="width:33%;background:var(--red)"></i></div><span class="mut">1 من 3 مهام</span></div><span class="pill p-red">متأخر</span><span class="mut">⌃</span></div>
+  <div class="acc-b"><div class="cols">
+   <div class="col"><h3><span class="ic">☑️</span>الواجبات</h3>
+    <div class="task missed"><span class="cb"></span><div class="t"><b>واجب المتجهات</b><small>12 سؤال</small></div><span class="pill p-red">لم يُنجز</span><a class="btn">ابدأ ←</a></div></div>
+   <div class="col"><h3><span class="ic">▦</span>التجميعات</h3>
+    <div class="task done"><span class="cb">✓</span><div class="t"><b>تجميعات المتجهات — البنك 2</b><small>25 سؤال</small></div><span class="btn done">✓ تم</span></div>
+    <div class="task missed"><span class="cb"></span><div class="t"><b>تجميعات المتجهات — البنك 3</b><small>20 سؤال</small></div><span class="pill p-red">لم يُنجز</span><a class="btn">ابدأ ←</a></div></div>
+  </div></div></div>
+ <div class="more">عرض أيام أقدم ⌄</div>
+</div>
+<p class="mut sm" style="margin-top:14px">ملاحظة للمطوّر: المربعات (checkbox) للعرض فقط، بتتعلّم تلقائيًا لما الطالب يحل كل أسئلة المهمة. المهام المتأخرة يظهر عليها "لم يُنجز" + زرار ابدأ (الحل المتأخر مسموح).</p>
+</div></body></html>

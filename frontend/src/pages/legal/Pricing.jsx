@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { whatsappHref } from "../../legal/business";
 import "../../styles/pricing-exact.css";
@@ -33,7 +33,7 @@ export default function Pricing() {
             <li><span className="ck">✓</span>كل الدروس المرئية في المواد الأربع</li>
             <li><span className="ck">✓</span>تجميعات الأسئلة مع الحلول والشرح</li>
             <li><span className="ck">✓</span>اختبارات المحاكاة وتقارير النتائج</li>
-            <li><span className="ck">✓</span>الجدول الذكي وخطة المذاكرة اليومية</li>
+            <li><span className="ck">✓</span>متابعة مستواك أولاً بأول</li>
             <li className="hl"><span className="ck">✓</span>دورة المراجعة النهائية<em>جديد</em></li>
           </ul>
           <Link className="btn" to={ctaTo}>اشترك الآن</Link>

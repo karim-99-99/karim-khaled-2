@@ -907,6 +907,8 @@ function GroupsTab() {
 function ScheduleTab() {
   const EMPTY = {
     title: "",
+    title_override: "",
+    session_type: "foundation",
     group: "",
     subject: "",
     start_time: "",
@@ -991,6 +993,8 @@ function ScheduleTab() {
     setBusy(true);
     const payload = {
       title: (form.title || "").trim(),
+      title_override: (form.title_override || "").trim(),
+      session_type: form.session_type || "foundation",
       group: Number(form.group),
       subject: Number(form.subject),
       start_time: form.start_time,
@@ -1017,6 +1021,8 @@ function ScheduleTab() {
     setMsg("");
     setForm({
       title: s.title || "",
+      title_override: s.title_override || "",
+      session_type: s.session_type || "foundation",
       group: s.group ? String(s.group) : "",
       subject: s.subject ? String(s.subject) : "",
       start_time: s.start_time ? s.start_time.slice(0, 16) : "",
@@ -1042,6 +1048,30 @@ function ScheduleTab() {
       <div className="grid" style={{ gridTemplateColumns: "minmax(280px, 380px) 1fr", gap: 24 }}>
         <div className="card" style={{ padding: 24, height: "fit-content" }}>
           <h3 style={{ marginBottom: 16 }}>{editingId ? "تعديل حصة" : "إضافة حصة للجدول"}</h3>
+
+          <div className="form-group">
+            <label>نوع الحصة</label>
+            <select
+              className="form-control"
+              value={form.session_type}
+              onChange={(e) => set("session_type", e.target.value)}
+            >
+              <option value="foundation">تأسيس (من جدول المادة)</option>
+              <option value="extra">حصة إضافية</option>
+            </select>
+          </div>
+
+          {form.session_type === "extra" && (
+            <div className="form-group">
+              <label>عنوان الحصة الإضافية</label>
+              <input
+                className="form-control"
+                value={form.title_override}
+                onChange={(e) => set("title_override", e.target.value)}
+                placeholder="مثال: المثلثات — حصة إضافية"
+              />
+            </div>
+          )}
 
           <div className="form-group">
             <label>المجموعة</label>

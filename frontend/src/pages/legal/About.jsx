@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import LegalPage, { ContactBlock, LegalSection } from "../../components/LegalPage";
 import { BUSINESS } from "../../legal/business";
 
@@ -33,7 +33,7 @@ export default function About() {
           <li>تجميعات أسئلة الاختبارات السابقة مع الحل والشرح لكل سؤال.</li>
           <li>اختبارات محاكاة شخصية واختبارات يضعها المدرس مع تقارير النتائج.</li>
           <li>حصص مباشرة مجدولة مع المدرس داخل مجموعات دراسية صغيرة.</li>
-          <li>الجدول الذكي: خطة مذاكرة يومية مخصصة لكل طالب.</li>
+          
         </ul>
       </LegalSection>
 

@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+﻿import { Link } from "react-router-dom";
 import LegalPage, { ContactBlock, LegalSection } from "../../components/LegalPage";
 import { BUSINESS } from "../../legal/business";
 
@@ -46,7 +46,7 @@ export default function Terms() {
           «المنصة» أو «نحن» تعني {BUSINESS.legalName} ({BUSINESS.brandLatin})، ومقرها{" "}
           {BUSINESS.address}. «المستخدم» أو «أنت» تعني كل من يتصفح الموقع أو ينشئ حساباً أو
           يشتري اشتراكاً. تشمل «الخدمة» الدروس المرئية وبنوك الأسئلة والاختبارات
-          والحصص المباشرة والجدول الذكي وكل ما يُقدَّم عبر الموقع.
+          والحصص المباشرة وكل ما يُقدَّم عبر الموقع.
         </p>
       </LegalSection>
 

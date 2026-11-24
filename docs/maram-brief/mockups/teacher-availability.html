@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مواعيدي المتاحة — مدرس</title>
+<link rel="stylesheet" href="_shared.css">
+<style>
+/* B2.2 — حصصي › مواعيدي المتاحة. All times = Saudi time (Asia/Riyadh).
+   Teaching hours: Fri & Sat 12:00–23:00, other days 16:00–23:00. Each window >= 2 consecutive hours.
+   Grid: 1 row = 1 hour (12م..11م = 11 rows + end). Interaction: click & drag to create, drag edges to resize, × to delete. */
+.ph h1{margin:0;font-size:36px;color:var(--brand-dark)}
+.tabs{display:flex;gap:28px;border-bottom:1px solid var(--line);margin:18px 0 20px}
+.tabs a{padding:12px 4px;font-weight:700;color:#556;font-size:17px}.tabs a.on{color:var(--brand-dark);border-bottom:3px solid var(--brand-dark)}
+.lay{display:grid;grid-template-columns:1fr 380px;gap:22px}
+.tz{background:#e8f7f4;color:#0f766e;border-radius:99px;padding:6px 14px;font-weight:700;font-size:14px}
+.rules{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px}.rules span{background:#f3f6fb;border:1px solid var(--line);border-radius:10px;padding:7px 12px;font-size:14px}
+.cal{display:grid;grid-template-columns:70px repeat(7,1fr);--rowh:44px}
+.cal .hd{text-align:center;padding-bottom:10px;font-weight:800}.cal .hd small{display:block;color:var(--mut);font-weight:500;font-size:12px}
+.hours{display:grid;grid-template-rows:repeat(11,var(--rowh));font-size:13px;color:var(--mut)}
+.hours span{transform:translateY(-8px)}
+.col{position:relative;display:grid;grid-template-rows:repeat(11,var(--rowh));border-right:1px solid var(--line)}
+.col i{border-bottom:1px solid #eef1f5}
+.col .off{position:absolute;left:0;right:0;top:0;background:repeating-linear-gradient(45deg,#eceff3 0 6px,#f6f7f9 6px 12px)}
+.slot{position:absolute;left:5px;right:5px;background:#dcfce7;border:2px solid #22c55e;border-radius:10px;color:#15803d;font-weight:800;font-size:13px;text-align:center;padding-top:6px}
+.slot.bad{background:#fff1f2;border-color:#ef4444;color:#b91c1c}
+.legend{display:flex;justify-content:space-between;margin-top:14px;font-size:14px;color:var(--mut)}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:middle;margin-left:6px}
+.side .it{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line);border-right:4px solid #22c55e;border-radius:12px;padding:12px 14px;margin-bottom:10px;font-weight:800}
+.side .it small{color:var(--mut);font-weight:500}
+.err{background:#fff1f2;border:1px solid #fecdd3;color:#b91c1c;border-radius:14px;padding:14px;margin:12px 0}
+.info{background:#eef5ff;border:1px solid #cfe0f7;border-radius:14px;padding:14px;color:#334}
+@media (max-width:1100px){ .lay{grid-template-columns:1fr} .calwrap{overflow-x:auto} .cal{min-width:860px} }
+</style></head>
+<body class="s-bio">
+<nav class="nav"><div class="logo">مرام</div>
+<div class="links"><a>الرئيسية</a><a class="on">حصصي</a><a>الطلاب</a><a>المهام</a><a>الاختبارات</a><a>إدارة المادة</a></div>
+<div class="acc"><a>خروج</a><a>حسابي</a><div class="av">م</div><div class="burger">☰</div></div></nav>
+<div class="wrap">
+<div class="ph"><h1>حصصي</h1><span class="mut">مدرس الأحياء</span></div>
+<div class="tabs"><a>جدول الحصص</a><a class="on">مواعيدي المتاحة</a><a>الحصص السابقة</a></div>
+<div class="lay">
+ <div class="card">
+  <div class="card-h"><h2>حدد الأوقات المتاحة لك للشرح</h2><span class="tz">🕐 بتوقيت السعودية (مكة المكرمة)</span></div>
+  <div class="rules"><span>📌 كل فترة لا تقل عن <b>ساعتين متتاليتين</b></span><span>📅 الجمعة والسبت: <b>12 م – 11 م</b></span><span>📅 باقي الأيام: <b>4 م – 11 م</b></span></div>
+  <div class="calwrap"><div class="cal">
+   <div></div>
+   <div class="hd">السبت<small>12 م – 11 م</small></div><div class="hd">الأحد<small>4 م – 11 م</small></div><div class="hd">الاثنين<small>4 م – 11 م</small></div><div class="hd">الثلاثاء<small>4 م – 11 م</small></div><div class="hd">الأربعاء<small>4 م – 11 م</small></div><div class="hd">الخميس<small>4 م – 11 م</small></div><div class="hd">الجمعة<small>12 م – 11 م</small></div>
+   <div class="hours"><span>12:00 م</span><span>1:00 م</span><span>2:00 م</span><span>3:00 م</span><span>4:00 م</span><span>5:00 م</span><span>6:00 م</span><span>7:00 م</span><span>8:00 م</span><span>9:00 م</span><span>10:00 م</span></div>
+   <!-- top = (start-12)*44px, height = hours*44px -->
+   <div class="col"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div class="slot" style="top:88px;height:176px">2:00 م – 6:00 م</div><div class="slot" style="top:308px;height:132px">7:00 م – 10:00 م</div></div>
+   <div class="col"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div class="off" style="height:176px"></div><div class="slot" style="top:176px;height:176px">4:00 م – 8:00 م</div></div>
+   <div class="col"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div class="off" style="height:176px"></div><div class="slot" style="top:176px;height:308px">4:00 م – 11:00 م</div></div>
+   <div class="col"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div class="off" style="height:176px"></div></div>
+   <div class="col"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div class="off" style="height:176px"></div><div class="slot" style="top:264px;height:176px">6:00 م – 10:00 م</div></div>
+   <div class="col"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div class="off" style="height:176px"></div><div class="slot bad" style="top:396px;height:44px">ساعة واحدة ⚠</div></div>
+   <div class="col"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><div class="slot" style="top:0;height:176px">12:00 م – 4:00 م</div></div>
+  </div></div>
+  <div class="legend"><span><i style="background:#dcfce7;border:2px solid #22c55e"></i>متاح <i style="background:#fff;border:1px solid #ccd;margin-right:14px"></i>غير متاح <i style="background:repeating-linear-gradient(45deg,#e3e6ea 0 3px,#f6f7f9 3px 6px);margin-right:14px"></i>خارج أوقات الشرح</span><b style="color:var(--brand)">اضغط واسحب لتحديد فترة</b></div>
+ </div>
+ <div class="card side">
+  <div class="card-h"><h2>فتراتي المتاحة</h2><span class="pill p-green">26 ساعة</span></div>
+  <div class="it"><span>السبت · 2:00 م – 6:00 م</span><small>4 ساعات</small></div>
+  <div class="it"><span>السبت · 7:00 م – 10:00 م</span><small>3 ساعات</small></div>
+  <div class="it"><span>الأحد · 4:00 م – 8:00 م</span><small>4 ساعات</small></div>
+  <div class="it"><span>الاثنين · 4:00 م – 11:00 م</span><small>7 ساعات</small></div>
+  <div class="it"><span>الأربعاء · 6:00 م – 10:00 م</span><small>4 ساعات</small></div>
+  <div class="it"><span>الجمعة · 12:00 م – 4:00 م</span><small>4 ساعات</small></div>
+  <div class="err"><b>⚠ الخميس 9:00 م – 10:00 م</b><br>ساعة واحدة فقط. يجب أن تكون الفترة ساعتين متتاليتين على الأقل.</div>
+  <div class="info">ℹ️ الإدارة تقدر تضيف حصص لمجموعاتك في الفترات دي بس.</div>
+  <span class="btn dis" style="width:100%;margin-top:14px">حفظ المواعيد</span>
+  <p style="color:var(--red);text-align:center;font-size:13px;margin:8px 0 0">صحّح الفترة غير المكتملة لتتمكن من الحفظ</p>
+ </div>
+</div>
+</div></body></html>
