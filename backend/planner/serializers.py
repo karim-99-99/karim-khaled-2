@@ -1,1 +1,1 @@
-# Removed with الجدول الذكي.
+# Serializers removed with the dropped tables.

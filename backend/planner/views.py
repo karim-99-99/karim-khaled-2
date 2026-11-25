@@ -1,1 +1,1 @@
-"""الجدول الذكي removed — endpoints deleted from urls."""
+# Endpoints removed. Old paths are not registered and return 404.

@@ -18,7 +18,7 @@ export default function About() {
           <p>
             We sell prepaid digital subscriptions (Silver and Gold tiers) that
             unlock recorded video lessons, question banks with worked solutions,
-            practice exams, a study planner and scheduled live classes. Access is
+            practice exams and scheduled live classes. Access is
             delivered instantly online after payment; nothing is shipped.
           </p>
           <p>

@@ -3,8 +3,9 @@ import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { canEditSubject } from "../auth/teacherScope";
 import client from "../api/client";
-import { lockSubjectTheme } from "../theme/subjects";
+import { lockSubjectTheme, subjectClass } from "../theme/subjects";
 import useSubjectSkin from "../theme/useSubjectSkin";
+import HeaderLogo from "../components/HeaderLogo";
 import "../styles/collections-exact.css";
 
 /**
@@ -15,7 +16,7 @@ import "../styles/collections-exact.css";
 export default function Collections() {
   const { subjectId } = useParams();
   const { user } = useAuth();
-  const { subjectName, logo, skin, key: subjectKey } = useSubjectSkin(subjectId);
+  const { subjectName, theme, skin, key: subjectKey } = useSubjectSkin(subjectId);
 
   useEffect(() => {
     if (subjectKey) lockSubjectTheme(subjectKey);
@@ -264,7 +265,7 @@ export default function Collections() {
   }
 
   return (
-    <div className="collections-exact" style={skin}>
+    <div className={`collections-exact ${subjectClass(subjectKey)}`} style={skin}>
       <div className="topbar">
         <div className="crumb">
           دورات <i>‹</i> {subjectName} <i>‹</i> <b>تجميعات</b>
@@ -275,10 +276,10 @@ export default function Collections() {
         </div>
       </div>
 
-      <div className="hero">
-        <div className="lg"><img src={logo} alt="" /></div>
+      <div className="hero lessons-head">
+        <div className="lg"><HeaderLogo src={theme?.logo || ""} name={subjectName} /></div>
         <span className="sep" />
-        <div>
+        <div className="mid">
           <small>{subjectName}</small>
           <h1>التجميعات — الدروس</h1>
         </div>
@@ -333,13 +334,19 @@ export default function Collections() {
       <div className="list">
         {lessons.map((l) => {
           const locked = l.is_locked && !canEdit;
+          const scheduleLocked = !canEdit && Boolean(l.schedule_locked || l.is_schedule_locked);
+          const scheduleLabel = l.lock_label || l.opens_label || "";
           const renaming = renameId === l.id;
           const subs = subsByLesson[l.id] || [];
           const lessonHref = `/courses/${subjectId}/collections/${l.id}`;
           const open = openAcc === l.id || addingSubFor === l.id || renaming;
 
           return (
-            <div key={l.id} className={`acc${open && subs.length ? " open" : ""}`} style={{ opacity: locked ? 0.65 : 1 }}>
+            <div
+              key={l.id}
+              className={`acc${open && subs.length ? " open" : ""}${scheduleLocked ? " locked" : ""}`}
+              style={{ opacity: scheduleLocked ? undefined : locked ? 0.65 : 1 }}
+            >
               <div className="ls">
                 <span className="n">{l.order_number}</span>
                 {renaming ? (
@@ -350,7 +357,12 @@ export default function Collections() {
                   </>
                 ) : (
                   <>
-                    {locked ? (
+                    {scheduleLocked ? (
+                      <b>
+                        {l.title}
+                        {scheduleLabel ? <small>🔒 {scheduleLabel}</small> : null}
+                      </b>
+                    ) : locked ? (
                       <b>{l.title}</b>
                     ) : (
                       <Link to={lessonHref} style={{ flex: 1 }}>
@@ -372,7 +384,9 @@ export default function Collections() {
                         <button type="button" className="btn btn-ghost btn-sm" style={{ color: "var(--error)" }} disabled={busy} onClick={() => bulkDeleteLessonQuestions(l)}>مسح الأسئلة</button>
                       </div>
                     )}
-                    {subs.length > 0 ? (
+                    {scheduleLocked ? (
+                      <span className="ar" aria-hidden="true">🔒</span>
+                    ) : subs.length > 0 ? (
                       <button
                         type="button"
                         className="tg"

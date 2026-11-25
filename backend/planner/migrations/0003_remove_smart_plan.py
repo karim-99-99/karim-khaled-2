@@ -2,7 +2,7 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-    """Drop الجدول الذكي tables (brief: Global — Remove). Backup DB before production."""
+    """Drop the removed planner tables. Backup the database before production."""
 
     dependencies = [
         ("planner", "0002_schedule_mode_dates"),

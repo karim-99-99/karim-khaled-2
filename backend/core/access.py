@@ -116,3 +116,65 @@ def assert_teacher_can_edit_content(user, subject_id):
         raise PermissionDenied(
             "تعديل المحتوى متاح للمدرس الأساسي (أو المدير) فقط — المدرس الثانوي للعرض فقط."
         )
+
+
+def assign_teacher_subject_role(teacher, subject, role: str = "secondary"):
+    """
+    Upsert TeacherSubjectRole. If role=main, demote any previous main for that subject.
+    Keeps legacy User.taught_subject aligned with the teacher's main subject (if any).
+    """
+    from django.db import transaction
+
+    from groups.models import TeacherSubjectRole
+
+    if role not in (
+        TeacherSubjectRole.Role.MAIN,
+        TeacherSubjectRole.Role.SECONDARY,
+    ):
+        raise ValueError("role must be main or secondary")
+
+    with transaction.atomic():
+        if role == TeacherSubjectRole.Role.MAIN:
+            TeacherSubjectRole.objects.filter(
+                subject=subject, role=TeacherSubjectRole.Role.MAIN
+            ).exclude(teacher=teacher).update(role=TeacherSubjectRole.Role.SECONDARY)
+
+        TeacherSubjectRole.objects.update_or_create(
+            teacher=teacher,
+            subject=subject,
+            defaults={"role": role},
+        )
+
+        if role == TeacherSubjectRole.Role.MAIN:
+            if teacher.taught_subject_id != getattr(subject, "id", subject):
+                teacher.taught_subject = subject
+                teacher.save(update_fields=["taught_subject"])
+        elif teacher.taught_subject_id == getattr(subject, "id", subject):
+            # Demoted from main on this subject — clear legacy pointer if it pointed here.
+            other_main = (
+                TeacherSubjectRole.objects.filter(
+                    teacher=teacher, role=TeacherSubjectRole.Role.MAIN
+                )
+                .exclude(subject=subject)
+                .select_related("subject")
+                .first()
+            )
+            teacher.taught_subject = other_main.subject if other_main else None
+            teacher.save(update_fields=["taught_subject"])
+
+
+def subjects_missing_main_teacher():
+    """Subject ids that currently have no TeacherSubjectRole(main)."""
+    from catalog.models import Subject
+    from groups.models import TeacherSubjectRole
+
+    with_main = set(
+        TeacherSubjectRole.objects.filter(role=TeacherSubjectRole.Role.MAIN).values_list(
+            "subject_id", flat=True
+        )
+    )
+    return list(
+        Subject.objects.exclude(id__in=with_main)
+        .order_by("order", "id")
+        .values("id", "name")
+    )

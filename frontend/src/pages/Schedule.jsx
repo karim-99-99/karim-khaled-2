@@ -67,7 +67,7 @@ export default function Schedule() {
       {!loading &&
         sessions.map((s) => {
           const when = formatSessionWhen(s.start_time);
-          const subjectKey = resolveSubjectKey(s.subject_name) || "math";
+          const subjectKey = resolveSubjectKey(s);
           const status = effectiveSessionStatus(s);
           const lessonTitle = sessionDisplayTitle(s);
           return (
@@ -93,6 +93,9 @@ export default function Schedule() {
                     {when.time ? (
                       <span className="session-date__time">{when.time}</span>
                     ) : null}
+                    {(s.is_extra || s.session_type === "extra") && (
+                      <span className="badge">حصة إضافية</span>
+                    )}
                     {status === "live" && (
                       <span className="badge badge-live">مباشر الآن</span>
                     )}

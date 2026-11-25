@@ -34,6 +34,7 @@ export default function Profile() {
   const [passBusy, setPassBusy] = useState(false);
 
   const [subscription, setSubscription] = useState(null);
+  const [parentLink, setParentLink] = useState(null);
 
   useEffect(() => {
     if (!user) return;
@@ -50,6 +51,10 @@ export default function Profile() {
         .get("/subscription/")
         .then((res) => setSubscription(res.data))
         .catch(() => setSubscription(null));
+      client
+        .get("/auth/parent-link/")
+        .then((res) => setParentLink(res.data))
+        .catch(() => setParentLink(null));
     }
   }, [user]);
 
@@ -160,6 +165,43 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      {user.role === "student" && parentLink && (
+        <div className="card" style={{ padding: 20, marginBottom: 20 }}>
+          <h2 style={{ fontSize: 18, marginBottom: 8 }}>ربط ولي الأمر بتليجرام</h2>
+          <p style={{ color: "var(--text-muted)", marginBottom: 12, fontSize: 14 }}>
+            افتح الرابط من هاتف ولي الأمر أو أرسل له الكود ليربط حسابه ببوت مرام ويستلم تقارير الحصص.
+          </p>
+          <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
+            <Info label="كود الربط" value={parentLink.code} />
+            <div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>رابط البوت</div>
+              {String(parentLink.url || "").startsWith("http") ? (
+                <a href={parentLink.url} target="_blank" rel="noreferrer" style={{ fontWeight: 700, wordBreak: "break-all" }}>
+                  {parentLink.url}
+                </a>
+              ) : (
+                <code style={{ fontWeight: 700 }}>{parentLink.url}</code>
+              )}
+            </div>
+            <Info
+              label="الحالة"
+              value={
+                parentLink.linked_count > 0
+                  ? `مربوط (${parentLink.linked_count})`
+                  : "غير مربوط بعد"
+              }
+            />
+          </div>
+          {(parentLink.parents || []).length > 0 && (
+            <ul style={{ margin: 0, paddingInlineStart: 18 }}>
+              {parentLink.parents.map((p) => (
+                <li key={p.id}>{p.display_name || p.username || `#${p.id}`}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <form className="card" style={{ padding: 20, marginBottom: 20 }} onSubmit={saveProfile}>
         <h2 style={{ fontSize: 18, marginBottom: 16 }}>تعديل البيانات</h2>

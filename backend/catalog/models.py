@@ -12,6 +12,12 @@ class Subject(models.Model):
         help_text="CSS gradient used on subject cards",
     )
     order = models.PositiveIntegerField(default=0)
+    theme_key = models.CharField(
+        max_length=20,
+        blank=True,
+        default="",
+        help_text="math, physics, chem, or bio. Empty uses the brand blue.",
+    )
 
     class Meta:
         ordering = ["order", "id"]

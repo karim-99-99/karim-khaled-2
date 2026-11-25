@@ -3,6 +3,17 @@ from rest_framework.test import APIClient
 
 from accounts.models import User
 from catalog.models import Lesson, Subject
+from catalog.themes import theme_key_for
+
+
+class ThemeKeyTests(TestCase):
+    def test_slug_and_name_map_to_the_four_themes(self):
+        self.assertEqual(theme_key_for("biology", "أحياء"), "bio")
+        self.assertEqual(theme_key_for("chemistry", "كيمياء"), "chem")
+        self.assertEqual(theme_key_for("physics", ""), "physics")
+        self.assertEqual(theme_key_for("math-reorder", "رياضيات-ترتيب"), "math")
+        self.assertEqual(theme_key_for("extra", "مادة جديدة"), "")
+
 
 
 class LessonReorderDeleteTests(TestCase):

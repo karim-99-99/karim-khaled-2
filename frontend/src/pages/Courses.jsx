@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import client from "../api/client";
-import { filterSubjectsForUser } from "../auth/teacherScope";
+import { filterSubjectsForUser, teachableSubjectIds } from "../auth/teacherScope";
 import { getSubjectTheme, resolveSubjectKey } from "../theme/subjects";
 import "../styles/courses-exact.css";
 
@@ -52,6 +52,13 @@ export default function Courses() {
         } catch {
           /* ignore */
         }
+        // Task 26: teacher with one subject → open it directly (admin keeps grid).
+        if (user?.role === "teacher") {
+          const ids = teachableSubjectIds(user);
+          if (Array.isArray(ids) && ids.length === 1) {
+            navigate(`/courses/${ids[0]}`, { replace: true });
+          }
+        }
       })
       .catch(() => {
         if (!cancelled && !hasCache) setSubjects([]);
@@ -67,7 +74,7 @@ export default function Courses() {
 
   const cards = subjects.length
     ? subjects.map((s) => {
-        const key = resolveSubjectKey(s.name) || "math";
+        const key = resolveSubjectKey(s);
         return { ...s, key, theme: getSubjectTheme(key) };
       })
     : FALLBACK.map((s) => ({ ...s, theme: getSubjectTheme(s.key) }));
@@ -75,19 +82,17 @@ export default function Courses() {
   return (
     <div className="courses-exact">
       <h1>دورات</h1>
-      <p className="sub">
-        {user?.role === "teacher"
-          ? "موادك المخصصة فقط — إدارة الدروس والأسئلة داخلها"
-          : "اختر المادة — يتغيّر الشعار والألوان تلقائياً داخل المادة"}
-      </p>
+      {user?.role === "teacher" ? (
+        <p className="sub">موادك المخصصة فقط — إدارة الدروس والأسئلة داخلها</p>
+      ) : null}
 
       {loading && <div className="spinner">جاري التحميل…</div>}
 
       <div className="grid">
         {cards.map((s) => {
-          const key = s.key || resolveSubjectKey(s.name) || "math";
+          const key = s.key || resolveSubjectKey(s);
           const cls =
-            key === "physics" ? "phys" : key === "chem" ? "chem" : key === "bio" ? "bio" : "math";
+            key === "physics" ? "phys" : key === "chem" ? "chem" : key === "bio" ? "bio" : key === "math" ? "math" : "brand";
           const to = user ? `/courses/${s.id}` : "/login";
           return (
             <button

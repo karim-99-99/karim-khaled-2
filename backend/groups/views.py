@@ -4,8 +4,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from accounts.models import User
+from core.access import assign_teacher_subject_role
 from core.permissions import IsAdmin, IsTeacherOrAdmin
-from .models import GroupStudent, GroupTeacher, StudyGroup
+from .models import GroupStudent, GroupTeacher, StudyGroup, TeacherSubjectRole
 from .prefetch import group_student_links_queryset, study_group_queryset
 from .serializers import (
     GroupStudentSerializer,
@@ -60,9 +61,13 @@ class AdminGroupViewSet(viewsets.ModelViewSet):
             link, created = GroupTeacher.objects.get_or_create(
                 group=group, teacher=teacher, subject_id=subject_id
             )
-            if subject_id and not teacher.taught_subject_id:
-                teacher.taught_subject_id = subject_id
-                teacher.save(update_fields=["taught_subject"])
+            # Group assignment alone → secondary (never auto-promote via taught_subject).
+            if subject_id and not TeacherSubjectRole.objects.filter(
+                teacher=teacher, subject_id=subject_id
+            ).exists():
+                assign_teacher_subject_role(
+                    teacher, link.subject, TeacherSubjectRole.Role.SECONDARY
+                )
             return Response(GroupTeacherSerializer(link).data, status=201)
         links = group.teacher_links.select_related("teacher", "subject")
         return Response(GroupTeacherSerializer(links, many=True).data)

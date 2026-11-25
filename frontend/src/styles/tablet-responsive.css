@@ -1,0 +1,238 @@
+/* Tablet / iPad / phone — designed layouts, not only “not broken”. */
+
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+.app-shell {
+  overflow-x: clip;
+  max-width: 100%;
+}
+
+/* Touch targets */
+.nav-burger,
+.btn,
+.btn-sm,
+.header-actions .btn,
+.foundation-exact .ar,
+.collections-exact .ar,
+.collections-exact .tg,
+.courses-exact .card .go,
+.subject-exact .card .go,
+.subject-exact .back,
+.foundation-exact .back,
+.collections-exact .back {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.btn-sm {
+  min-width: 44px;
+  padding-inline: 12px;
+}
+
+/* Soft type scale */
+.courses-exact h1,
+.exams-exact h1,
+.foundation-exact .hero h1,
+.collections-exact .hero h1,
+.subject-exact .card h3 {
+  font-size: clamp(22px, calc(2.4vw + 14px), 34px);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.foundation-exact .ls b,
+.collections-exact .ls b {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+/* Wide tables scroll inside the card, not the page */
+.card:has(> .table),
+.card:has(.table),
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+}
+
+.table-scroll .table,
+.card .table {
+  min-width: 520px;
+}
+
+/* —— Under 1100: burger + side drawer, header stays one row —— */
+@media (max-width: 1100px) {
+  .app-header {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    min-height: 64px;
+  }
+
+  .nav-burger {
+    display: flex;
+    width: 44px;
+    height: 44px;
+    flex: none;
+    order: 3;
+    z-index: 30;
+  }
+
+  .header-actions {
+    margin-inline-start: auto;
+    order: 2;
+    gap: 6px;
+  }
+
+  .nav {
+    display: flex;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    inset-inline-start: 0;
+    width: min(320px, 86vw);
+    margin: 0;
+    padding: 80px 16px 28px;
+    background: #fff;
+    border: 0;
+    border-inline-end: 1px solid #e5ecf5;
+    box-shadow: 0 0 40px rgba(13, 70, 125, 0.18);
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: stretch;
+    gap: 4px;
+    z-index: 28;
+    transform: translateX(110%);
+    transition: transform 0.22s ease, visibility 0.22s ease;
+    overflow-y: auto;
+    max-height: none;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  html[dir="rtl"] .nav,
+  [dir="rtl"] .nav {
+    transform: translateX(-110%);
+  }
+
+  .nav.is-open {
+    transform: translateX(0) !important;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .nav a {
+    width: 100%;
+    text-align: start;
+    border-radius: 12px;
+    padding: 12px 14px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+  }
+
+  .nav-scrim {
+    display: block;
+    z-index: 26;
+  }
+
+  /* Subject page: logo above, path cards below on tablet portrait widths */
+  .subject-exact .split {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .subject-exact .split .hero {
+    order: -1;
+    min-height: 260px;
+  }
+
+  .subject-exact .split .hero img,
+  .subject-exact .hero img {
+    height: 260px;
+    max-height: 260px;
+  }
+
+  .subject-exact .stack {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .subject-exact .stack .card {
+    flex: 1 1 240px;
+  }
+}
+
+/* Landscape tablets keep subject logo beside cards when wide enough */
+@media (min-width: 901px) and (max-width: 1100px) and (orientation: landscape) {
+  .subject-exact .split {
+    grid-template-columns: 1fr 1.15fr;
+  }
+
+  .subject-exact .split .hero {
+    order: 0;
+    min-height: 280px;
+  }
+}
+
+/* Lessons: one column when titles get tight on portrait tablets */
+@media (max-width: 900px) {
+  .foundation-exact .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dash-exact .tasks,
+  .dash-exact .grid4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  .dash-exact .tasks,
+  .dash-exact .grid4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Results cards */
+@media (max-width: 820px) {
+  .results-card,
+  .card.s-math,
+  .card.s-phys,
+  .card.s-chem,
+  .card.s-bio {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 700px) {
+  .header-actions .header-login {
+    display: none;
+  }
+
+  .subject-exact .stack {
+    flex-direction: column;
+  }
+
+  .subject-exact .stack .card {
+    flex: 1 1 auto;
+  }
+
+  .subject-exact .split .hero {
+    min-height: 200px;
+  }
+
+  .subject-exact .split .hero img,
+  .subject-exact .hero img {
+    height: 200px;
+    max-height: 200px;
+  }
+}

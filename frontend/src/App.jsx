@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import { RequireAuth, RequireGold, RequireRole } from "./components/Guards";
 
@@ -23,8 +23,13 @@ const ResultReview = lazy(() => import("./pages/ResultReview"));
 const Schedule = lazy(() => import("./pages/Schedule"));
 const Subscription = lazy(() => import("./pages/Subscription"));
 const TeacherPanel = lazy(() => import("./pages/TeacherPanel"));
+const TeacherTasks = lazy(() => import("./pages/TeacherTasks"));
+const DailyTasks = lazy(() => import("./pages/DailyTasks"));
 const TeacherSchedule = lazy(() => import("./pages/TeacherSchedule"));
 const TeacherAvailability = lazy(() => import("./pages/TeacherAvailability"));
+const TeacherStudents = lazy(() => import("./pages/TeacherStudents"));
+const StudentReports = lazy(() => import("./pages/StudentReports"));
+const RateClass = lazy(() => import("./pages/RateClass"));
 const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const QuestionEditor = lazy(() => import("./pages/QuestionEditor"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -72,15 +77,22 @@ export default function App() {
           <Route path="/tests/simulator" element={<RequireAuth><SimulatorSetup /></RequireAuth>} />
           <Route path="/tests/simulator/:subjectId" element={<RequireAuth><SimulatorSetup /></RequireAuth>} />
           <Route path="/courses/:subjectId/tests" element={<RequireAuth><TestsHub /></RequireAuth>} />
-          <Route path="/tests/teacher/:subjectId" element={<RequireAuth><TeacherTestSetup /></RequireAuth>} />
+          <Route path="/tests/teacher/:subjectId" element={<RequireAuth><RequireRole roles={["teacher", "admin"]}><TeacherTestSetup /></RequireRole></RequireAuth>} />
           <Route path="/exam/:examId" element={<RequireAuth><TestRunner /></RequireAuth>} />
 
           <Route path="/results" element={<RequireAuth><Results /></RequireAuth>} />
           <Route path="/results/:examId" element={<RequireAuth><ResultReview /></RequireAuth>} />
           <Route path="/schedule" element={<RequireAuth><RequireGold><Schedule /></RequireGold></RequireAuth>} />
+          <Route path="/daily-tasks" element={<RequireAuth><RequireGold><DailyTasks /></RequireGold></RequireAuth>} />
+          <Route path="/smart-plan" element={<Navigate to="/" replace />} />
+          <Route path="/smart-plan/*" element={<Navigate to="/" replace />} />
           <Route path="/subscription" element={<RequireAuth><Subscription /></RequireAuth>} />
 
           <Route path="/teacher" element={<RequireRole roles={["teacher", "admin"]}><TeacherPanel /></RequireRole>} />
+          <Route path="/teacher/tasks" element={<RequireRole roles={["teacher", "admin"]}><TeacherTasks /></RequireRole>} />
+          <Route path="/teacher/students" element={<RequireRole roles={["teacher", "admin"]}><TeacherStudents /></RequireRole>} />
+          <Route path="/teacher/students/:studentId/reports" element={<RequireRole roles={["teacher", "admin"]}><StudentReports /></RequireRole>} />
+          <Route path="/teacher/sessions/:sessionId/rate" element={<RequireRole roles={["teacher", "admin"]}><RateClass /></RequireRole>} />
           <Route path="/teacher/questions" element={<RequireRole roles={["teacher", "admin"]}><QuestionEditor /></RequireRole>} />
           <Route path="/teacher/schedule" element={<RequireRole roles={["teacher", "admin"]}><TeacherSchedule /></RequireRole>} />
           <Route path="/teacher/availability" element={<RequireRole roles={["teacher", "admin"]}><TeacherAvailability /></RequireRole>} />

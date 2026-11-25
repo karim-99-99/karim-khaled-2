@@ -1,0 +1,86 @@
+/* Single source for the four subject colors. */
+:root {
+  --math-c: #5f8f2e;
+  --math-dark: #3f6420;
+  --math-light: #f1f7e8;
+  --math-grad: linear-gradient(90deg, #3f6420, #56842a 45%, #7cab45);
+  --physics-c: #6d28d9;
+  --physics-dark: #4c1d95;
+  --physics-light: #f3eefe;
+  --physics-grad: linear-gradient(90deg, #4c1d95, #6324c8 45%, #8b5cf6);
+  --chem-c: #c0182f;
+  --chem-dark: #8c0f22;
+  --chem-light: #fdecee;
+  --chem-grad: linear-gradient(90deg, #8c0f22, #b3152b 45%, #dc3a4f);
+  --bio-c: #c58a00;
+  --bio-dark: #8a6000;
+  --bio-light: #fff6dc;
+  --bio-grad: linear-gradient(90deg, #8a6000, #b88200 45%, #e0a400);
+}
+
+.s-math,
+html[data-subject="math"] {
+  --c: var(--math-c);
+  --c-dark: var(--math-dark);
+  --c-light: var(--math-light);
+  --c-grad: var(--math-grad);
+  --bg: var(--math-light);
+  --bg2: var(--math-light);
+  --g: var(--math-c);
+  --gd: var(--math-dark);
+  --gl: var(--math-light);
+}
+
+.s-phys,
+html[data-subject="physics"],
+html[data-subject="phys"] {
+  --c: var(--physics-c);
+  --c-dark: var(--physics-dark);
+  --c-light: var(--physics-light);
+  --c-grad: var(--physics-grad);
+  --bg: var(--physics-light);
+  --bg2: var(--physics-light);
+  --g: var(--physics-c);
+  --gd: var(--physics-dark);
+  --gl: var(--physics-light);
+}
+
+.s-chem,
+html[data-subject="chem"] {
+  --c: var(--chem-c);
+  --c-dark: var(--chem-dark);
+  --c-light: var(--chem-light);
+  --c-grad: var(--chem-grad);
+  --bg: var(--chem-light);
+  --bg2: var(--chem-light);
+  --g: var(--chem-c);
+  --gd: var(--chem-dark);
+  --gl: var(--chem-light);
+}
+
+.s-bio,
+html[data-subject="bio"] {
+  --c: var(--bio-c);
+  --c-dark: var(--bio-dark);
+  --c-light: var(--bio-light);
+  --c-grad: var(--bio-grad);
+  --bg: var(--bio-light);
+  --bg2: var(--bio-light);
+  --g: var(--bio-c);
+  --gd: var(--bio-dark);
+  --gl: var(--bio-light);
+}
+
+/* Unknown / extra subject: brand blue already defined on :root. */
+.s-brand,
+html[data-subject="multi"] {
+  --c: var(--blue);
+  --c-dark: var(--navy);
+  --c-light: var(--primary-light);
+  --c-grad: linear-gradient(90deg, var(--navy), var(--blue) 55%, var(--lb));
+  --bg: var(--primary-light);
+  --bg2: var(--primary-light);
+  --g: var(--blue);
+  --gd: var(--navy);
+  --gl: var(--primary-light);
+}

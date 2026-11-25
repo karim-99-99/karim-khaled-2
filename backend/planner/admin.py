@@ -1,1 +1,1 @@
-# Smart plan admin removed with الجدول الذكي.
+# Admin registration removed with the dropped tables.

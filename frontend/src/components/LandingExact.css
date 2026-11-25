@@ -197,3 +197,95 @@
  .landing-exact .coupon{width:100%!important;transform:none}
  .landing-exact .final{padding:28px 18px!important;margin-top:46px!important}
 }
+/* Page 14 — phones only (≤480). Tablet/desktop stay on rules above. */
+@media (max-width:480px){
+ .landing-exact{background:#f2f6fc}
+ .landing-exact .hero{
+   background:#fff!important;
+   padding:0!important;
+ }
+ .landing-exact .ribbon{
+   top:18px!important;left:-40px!important;width:auto!important;
+   font-size:11px!important;font-weight:700!important;padding:5px 40px!important;
+   background:#e53935!important;transform:rotate(-38deg)!important;
+ }
+ .landing-exact .hin{padding:22px 16px 0!important;text-align:center}
+ .landing-exact .hin .tag{
+   font-size:12.5px!important;padding:6px 14px!important;
+   background:#e9f2fd!important;border:1px solid #cfe2fa!important;border-radius:99px!important;
+ }
+ .landing-exact .hin h1{
+   font-size:30px!important;line-height:1.45!important;margin:16px 0 12px!important;font-weight:800!important;
+ }
+ .landing-exact .hin h1 em{font-style:normal;color:#2a8be0}
+ .landing-exact .hin p{
+   color:#53627a!important;line-height:1.8!important;margin:0 0 18px!important;font-size:15px!important;
+ }
+ .landing-exact .cta{gap:0!important;margin-top:0!important}
+ .landing-exact .cta .b1,.landing-exact .b1{
+   display:block!important;border-radius:14px!important;padding:15px!important;font-size:17px!important;
+   background:linear-gradient(90deg,#1565c0,#2f8fe0)!important;
+   box-shadow:0 8px 18px rgba(21,101,192,.3)!important;
+ }
+ .landing-exact .cta .b2,.landing-exact .b2{
+   display:block!important;margin-top:10px!important;border:1.5px solid #0d3b70!important;
+   color:#0d3b70!important;border-radius:14px!important;padding:13px!important;font-size:16px!important;
+   background:transparent!important;
+ }
+ .landing-exact .seats{
+   display:inline-flex!important;gap:8px;align-items:center;margin-top:14px!important;
+   border:1px solid #f6c7c7;background:#fff;border-radius:99px;padding:7px 14px;font-size:13px!important;
+ }
+ .landing-exact .mimg{
+   height:300px!important;margin:20px -16px 0!important;border-radius:0!important;
+   background:url(/banner.png) center 20%/cover no-repeat!important;
+   -webkit-mask-image:none!important;mask-image:none!important;
+ }
+ .landing-exact .trust{
+   background:#0d3b70!important;color:#fff!important;font-size:12.5px!important;font-weight:700!important;
+   justify-content:space-around!important;flex-wrap:nowrap!important;gap:0!important;
+   margin:0!important;padding:12px 6px!important;
+ }
+ .landing-exact .stats{
+   margin:14px 16px 0!important;border-radius:18px!important;
+   box-shadow:0 10px 30px rgba(13,59,112,.08)!important;
+ }
+ .landing-exact .st{padding:18px 8px!important}
+ .landing-exact .st strong{font-size:24px!important;color:#0d3b70!important}
+ .landing-exact .st span{font-size:12px!important;color:#6b7a90!important}
+ .landing-exact .wrap{padding:0 16px!important}
+ .landing-exact .sh{margin:26px 0 18px!important;text-align:center}
+ .landing-exact .sh small{color:#2a8be0;font-weight:700;font-size:14px}
+ .landing-exact .sh h2{font-size:25px!important;margin:4px 0 6px!important}
+ .landing-exact .sh p{font-size:13.5px;color:#6b7a90}
+ .landing-exact .feats{gap:12px!important}
+ .landing-exact .ft{
+   background:#fff;border-radius:16px;padding:16px 14px;border:1px solid #e6ebf2;
+ }
+ .landing-exact .ft .fi{width:44px;height:44px;border-radius:12px;margin-bottom:10px}
+ .landing-exact .steps{gap:10px!important}
+ .landing-exact .sp{
+   display:flex!important;flex-direction:row!important;align-items:center;gap:14px;
+   background:#fff;border:1px solid #e6ebf2;border-radius:16px;padding:14px;text-align:right;
+ }
+ .landing-exact .sp .n{
+   width:40px;height:40px;border-radius:50%;background:#2a8be0;color:#fff;
+   font-weight:800;display:grid;place-items:center;flex:none;
+ }
+ .landing-exact .offer{
+   margin:0!important;border-radius:24px!important;padding:26px 20px 24px!important;
+ }
+ .landing-exact .coupon{margin-top:20px!important;border-radius:18px!important}
+ .landing-exact .subj{gap:12px!important}
+ .landing-exact .sc{border-radius:18px!important;overflow:hidden}
+ .landing-exact .faq .q{
+   background:#fff;border:1px solid #e6ebf2;border-radius:16px;padding:16px;margin-bottom:10px;
+ }
+ .landing-exact .final{
+   margin:6px 0 0!important;border:2px dashed #b9d3f0;border-radius:20px;
+   padding:24px 16px!important;background:transparent!important;
+ }
+ .landing-exact .final .b1.sup,.landing-exact .final .sup{
+   background:#22c55e!important;border-radius:14px!important;padding:14px!important;
+ }
+}

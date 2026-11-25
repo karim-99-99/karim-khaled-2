@@ -11,10 +11,10 @@
   --accent: #3fa3e0;
   --accent-dark: #156eb0;
   --accent-soft: #e8f3fb;
-  --math: #5f8f2e;
-  --physics: #6d28d9;
-  --chem: #c0182f;
-  --bio: #c58a00;
+  --math: var(--math-c);
+  --physics: var(--physics-c);
+  --chem: var(--chem-c);
+  --bio: var(--bio-c);
   --bg: #f7f9fc;
   --surface: #ffffff;
   --border: #edf0f6;
@@ -167,15 +167,29 @@ html[data-subject="bio"] .btn-primary {
 
 .container--bleed > .courses-exact,
 .container--bleed > .pricing-exact,
-.container--bleed > .exams-exact,
 .container--bleed > .simulator-exact,
-.container--bleed > .subject-exact,
 .container--bleed > .dash-exact {
   max-width: 1180px;
   margin-left: auto;
   margin-right: auto;
   padding-left: 20px;
   padding-right: 20px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Subject / lessons / collections / tests / exam — shared 1500 shell (page-shell.css). */
+.container--bleed > .subject-exact,
+.container--bleed > .foundation-exact,
+.container--bleed > .collections-exact,
+.container--bleed > .exams-exact,
+.container--bleed > .practice-exact,
+.container--bleed > .exam-shell {
+  max-width: 1500px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 40px;
+  padding-right: 40px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -203,14 +217,36 @@ html[data-subject="bio"] .btn-primary {
 }
 
 /* Shared responsive helpers for exact pages */
+@media (max-width: 1100px) {
+  .container--bleed > .subject-exact,
+  .container--bleed > .foundation-exact,
+  .container--bleed > .collections-exact,
+  .container--bleed > .exams-exact,
+  .container--bleed > .practice-exact,
+  .container--bleed > .exam-shell {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
 @media (max-width: 980px) {
   .container--bleed > .courses-exact,
   .container--bleed > .pricing-exact,
-  .container--bleed > .exams-exact,
   .container--bleed > .simulator-exact,
-  .container--bleed > .subject-exact,
   .container--bleed > .dash-exact {
     padding-left: 16px;
     padding-right: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .container--bleed > .subject-exact,
+  .container--bleed > .foundation-exact,
+  .container--bleed > .collections-exact,
+  .container--bleed > .exams-exact,
+  .container--bleed > .practice-exact,
+  .container--bleed > .exam-shell {
+    padding-left: 14px;
+    padding-right: 14px;
   }
 }

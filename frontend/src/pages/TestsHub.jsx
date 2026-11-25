@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { canEditSubject } from "../auth/teacherScope";
+import { canAccess, FEATURE } from "../auth/planAccess";
+import { canTeachSubject } from "../auth/teacherScope";
 import client from "../api/client";
 import BackToCourses from "../components/BackToCourses";
 
@@ -9,17 +10,22 @@ export default function TestsHub() {
   const { subjectId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canEdit = canEditSubject(user, subjectId);
+  const canTeach = canTeachSubject(user, subjectId);
+  const showTeacherTests = canAccess(user, FEATURE.TEACHER_TESTS);
   const [teacherTests, setTeacherTests] = useState([]);
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    if (!showTeacherTests) {
+      setTeacherTests([]);
+      return;
+    }
     client
       .get(`/teacher-tests/?subject=${subjectId}`)
       .then((res) => setTeacherTests(res.data.results || res.data || []))
       .catch(() => setTeacherTests([]));
-  }, [subjectId]);
+  }, [subjectId, showTeacherTests]);
 
   async function startTeacherTest(id) {
     setError("");
@@ -82,7 +88,7 @@ export default function TestsHub() {
           <Link to={`/tests/simulator/${subjectId}`} className="btn btn-secondary">
             صمم اختبارك بنفسك
           </Link>
-          {canEdit && (
+          {canTeach && showTeacherTests && (
             <Link to={`/tests/teacher/${subjectId}`} className="btn btn-primary">
               إنشاء / إدارة اختبار
             </Link>
@@ -92,17 +98,25 @@ export default function TestsHub() {
 
       {error && <div className="banner" style={{ marginBottom: 12 }}>{error}</div>}
 
-      <div className="section-title">متاح الآن</div>
-      {available.map((t) => renderRow(t, "available"))}
-      {!available.length && <p style={{ color: "var(--text-muted)" }}>لا اختبارات متاحة الآن.</p>}
+      {showTeacherTests ? (
+        <>
+          <div className="section-title">متاح الآن</div>
+          {available.map((t) => renderRow(t, "available"))}
+          {!available.length && <p style={{ color: "var(--text-muted)" }}>لا اختبارات متاحة الآن.</p>}
 
-      <div className="section-title">القادمة</div>
-      {upcoming.map((t) => renderRow(t, "upcoming"))}
-      {!upcoming.length && <p style={{ color: "var(--text-muted)" }}>لا اختبارات قادمة.</p>}
+          <div className="section-title">القادمة</div>
+          {upcoming.map((t) => renderRow(t, "upcoming"))}
+          {!upcoming.length && <p style={{ color: "var(--text-muted)" }}>لا اختبارات قادمة.</p>}
 
-      <div className="section-title">السابقة</div>
-      {solved.map((t) => renderRow(t, "solved"))}
-      {!solved.length && <p style={{ color: "var(--text-muted)" }}>لا اختبارات محلولة بعد.</p>}
+          <div className="section-title">السابقة</div>
+          {solved.map((t) => renderRow(t, "solved"))}
+          {!solved.length && <p style={{ color: "var(--text-muted)" }}>لا اختبارات محلولة بعد.</p>}
+        </>
+      ) : (
+        <p style={{ color: "var(--text-muted)" }}>
+          الباقة الفضية تشمل المحاكي الشخصي فقط — اختبارات المدرسين للباقة الذهبية.
+        </p>
+      )}
     </div>
   );
 }

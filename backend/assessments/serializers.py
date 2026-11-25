@@ -6,8 +6,23 @@ from .models import (
     Exam,
     ExamAnswer,
     HomeworkQuestion,
+    HomeworkSubLesson,
     TeacherTest,
 )
+
+
+class HomeworkSubLessonSerializer(serializers.ModelSerializer):
+    question_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = HomeworkSubLesson
+        fields = ["id", "lesson", "order_number", "title", "question_count", "created_at"]
+        read_only_fields = ["id", "created_at", "question_count"]
+
+    def get_question_count(self, obj):
+        if hasattr(obj, "_question_count"):
+            return obj._question_count
+        return obj.questions.filter(needs_review=False).count()
 
 
 class HomeworkQuestionSerializer(serializers.ModelSerializer):
@@ -15,10 +30,10 @@ class HomeworkQuestionSerializer(serializers.ModelSerializer):
         model = HomeworkQuestion
         fields = [
             "id",
-            "group",
             "subject",
             "lesson",
             "section",
+            "homework_sub_lesson",
             "order_number",
             "difficulty",
             "text",
@@ -216,11 +231,18 @@ class ExamAnswerReviewSerializer(serializers.ModelSerializer):
 class ExamSerializer(serializers.ModelSerializer):
     title = serializers.CharField(read_only=True)
     subject_name = serializers.CharField(source="subject.name", read_only=True)
+    subject_theme_key = serializers.SerializerMethodField()
     correct_count = serializers.SerializerMethodField()
     wrong_count = serializers.SerializerMethodField()
     answered_count = serializers.SerializerMethodField()
     unanswered_count = serializers.SerializerMethodField()
     ends_at = serializers.DateTimeField(read_only=True)
+    section_size = serializers.SerializerMethodField()
+    section_count = serializers.SerializerMethodField()
+    sections_locked = serializers.SerializerMethodField()
+    break_seconds = serializers.SerializerMethodField()
+    duration_mode = serializers.SerializerMethodField()
+    seconds_per_question = serializers.SerializerMethodField()
 
     class Meta:
         model = Exam
@@ -229,6 +251,7 @@ class ExamSerializer(serializers.ModelSerializer):
             "title",
             "subject",
             "subject_name",
+            "subject_theme_key",
             "exam_type",
             "difficulty_preset",
             "review_mode",
@@ -244,7 +267,59 @@ class ExamSerializer(serializers.ModelSerializer):
             "unanswered_count",
             "started_at",
             "finished_at",
+            "last_question_index",
+            "section_size",
+            "section_count",
+            "sections_locked",
+            "current_section",
+            "break_pending",
+            "break_started_at",
+            "break_seconds",
+            "duration_mode",
+            "seconds_per_question",
         ]
+        read_only_fields = [
+            "section_size",
+            "section_count",
+            "sections_locked",
+            "break_seconds",
+            "duration_mode",
+            "seconds_per_question",
+        ]
+
+    def get_section_size(self, obj):
+        return obj.section_size
+
+    def get_section_count(self, obj):
+        return obj.section_count()
+
+    def get_sections_locked(self, obj):
+        return obj.sections_locked
+
+    def get_break_seconds(self, obj):
+        if not obj.sections_locked:
+            return None
+        return Exam.SECTION_BREAK_SECONDS
+
+    def get_duration_mode(self, obj):
+        tt = getattr(obj, "teacher_test", None)
+        if tt and obj.exam_type == Exam.Type.TEACHER:
+            return tt.duration_mode
+        return "whole"
+
+    def get_seconds_per_question(self, obj):
+        tt = getattr(obj, "teacher_test", None)
+        if (
+            tt
+            and obj.exam_type == Exam.Type.TEACHER
+            and tt.duration_mode == "per_question"
+        ):
+            return int(tt.duration_value or 90)
+        return None
+
+    def get_subject_theme_key(self, obj):
+        subject = getattr(obj, "subject", None)
+        return getattr(subject, "theme_key", "") or ""
 
     def get_correct_count(self, obj):
         if hasattr(obj, "_ann_correct"):
@@ -280,6 +355,8 @@ class TeacherTestSerializer(serializers.ModelSerializer):
         source="created_by.full_name", read_only=True, default=""
     )
 
+    group_ids = serializers.SerializerMethodField()
+
     class Meta:
         model = TeacherTest
         fields = [
@@ -293,11 +370,19 @@ class TeacherTestSerializer(serializers.ModelSerializer):
             "lesson_ids",
             "lesson_titles",
             "question_ids",
+            "group_ids",
+            "opens_at",
+            "closes_at",
+            "duration_mode",
+            "duration_value",
             "created_by",
             "created_by_name",
             "created_at",
         ]
         read_only_fields = ["id", "created_by", "created_at", "subject_name"]
+
+    def get_group_ids(self, obj):
+        return list(obj.groups.values_list("id", flat=True))
 
     def get_question_count(self, obj):
         return obj.items.count()
@@ -327,3 +412,12 @@ class TeacherTestWriteSerializer(serializers.Serializer):
         choices=["immediate", "final"], default="final"
     )
     is_published = serializers.BooleanField(default=True)
+    group_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, allow_empty=True
+    )
+    opens_at = serializers.DateTimeField(required=False, allow_null=True)
+    closes_at = serializers.DateTimeField(required=False, allow_null=True)
+    duration_mode = serializers.ChoiceField(
+        choices=["whole", "per_question"], default="whole", required=False
+    )
+    duration_value = serializers.IntegerField(required=False, min_value=1, default=60)

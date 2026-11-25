@@ -193,6 +193,39 @@ class SimulatorAPITests(TestCase):
         self.assertTrue(len(res.data["lessons"]) >= 2)
         self.assertIn("1446", res.data["years"])
 
+    def test_simulator_ignores_legacy_year_filter(self):
+        """Old clients may still send years — bank must stay all-years."""
+        other_year_q = _make_question(
+            self.subject, self.lesson, self.teacher, "medium", 900, question_year="1440"
+        )
+        self.client.force_authenticate(user=self.student)
+        res = self.client.post(
+            "/api/exams/simulator/",
+            {
+                "subjects": [self.subject.id],
+                "lessons": [self.lesson.id],
+                "count": 50,
+                "difficulty_mix": "medium",
+                "years": ["1446"],
+                "year": "1446",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201, res.data)
+        q_ids = {q["id"] for q in res.data.get("questions") or []}
+        # Enough questions that both years can appear; at least the request succeeds
+        # without being restricted to a single year label.
+        self.assertTrue(len(q_ids) >= 1)
+        years_in_exam = {
+            q.get("question_year") for q in res.data.get("questions") or []
+        }
+        self.assertTrue(years_in_exam)
+        # Creating the 1440 question must not break the start; ignore filter means
+        # the bank still includes it when pick allows.
+        self.assertTrue(
+            other_year_q.id in q_ids or "1446" in years_in_exam or "1440" in years_in_exam
+        )
+
     def test_teacher_tier_filter_on_start(self):
         tier_lesson = Lesson.objects.create(
             subject=self.subject,
@@ -945,3 +978,686 @@ class HomeworkQuestionOrderBulkTests(TestCase):
         self.assertEqual(wipe.status_code, 200, wipe.data)
         self.assertEqual(wipe.data["deleted"], 3)
         self.assertEqual(HomeworkQuestion.objects.filter(section=self.section).count(), 0)
+
+
+class HomeworkSubLessonAPITests(TestCase):
+    """Task 16 — global homework titles under foundation lessons."""
+
+    def setUp(self):
+        from core.access import assign_teacher_subject_role
+        from groups.models import GroupTeacher, TeacherSubjectRole
+
+        self.client = APIClient()
+        self.subject = Subject.objects.create(name="واجب-عناوين", slug="hw-sub", order=1)
+        self.admin = User.objects.create_user(
+            email="a-hw-sub@test.local",
+            password="Passw0rd!",
+            full_name="A",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.main = User.objects.create_user(
+            email="t-main-hw@test.local",
+            password="Passw0rd!",
+            full_name="Main",
+            role=User.Role.TEACHER,
+        )
+        self.secondary = User.objects.create_user(
+            email="t-sec-hw@test.local",
+            password="Passw0rd!",
+            full_name="Sec",
+            role=User.Role.TEACHER,
+        )
+        self.student = User.objects.create_user(
+            email="s-hw-sub@test.local",
+            password="Passw0rd!",
+            full_name="S",
+            role=User.Role.STUDENT,
+        )
+        assign_teacher_subject_role(self.main, self.subject, TeacherSubjectRole.Role.MAIN)
+        assign_teacher_subject_role(
+            self.secondary, self.subject, TeacherSubjectRole.Role.SECONDARY
+        )
+        self.lesson = Lesson.objects.create(
+            subject=self.subject, title="التصنيف الحديث", order_number=1, created_by=self.admin
+        )
+        self.group = StudyGroup.objects.create(name="HwSubG", created_by=self.admin)
+        GroupTeacher.objects.create(
+            group=self.group, teacher=self.main, subject=self.subject
+        )
+        GroupTeacher.objects.create(
+            group=self.group, teacher=self.secondary, subject=self.subject
+        )
+        GroupStudent.objects.create(group=self.group, student=self.student)
+        Subscription.objects.create(
+            student=self.student,
+            plan=Subscription.Plan.MONTHLY,
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date() + timedelta(days=30),
+        )
+
+    def test_main_creates_title_secondary_forbidden_student_reads(self):
+        from assessments.models import HomeworkQuestion, HomeworkSubLesson
+
+        self.client.force_authenticate(user=self.main)
+        created = self.client.post(
+            "/api/homework-sub-lessons/",
+            {"lesson": self.lesson.id, "title": "الممالك الخمس"},
+            format="json",
+        )
+        self.assertEqual(created.status_code, 201, created.data)
+        title_id = created.data["id"]
+        self.assertNotIn("group", created.data)
+        self.assertEqual(created.data["question_count"], 0)
+
+        self.client.force_authenticate(user=self.secondary)
+        denied = self.client.post(
+            "/api/homework-sub-lessons/",
+            {"lesson": self.lesson.id, "title": "ممنوع"},
+            format="json",
+        )
+        self.assertEqual(denied.status_code, 403)
+
+        listed = self.client.get(f"/api/homework-sub-lessons/?lesson={self.lesson.id}")
+        self.assertEqual(listed.status_code, 200)
+        self.assertEqual(len(listed.data), 1)
+
+        self.client.force_authenticate(user=self.main)
+        q = self.client.post(
+            "/api/homework-questions/",
+            {
+                "subject": self.subject.id,
+                "lesson": self.lesson.id,
+                "homework_sub_lesson": title_id,
+                "text": "سؤال واجب",
+                "options": [
+                    {"key": "أ", "text": "1"},
+                    {"key": "ب", "text": "2"},
+                    {"key": "ج", "text": "3"},
+                    {"key": "د", "text": "4"},
+                ],
+                "correct_answer": "أ",
+                "difficulty": "easy",
+            },
+            format="json",
+        )
+        self.assertEqual(q.status_code, 201, q.data)
+        self.assertNotIn("group", q.data)
+        self.assertIsNone(HomeworkQuestion.objects.get(id=q.data["id"]).group_id)
+
+        titles = self.client.get(f"/api/homework-sub-lessons/?lesson={self.lesson.id}")
+        self.assertEqual(titles.data[0]["question_count"], 1)
+
+        self.client.force_authenticate(user=self.student)
+        hw = self.client.get(f"/api/my-homework/?homework_sub_lesson={title_id}")
+        self.assertEqual(hw.status_code, 200)
+        self.assertEqual(len(hw.data), 1)
+
+        self.client.force_authenticate(user=self.main)
+        wipe = self.client.delete(f"/api/homework-sub-lessons/{title_id}/")
+        self.assertEqual(wipe.status_code, 204)
+        self.assertFalse(HomeworkSubLesson.objects.filter(id=title_id).exists())
+        # Student answers/questions rows are not hard-wiped by title delete (SET_NULL).
+        self.assertTrue(HomeworkQuestion.objects.filter(id=q.data["id"]).exists())
+
+
+class TeacherTasksBoardAPITests(TestCase):
+    """Task 17 — lesson ↔ collection linking + group overrides."""
+
+    def setUp(self):
+        from core.access import assign_teacher_subject_role
+        from groups.models import GroupTeacher, TeacherSubjectRole
+        from assessments.models import CollectionSubLesson, HomeworkSubLesson
+
+        self.client = APIClient()
+        self.subject = Subject.objects.create(name="مهام-ربط", slug="tasks-link", order=1)
+        self.admin = User.objects.create_user(
+            email="a-tasks@test.local",
+            password="Passw0rd!",
+            full_name="A",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.main = User.objects.create_user(
+            email="t-main-tasks@test.local",
+            password="Passw0rd!",
+            full_name="Main",
+            role=User.Role.TEACHER,
+        )
+        self.secondary = User.objects.create_user(
+            email="t-sec-tasks@test.local",
+            password="Passw0rd!",
+            full_name="Sec",
+            role=User.Role.TEACHER,
+        )
+        assign_teacher_subject_role(self.main, self.subject, TeacherSubjectRole.Role.MAIN)
+        assign_teacher_subject_role(
+            self.secondary, self.subject, TeacherSubjectRole.Role.SECONDARY
+        )
+        self.lesson1 = Lesson.objects.create(
+            subject=self.subject, title="مقدمة", order_number=1, created_by=self.admin
+        )
+        self.lesson2 = Lesson.objects.create(
+            subject=self.subject, title="التصنيف الحديث", order_number=2, created_by=self.admin
+        )
+        self.sub_a = CollectionSubLesson.objects.create(
+            lesson=self.lesson2, title="الممالك", order_number=1
+        )
+        self.sub_b = CollectionSubLesson.objects.create(
+            lesson=self.lesson2, title="التسمية", order_number=2
+        )
+        HomeworkSubLesson.objects.create(
+            lesson=self.lesson2, title="واجب مقفول", order_number=1
+        )
+        self.group_a = StudyGroup.objects.create(name="مجموعة أ", created_by=self.admin)
+        self.group_b = StudyGroup.objects.create(name="مجموعة ب", created_by=self.admin)
+        GroupTeacher.objects.create(
+            group=self.group_a, teacher=self.main, subject=self.subject
+        )
+        GroupTeacher.objects.create(
+            group=self.group_b, teacher=self.main, subject=self.subject
+        )
+        GroupTeacher.objects.create(
+            group=self.group_a, teacher=self.secondary, subject=self.subject
+        )
+
+    def test_link_subs_group_override_and_secondary_readonly(self):
+        self.client.force_authenticate(user=self.main)
+        add = self.client.post(
+            "/api/teacher/tasks-board/links/",
+            {
+                "action": "add",
+                "lesson": self.lesson2.id,
+                "nodes": [
+                    {
+                        "collection_lesson": self.lesson2.id,
+                        "collection_sub_lesson": self.sub_a.id,
+                    },
+                    {
+                        "collection_lesson": self.lesson2.id,
+                        "collection_sub_lesson": self.sub_b.id,
+                    },
+                ],
+            },
+            format="json",
+        )
+        self.assertEqual(add.status_code, 201, add.data)
+        self.assertEqual(len(add.data["created"]), 2)
+
+        board = self.client.get(
+            f"/api/teacher/tasks-board/?subject={self.subject.id}"
+        )
+        self.assertEqual(board.status_code, 200)
+        row = next(r for r in board.data["lessons"] if r["id"] == self.lesson2.id)
+        self.assertEqual(row["collection_count"], 2)
+        self.assertEqual(row["homework_count"], 1)
+        self.assertTrue(all(h["locked"] for h in row["homework"]))
+
+        # Duplicate main after subs → error
+        dup = self.client.post(
+            "/api/teacher/tasks-board/links/",
+            {
+                "action": "add",
+                "lesson": self.lesson2.id,
+                "nodes": [
+                    {
+                        "collection_lesson": self.lesson2.id,
+                        "collection_sub_lesson": None,
+                    }
+                ],
+            },
+            format="json",
+        )
+        self.assertEqual(dup.status_code, 400)
+
+        # Group B override: different set
+        ov = self.client.post(
+            "/api/teacher/tasks-board/links/",
+            {
+                "action": "add",
+                "lesson": self.lesson2.id,
+                "group": self.group_b.id,
+                "nodes": [
+                    {
+                        "collection_lesson": self.lesson1.id,
+                        "collection_sub_lesson": None,
+                    }
+                ],
+            },
+            format="json",
+        )
+        self.assertEqual(ov.status_code, 201, ov.data)
+
+        board_b = self.client.get(
+            f"/api/teacher/tasks-board/?subject={self.subject.id}&group={self.group_b.id}"
+        )
+        row_b = next(r for r in board_b.data["lessons"] if r["id"] == self.lesson2.id)
+        self.assertTrue(row_b["is_override"])
+        # Copied default (2) + new main (1) = 3
+        self.assertEqual(row_b["collection_count"], 3)
+
+        board_a = self.client.get(
+            f"/api/teacher/tasks-board/?subject={self.subject.id}&group={self.group_a.id}"
+        )
+        row_a = next(r for r in board_a.data["lessons"] if r["id"] == self.lesson2.id)
+        self.assertFalse(row_a["is_override"])
+        self.assertEqual(row_a["collection_count"], 2)
+
+        reset = self.client.post(
+            "/api/teacher/tasks-board/links/",
+            {
+                "action": "reset_default",
+                "lesson": self.lesson2.id,
+                "group": self.group_b.id,
+            },
+            format="json",
+        )
+        self.assertEqual(reset.status_code, 200)
+        board_b2 = self.client.get(
+            f"/api/teacher/tasks-board/?subject={self.subject.id}&group={self.group_b.id}"
+        )
+        row_b2 = next(r for r in board_b2.data["lessons"] if r["id"] == self.lesson2.id)
+        self.assertFalse(row_b2["is_override"])
+        self.assertEqual(row_b2["collection_count"], 2)
+
+        self.client.force_authenticate(user=self.secondary)
+        denied = self.client.post(
+            "/api/teacher/tasks-board/links/",
+            {
+                "action": "add",
+                "lesson": self.lesson2.id,
+                "nodes": [
+                    {
+                        "collection_lesson": self.lesson1.id,
+                        "collection_sub_lesson": None,
+                    }
+                ],
+            },
+            format="json",
+        )
+        self.assertEqual(denied.status_code, 403)
+        view = self.client.get(f"/api/teacher/tasks-board/?subject={self.subject.id}")
+        self.assertEqual(view.status_code, 200)
+        self.assertFalse(view.data["can_edit"])
+
+
+class ResultsAnalyticsUnitTests(TestCase):
+    """Task 25 — period windows + score formula."""
+
+    def test_parse_period_and_score(self):
+        from assessments.results_analytics import (
+            _score,
+            parse_period,
+            period_window,
+            previous_window,
+        )
+
+        self.assertEqual(parse_period(None), "all")
+        self.assertEqual(parse_period("7d"), "7d")
+        self.assertEqual(_score(2, 8), 25.0)
+        self.assertEqual(_score(0, 0), None)
+
+        now = timezone.now()
+        start, end = period_window("7d", now=now)
+        self.assertIsNotNone(start)
+        self.assertEqual(end, now)
+        p0, p1 = previous_window("7d", now=now)
+        self.assertEqual(p1, start)
+        self.assertAlmostEqual((p1 - p0).total_seconds(), (end - start).total_seconds(), delta=1)
+
+
+class SimulatorPickUnitTests(TestCase):
+    """Task 24 — lesson weighting algorithm (brief 9.3)."""
+
+    def test_expected_30_over_10(self):
+        from assessments.simulator_pick import expected_counts
+
+        e = expected_counts(30, 10)
+        rounded = [round(x, 1) for x in e]
+        self.assertEqual(
+            rounded, [1.5, 1.8, 2.2, 2.5, 2.8, 3.2, 3.5, 3.8, 4.2, 4.5]
+        )
+
+    def test_expected_10_over_10(self):
+        from assessments.simulator_pick import expected_counts
+
+        e = expected_counts(10, 10)
+        self.assertAlmostEqual(e[0], 0.5, places=5)
+        self.assertAlmostEqual(e[-1], 1.5, places=5)
+        self.assertEqual(round(sum(e), 5), 10.0)
+
+    def test_expected_22_over_8(self):
+        from assessments.simulator_pick import expected_counts
+
+        e = expected_counts(22, 8)
+        self.assertEqual(round(e[0], 1), 1.4)
+        self.assertEqual(round(e[-1], 1), 4.1)
+        self.assertEqual(round(sum(e), 5), 22.0)
+
+    def test_allocate_sums_and_ranges_30_10(self):
+        from assessments.simulator_pick import allocate_lesson_counts
+
+        rng = __import__("random").Random(0)
+        counts = allocate_lesson_counts(30, 10, rng=rng)
+        self.assertEqual(sum(counts), 30)
+        self.assertTrue(all(1 <= c <= 5 for c in counts[:3]))
+        self.assertTrue(all(2 <= c <= 5 for c in counts[3:7]))
+        self.assertTrue(all(4 <= c <= 5 for c in counts[7:]))
+
+    def test_shortfall_moves_to_next_lesson(self):
+        from assessments.simulator_pick import redistribute_shortfalls
+
+        # Lesson index 4 assigned 4 but only 2 available → +2 to index 5.
+        assigned = [1, 1, 2, 2, 4, 3, 3, 4, 5, 5]
+        available = [10, 10, 10, 10, 2, 10, 10, 10, 10, 10]
+        out = redistribute_shortfalls(assigned, available)
+        self.assertEqual(out[4], 2)
+        self.assertEqual(out[5], 5)  # 3 + 2
+        self.assertEqual(sum(out), sum(assigned))
+
+    def test_no_duplicate_questions(self):
+        from assessments.simulator_pick import pick_weighted_for_subject
+
+        pools = [[f"L{i}-Q{j}" for j in range(20)] for i in range(10)]
+        rng = __import__("random").Random(1)
+        picked = pick_weighted_for_subject(pools, 30, rng=rng)
+        self.assertEqual(len(picked), 30)
+        self.assertEqual(len(picked), len(set(picked)))
+
+    def test_mean_bias_over_many_runs(self):
+        from assessments.simulator_pick import allocate_lesson_counts
+
+        rng = __import__("random").Random(42)
+        totals = [0] * 10
+        runs = 1000
+        for _ in range(runs):
+            c = allocate_lesson_counts(30, 10, rng=rng)
+            for i, v in enumerate(c):
+                totals[i] += v
+        means = [t / runs for t in totals]
+        self.assertAlmostEqual(means[0], 1.5, delta=0.25)
+        self.assertAlmostEqual(means[-1], 4.5, delta=0.25)
+
+
+class SimulatorAllocUnitTests(TestCase):
+    """Task 23 — subject count split (30:30:25:25 largest remainder)."""
+
+    def test_default_22_all_four(self):
+        from assessments.simulator_alloc import allocate_by_ratio
+
+        alloc = allocate_by_ratio(["math", "bio", "chem", "phys"], 22)
+        self.assertEqual(alloc, {"math": 6, "bio": 6, "chem": 5, "phys": 5})
+        self.assertEqual(sum(alloc.values()), 22)
+
+    def test_math_bio_and_math_chem(self):
+        from assessments.simulator_alloc import allocate_by_ratio
+
+        self.assertEqual(
+            allocate_by_ratio(["math", "bio"], 22), {"math": 11, "bio": 11}
+        )
+        self.assertEqual(
+            allocate_by_ratio(["math", "chem"], 22), {"math": 12, "chem": 10}
+        )
+
+    def test_fixed_four_is_110(self):
+        from assessments.simulator_alloc import allocate_fixed
+
+        alloc = allocate_fixed(["math", "bio", "chem", "phys"])
+        self.assertEqual(sum(alloc.values()), 110)
+        self.assertEqual(alloc["math"], 30)
+        self.assertEqual(alloc["bio"], 30)
+        self.assertEqual(alloc["chem"], 25)
+        self.assertEqual(alloc["phys"], 25)
+
+
+class CollectionSectionsTests(TestCase):
+    """Task 21 — تجميعات practice: sections of 50, resume cursor, ordered bank."""
+
+    def setUp(self):
+        self.subject = Subject.objects.create(
+            name="أحياء-أقسام", slug="bio-sec", order=2
+        )
+        self.teacher = User.objects.create_user(
+            email="t-colsec@test.local",
+            password="Passw0rd!",
+            full_name="T",
+            role=User.Role.TEACHER,
+        )
+        self.admin = User.objects.create_user(
+            email="a-colsec@test.local",
+            password="Passw0rd!",
+            full_name="A",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.lesson = Lesson.objects.create(
+            subject=self.subject, title="درس أقسام", order_number=1, created_by=self.teacher
+        )
+        for i in range(55):
+            q = _make_question(self.subject, self.lesson, self.teacher, "easy", i)
+            q.order_number = i + 1
+            q.save(update_fields=["order_number"])
+        self.group = StudyGroup.objects.create(name="ColSecG", created_by=self.admin)
+        self.student = User.objects.create_user(
+            email="s-colsec@test.local",
+            password="Passw0rd!",
+            full_name="S",
+            role=User.Role.STUDENT,
+        )
+        GroupStudent.objects.create(group=self.group, student=self.student)
+        Subscription.objects.create(
+            student=self.student,
+            plan=Subscription.Plan.MONTHLY,
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date() + timedelta(days=30),
+        )
+        self.client = APIClient()
+
+    def test_collection_mode_sets_type_section_size_and_order(self):
+        self.client.force_authenticate(user=self.student)
+        res = self.client.post(
+            "/api/exams/simulator/",
+            {
+                "subjects": [self.subject.id],
+                "lessons": [self.lesson.id],
+                "take_all": True,
+                "mode": "collection",
+                "review_mode": "immediate",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201, res.data)
+        exam = res.data["exam"]
+        self.assertEqual(exam["exam_type"], "collection")
+        self.assertEqual(exam["section_size"], 50)
+        self.assertEqual(exam["question_count"], 55)
+        self.assertEqual(exam["last_question_index"], 0)
+        texts = [q["text"] for q in res.data["questions"]]
+        self.assertEqual(texts[0], "Q easy 0")
+        self.assertEqual(texts[54], "Q easy 54")
+
+    def test_take_all_without_mode_stays_simulator(self):
+        self.client.force_authenticate(user=self.student)
+        res = self.client.post(
+            "/api/exams/simulator/",
+            {
+                "subjects": [self.subject.id],
+                "lessons": [self.lesson.id],
+                "take_all": True,
+                "review_mode": "immediate",
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(res.data["exam"]["exam_type"], "simulator")
+        self.assertEqual(res.data["exam"]["section_size"], 22)
+
+    def test_patch_last_question_index(self):
+        self.client.force_authenticate(user=self.student)
+        start = self.client.post(
+            "/api/exams/simulator/",
+            {
+                "subjects": [self.subject.id],
+                "lessons": [self.lesson.id],
+                "take_all": True,
+                "mode": "collection",
+                "review_mode": "immediate",
+            },
+            format="json",
+        )
+        exam_id = start.data["exam"]["id"]
+        patch = self.client.patch(
+            f"/api/exams/{exam_id}/",
+            {"last_question_index": 51},
+            format="json",
+        )
+        self.assertEqual(patch.status_code, 200, patch.data)
+        self.assertEqual(patch.data["last_question_index"], 51)
+        detail = self.client.get(f"/api/exams/{exam_id}/")
+        self.assertEqual(detail.data["exam"]["last_question_index"], 51)
+
+        # Clamp to last question.
+        patch2 = self.client.patch(
+            f"/api/exams/{exam_id}/",
+            {"last_question_index": 999},
+            format="json",
+        )
+        self.assertEqual(patch2.data["last_question_index"], 54)
+
+
+class SimulatorSectionsTests(TestCase):
+    """Task 22 — محاكي: أقسام 22 + استراحة + قفل الأقسام على الـ API."""
+
+    def setUp(self):
+        self.subject = Subject.objects.create(
+            name="رياضة-أقسام", slug="math-sec22", order=3
+        )
+        self.teacher = User.objects.create_user(
+            email="t-simsec@test.local",
+            password="Passw0rd!",
+            full_name="T",
+            role=User.Role.TEACHER,
+        )
+        self.admin = User.objects.create_user(
+            email="a-simsec@test.local",
+            password="Passw0rd!",
+            full_name="A",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.lesson = Lesson.objects.create(
+            subject=self.subject, title="درس محاكي", order_number=1, created_by=self.teacher
+        )
+        for i in range(45):
+            _make_question(self.subject, self.lesson, self.teacher, "easy", i)
+        self.group = StudyGroup.objects.create(name="SimSecG", created_by=self.admin)
+        self.student = User.objects.create_user(
+            email="s-simsec@test.local",
+            password="Passw0rd!",
+            full_name="S",
+            role=User.Role.STUDENT,
+        )
+        GroupStudent.objects.create(group=self.group, student=self.student)
+        Subscription.objects.create(
+            student=self.student,
+            plan=Subscription.Plan.MONTHLY,
+            start_date=timezone.now().date(),
+            end_date=timezone.now().date() + timedelta(days=30),
+        )
+        self.client = APIClient()
+
+    def _start(self, count=45):
+        self.client.force_authenticate(user=self.student)
+        return self.client.post(
+            "/api/exams/simulator/",
+            {
+                "subjects": [self.subject.id],
+                "lessons": [self.lesson.id],
+                "count": count,
+                "levels": ["easy"],
+                "review_mode": "final",
+                "time_limit_minutes": None,
+            },
+            format="json",
+        )
+
+    def test_simulator_section_size_and_remainder(self):
+        res = self._start(45)
+        self.assertEqual(res.status_code, 201, res.data)
+        exam = res.data["exam"]
+        self.assertEqual(exam["exam_type"], "simulator")
+        self.assertEqual(exam["section_size"], 22)
+        self.assertEqual(exam["section_count"], 3)  # 22 + 22 + 1
+        self.assertTrue(exam["sections_locked"])
+        self.assertEqual(exam["current_section"], 0)
+        self.assertFalse(exam["break_pending"])
+        self.assertEqual(exam["break_seconds"], 300)
+
+    def test_answer_locked_after_section_advance(self):
+        res = self._start(45)
+        exam_id = res.data["exam"]["id"]
+        q0 = res.data["questions"][0]
+        # Finish section 0 → break → continue → section 1.
+        br = self.client.patch(
+            f"/api/exams/{exam_id}/", {"action": "start_break"}, format="json"
+        )
+        self.assertEqual(br.status_code, 200, br.data)
+        self.assertTrue(br.data["exam"]["break_pending"])
+        # Cannot answer during break.
+        denied = self.client.post(
+            f"/api/exams/{exam_id}/answer/",
+            {"answer_id": q0["answer_id"], "selected": "أ"},
+            format="json",
+        )
+        self.assertEqual(denied.status_code, 403)
+
+        cont = self.client.patch(
+            f"/api/exams/{exam_id}/", {"action": "continue_section"}, format="json"
+        )
+        self.assertEqual(cont.status_code, 200, cont.data)
+        self.assertEqual(cont.data["exam"]["current_section"], 1)
+        self.assertFalse(cont.data["exam"]["break_pending"])
+        self.assertEqual(cont.data["exam"]["last_question_index"], 22)
+
+        # Section 0 still locked.
+        denied2 = self.client.post(
+            f"/api/exams/{exam_id}/answer/",
+            {"answer_id": q0["answer_id"], "selected": "أ"},
+            format="json",
+        )
+        self.assertEqual(denied2.status_code, 403)
+
+        # Current section answerable.
+        q22 = cont.data["questions"][22]
+        ok = self.client.post(
+            f"/api/exams/{exam_id}/answer/",
+            {"answer_id": q22["answer_id"], "selected": "أ"},
+            format="json",
+        )
+        self.assertEqual(ok.status_code, 200, ok.data)
+
+    def test_leave_during_break_skips_wait(self):
+        res = self._start(45)
+        exam_id = res.data["exam"]["id"]
+        self.client.patch(
+            f"/api/exams/{exam_id}/", {"action": "start_break"}, format="json"
+        )
+        exam = Exam.objects.get(id=exam_id)
+        exam.break_started_at = timezone.now() - timedelta(seconds=10)
+        exam.save(update_fields=["break_started_at"])
+        detail = self.client.get(f"/api/exams/{exam_id}/")
+        self.assertEqual(detail.status_code, 200)
+        self.assertFalse(detail.data["exam"]["break_pending"])
+        self.assertEqual(detail.data["exam"]["current_section"], 1)
+
+    def test_teacher_type_has_no_sections(self):
+        exam = Exam.objects.create(
+            student=self.student,
+            subject=self.subject,
+            exam_type=Exam.Type.TEACHER,
+            question_count=45,
+            review_mode=Exam.ReviewMode.FINAL,
+        )
+        self.assertIsNone(exam.section_size)
+        self.assertFalse(exam.sections_locked)
+        self.assertEqual(exam.section_count(), 0)

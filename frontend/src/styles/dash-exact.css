@@ -31,7 +31,7 @@
 .dash-exact .task-list li{display:flex;align-items:center;gap:12px;padding:13px 6px;border-bottom:1px dashed #e8ebf3}
 .dash-exact .task-list li:last-child{border-bottom:0}
 .dash-exact .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
-.dash-exact .m{background:#6aa83a}.dash-exact .p{background:#7c3aed}.dash-exact .c{background:#d1253f}.dash-exact .b{background:#156eb0}
+.dash-exact .m{background:var(--math-c)}.dash-exact .p{background:var(--physics-c)}.dash-exact .c{background:var(--chem-c)}.dash-exact .b{background:var(--bio-c)}
 .dash-exact .t-name{flex:1;font-weight:600;font-size:15px}
 .dash-exact .t-meta{font-size:12px;color:var(--muted)}
 .dash-exact .tag{font-size:12px;padding:4px 10px;border-radius:20px;font-weight:600;white-space:nowrap}
@@ -47,10 +47,34 @@
 .dash-exact .scard::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:var(--c)}
 .dash-exact .scard img{width:100%;height:170px;object-fit:contain}
 .dash-exact .scard .go{margin-top:14px;width:100%;text-align:center;padding:10px;border-radius:10px;font-weight:700;font-size:14px;color:var(--c);background:var(--bg)}
-.dash-exact .s-math{--c:#5f8f2e;--bg:#f1f7e8}
-.dash-exact .s-phys{--c:#6d28d9;--bg:#f3eefe}
-.dash-exact .s-chem{--c:#c0182f;--bg:#fdecee}
-.dash-exact .s-bio{--c:#c58a00;--bg:#fff6dc}
+.dash-exact .nc{display:flex;align-items:center;gap:22px;background:linear-gradient(90deg,#fff 0%,var(--c-light) 100%);border:1.5px solid color-mix(in srgb,var(--c) 35%,#fff);border-right:6px solid var(--c);border-radius:20px;padding:20px 24px;box-shadow:0 10px 26px rgba(20,33,61,.08);color:inherit}
+.dash-exact .nc .n{width:58px;height:58px;border-radius:50%;background:var(--c-grad);color:#fff;display:grid;place-items:center;font-weight:800;font-size:22px;flex:none}
+.dash-exact .nc .mid{flex:1;min-width:0}
+.dash-exact .nc .ttl{display:flex;align-items:flex-start;gap:8px;flex-wrap:wrap;color:var(--c);font-weight:800;font-size:21px;line-height:1.35}
+.dash-exact .nc .ttl-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-width:0}
+.dash-exact .nc .sub2{font-weight:700;font-size:16px;color:#334;margin-top:4px}
+.dash-exact .nc .time{font-size:30px;font-weight:800;color:var(--c-dark);line-height:1.15;margin-top:6px}
+.dash-exact .nc .hij{font-weight:800;font-size:17px;color:#0f2a4a;margin-top:4px}
+.dash-exact .nc .greg{color:#6b7a90;font-size:14px;margin-top:2px}
+.dash-exact .nc .state{min-width:200px;text-align:center;flex:none}
+.dash-exact .nc .stx{color:#556;font-size:13.5px;font-weight:700;margin:0 0 8px}
+.dash-exact .nc .nc-live{display:inline-flex;align-items:center;gap:6px;background:#16a34a;color:#fff;border-radius:10px;padding:5px 12px;font-weight:800;font-size:14px;margin-bottom:8px}
+.dash-exact .nc .nc-live i{width:8px;height:8px;border-radius:50%;background:#fff;display:inline-block}
+.dash-exact .nc .nc-soon{display:inline-block;background:#fff4e0;color:#c26a00;border-radius:10px;padding:5px 12px;font-weight:800;font-size:14px;margin-bottom:8px}
+.dash-exact .nc .pill{display:inline-block;font-size:12.5px;font-weight:700;padding:4px 11px;border-radius:99px;background:#e8f1fd;color:#1565c0;white-space:nowrap}
+.dash-exact .nc .btn{display:inline-flex;align-items:center;justify-content:center;background:var(--c);color:#fff;border-radius:12px;padding:11px 20px;font-weight:700;border:0;cursor:pointer;min-height:44px;font-family:inherit;text-decoration:none}
+.dash-exact .nc .btn.dis{background:#eef1f5;color:#9aa5b5;cursor:default}
+.dash-exact .nc .banner{margin-top:8px}
+@media (max-width:820px){
+  .dash-exact .nc{flex-wrap:wrap;gap:14px;padding:16px}
+  .dash-exact .nc .state{min-width:0;width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:right;border-top:1px dashed #e6ebf2;padding-top:12px}
+  .dash-exact .nc .state-copy{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+  .dash-exact .nc .stx,.dash-exact .nc .nc-soon,.dash-exact .nc .nc-live{margin:0}
+}
+.dash-exact .s-math,
+.dash-exact .s-phys,
+.dash-exact .s-chem,
+.dash-exact .s-bio{--bg:var(--c-light)}
 .dash-exact .final{margin-top:26px;background:#fff;border-radius:18px;border:1px solid #edf0f6;box-shadow:0 10px 26px rgba(20,33,61,.07);display:flex;align-items:center;gap:30px;padding:26px 34px;position:relative;overflow:hidden}
 .dash-exact .final::before{content:"";position:absolute;right:0;top:0;bottom:0;width:6px;background:linear-gradient(#156eb0,#3fa3e0)}
 .dash-exact .final img{height:120px}

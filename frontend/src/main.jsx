@@ -4,8 +4,11 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { startApiKeepAlive } from "./api/client";
 import App from "./App";
+import "./theme/subject-colors.css";
 import "./index.css";
 import "./styles/maram-design.css";
+import "./styles/page-shell.css";
+import "./styles/tablet-responsive.css";
 
 function Root() {
   useEffect(() => startApiKeepAlive(), []);

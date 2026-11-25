@@ -2,13 +2,14 @@ from django.db.models import Count, Q
 from rest_framework import serializers
 
 from core.access import lesson_is_free_preview, user_has_full_content_access
+from core.time_rules import lesson_is_schedule_locked
 from .models import Lesson, LessonSection, Subject
 
 
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
-        fields = ["id", "name", "slug", "cover_gradient", "order"]
+        fields = ["id", "name", "slug", "cover_gradient", "order", "theme_key"]
 
 
 class LessonSectionSerializer(serializers.ModelSerializer):
@@ -58,6 +59,8 @@ class LessonListSerializer(serializers.ModelSerializer):
 
     subject_name = serializers.CharField(source="subject.name", read_only=True)
     is_locked = serializers.SerializerMethodField()
+    schedule_locked = serializers.SerializerMethodField()
+    lock_label = serializers.SerializerMethodField()
     sections_count = serializers.SerializerMethodField()
     collection_difficulty_counts = serializers.SerializerMethodField()
 
@@ -74,6 +77,8 @@ class LessonListSerializer(serializers.ModelSerializer):
             "pdf_url",
             "is_free_preview",
             "is_locked",
+            "schedule_locked",
+            "lock_label",
             "is_archived",
             "sections_count",
             "collection_difficulty_counts",
@@ -84,6 +89,8 @@ class LessonListSerializer(serializers.ModelSerializer):
             "created_by",
             "created_at",
             "is_locked",
+            "schedule_locked",
+            "lock_label",
             "sections_count",
             "collection_difficulty_counts",
         ]
@@ -94,6 +101,40 @@ class LessonListSerializer(serializers.ModelSerializer):
         if user_has_full_content_access(user):
             return False
         return not lesson_is_free_preview(obj)
+
+    def get_schedule_locked(self, obj):
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        return lesson_is_schedule_locked(user, obj)
+
+    def get_lock_label(self, obj):
+        if not self.get_schedule_locked(obj):
+            return ""
+        from core.time_rules import lesson_unlock_datetime, to_riyadh
+
+        request = self.context.get("request")
+        user = getattr(request, "user", None) if request else None
+        when = lesson_unlock_datetime(user, obj)
+        if when:
+            local = to_riyadh(when)
+            months = (
+                "",
+                "يناير",
+                "فبراير",
+                "مارس",
+                "أبريل",
+                "مايو",
+                "يونيو",
+                "يوليو",
+                "أغسطس",
+                "سبتمبر",
+                "أكتوبر",
+                "نوفمبر",
+                "ديسمبر",
+            )
+            label = f"يفتح يوم {local.day} {months[local.month]}"
+            return label
+        return "الحصة لسه ما جاتش في جدول مجموعتك"
 
     def get_sections_count(self, obj):
         if hasattr(obj, "_sections_count"):

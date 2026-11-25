@@ -38,6 +38,14 @@ class Session(models.Model):
     subject = models.ForeignKey(
         "catalog.Subject", related_name="sessions", on_delete=models.CASCADE
     )
+    lesson = models.ForeignKey(
+        "catalog.Lesson",
+        related_name="sessions",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="اختياري — ربط عرضي بحصة التأسيس التي تكمّلها الإضافية",
+    )
     group = models.ForeignKey(
         "groups.StudyGroup",
         related_name="sessions",
@@ -63,6 +71,12 @@ class Session(models.Model):
         help_text="هل سجّل المدرس دخوله إلى Zoom لهذه الحصة",
     )
     teacher_joined_zoom_at = models.DateTimeField(null=True, blank=True)
+    # Stub until Task 30 (class_ratings). Non-null = rating saved.
+    rated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="متى حُفظ تقييم الحصة (مهمة 30 ستبني class_ratings)",
+    )
     status = models.CharField(
         max_length=10, choices=Status.choices, default=Status.SCHEDULED
     )
@@ -184,6 +198,10 @@ class SessionAttendance(models.Model):
         PRESENT = "present", "حاضر"
         ABSENT = "absent", "غائب"
 
+    class StatusSource(models.TextChoices):
+        AUTO = "auto", "تلقائي (دخول الحصة)"
+        TEACHER = "teacher", "المدرس"
+
     session = models.ForeignKey(
         Session, related_name="attendances", on_delete=models.CASCADE
     )
@@ -193,6 +211,14 @@ class SessionAttendance(models.Model):
         on_delete=models.CASCADE,
     )
     status = models.CharField(max_length=10, choices=Status.choices)
+    status_source = models.CharField(
+        max_length=10,
+        choices=StatusSource.choices,
+        default=StatusSource.AUTO,
+    )
+    joined_at = models.DateTimeField(null=True, blank=True)
+    left_at = models.DateTimeField(null=True, blank=True)
+    duration_min = models.PositiveIntegerField(default=0)
     marked_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         related_name="attendance_marks",
@@ -209,3 +235,65 @@ class SessionAttendance(models.Model):
 
     def __str__(self):
         return f"{self.student_id} @ session {self.session_id}: {self.status}"
+
+
+class ClassRating(models.Model):
+    """Session rating header (Task 30 / B3)."""
+
+    class Status(models.TextChoices):
+        DRAFT = "draft", "مسودة"
+        SAVED = "saved", "محفوظ"
+
+    session = models.OneToOneField(
+        Session, related_name="class_rating", on_delete=models.CASCADE
+    )
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.DRAFT
+    )
+    general_note = models.TextField(blank=True, default="")
+    saved_at = models.DateTimeField(null=True, blank=True)
+    reports_sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Last time parent Telegram reports were sent for this save",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="class_ratings_updated",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    def __str__(self):
+        return f"rating session={self.session_id} ({self.status})"
+
+
+class StudentClassRating(models.Model):
+    """Per-student stars/tags/note for a class rating."""
+
+    TAG_CHOICES = (
+        "متفاعل",
+        "ملتزم بالواجب",
+        "يحتاج متابعة",
+        "شارك بالإجابة",
+    )
+
+    class_rating = models.ForeignKey(
+        ClassRating, related_name="student_rows", on_delete=models.CASCADE
+    )
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="class_ratings",
+        on_delete=models.CASCADE,
+    )
+    stars = models.PositiveSmallIntegerField(default=0)
+    tags = models.JSONField(default=list, blank=True)
+    note = models.TextField(blank=True, default="")
+
+    class Meta:
+        unique_together = ("class_rating", "student")
+
+    def __str__(self):
+        return f"student={self.student_id} stars={self.stars}"

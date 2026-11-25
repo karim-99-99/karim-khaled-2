@@ -4,7 +4,7 @@
 .exams-exact button.btn,.exams-exact a.btn{cursor:pointer;text-align:center;border:none;font:inherit}
 @media (max-width:900px){.exams-exact .subs,.exams-exact .egrid{grid-template-columns:1fr 1fr}}
 @media (max-width:560px){.exams-exact .subs,.exams-exact .egrid{grid-template-columns:1fr}.exams-exact .sim-top{flex-direction:column;gap:16px;align-items:flex-start}}
-.exams-exact{max-width:1150px;margin:30px auto 60px;padding:0 20px}
+.exams-exact{margin:30px auto 60px}
 .exams-exact h1{font-size:32px;font-weight:800;margin-bottom:22px}
 .exams-exact .sim{border-radius:20px;overflow:hidden;background:#fff;border:1px solid #edf0f6;box-shadow:0 14px 34px rgba(11,42,107,.10)}
 .exams-exact .sim-top{position:relative;padding:30px 34px;color:#fff;display:flex;align-items:center;justify-content:space-between;
@@ -19,17 +19,18 @@
 .exams-exact .sim-body{padding:24px 34px 30px}
 .exams-exact .lbl{font-weight:700;font-size:15px;color:#4b5563;margin-bottom:14px;display:flex;justify-content:space-between}
 .exams-exact .lbl a{color:var(--blue);font-size:14px}
-.exams-exact .subs{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.exams-exact .sub{position:relative;border:2px solid #edf0f6;border-radius:16px;padding:14px 10px 12px;text-align:center;background:#fff}
-.exams-exact .sub img{height:92px;width:100%;object-fit:contain}
+.exams-exact .subs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;align-items:stretch}
+.exams-exact .sub{position:relative;border:2px solid #edf0f6;border-radius:16px;padding:18px 12px 14px;text-align:center;background:#fff;min-height:150px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box}
+.exams-exact .sub img{height:100px;width:100%;max-width:140px;object-fit:contain;object-position:center;display:block;margin:0 auto}
 .exams-exact .sub.on{border-color:var(--c);background:var(--bg);box-shadow:0 6px 16px rgba(0,0,0,.06)}
 .exams-exact .chk{position:absolute;top:10px;left:10px;width:24px;height:24px;border-radius:50%;border:2px solid #d5dae5;background:#fff;display:grid;place-items:center}
 .exams-exact .sub.on .chk{background:var(--c);border-color:var(--c)}
 .exams-exact .chk svg{width:14px;height:14px}
-.exams-exact .math{--c:#5f8f2e;--bg:#f6faef}
-.exams-exact .phys{--c:#6d28d9;--bg:#f8f5ff}
-.exams-exact .chem{--c:#c0182f;--bg:#fff6f7}
-.exams-exact .bio{--c:#c58a00;--bg:#fffaeb}
+.exams-exact .math{--c:var(--math-c);--bg:var(--math-light)}
+.exams-exact .phys{--c:var(--physics-c);--bg:var(--physics-light)}
+.exams-exact .chem{--c:var(--chem-c);--bg:var(--chem-light)}
+.exams-exact .bio{--c:var(--bio-c);--bg:var(--bio-light)}
+.exams-exact .brand{--c:var(--blue);--bg:var(--primary-light)}
 .exams-exact .sec-head{margin:40px 0 18px;display:flex;align-items:center;gap:12px}
 .exams-exact .sec-head h3{font-size:22px;font-weight:800}
 .exams-exact .sec-head i{width:26px;height:4px;border-radius:4px;background:var(--y)}
@@ -69,10 +70,10 @@
 .exams-exact .btn.dis{background:#f1f5f9;color:#94a3b8}
 .exams-exact .btn.rv{background:var(--bg);color:var(--c);border:1.5px solid var(--c)}
 .exams-exact .ebox{background:#fff;border:1px solid var(--line,#edf0f6);border-radius:20px;box-shadow:0 10px 26px rgba(20,33,61,.06);overflow:hidden}
-.exams-exact .etop{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line,#edf0f6);background:#fafbfe;flex-wrap:wrap;gap:10px}
-.exams-exact .etop .ftabs{margin-bottom:0;gap:6px}
-.exams-exact .etop .ftabs span{padding:7px 14px;border-radius:20px;font-weight:700;font-size:13px}
-.exams-exact .stabs{display:flex;background:#eef1f6;border-radius:12px;padding:4px}
+.exams-exact .etop{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--line,#edf0f6);background:#fafbfe;flex-wrap:nowrap;gap:12px}
+.exams-exact .etop .ftabs{margin-bottom:0;gap:6px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.exams-exact .etop .ftabs span{padding:7px 14px;border-radius:20px;font-weight:700;font-size:13px;flex:none}
+.exams-exact .stabs{display:flex;background:#eef1f6;border-radius:12px;padding:4px;flex:none;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
 .exams-exact .stabs span{padding:6px 12px;border-radius:9px;font-size:13px;font-weight:700;color:#475569;cursor:pointer}
 .exams-exact .stabs .on{background:#fff;color:var(--navy);box-shadow:0 2px 6px rgba(0,0,0,.08)}
 .exams-exact .stabs i{font-style:normal;font-size:11px;background:#dfe5ef;padding:1px 7px;border-radius:10px;margin-inline-start:3px}
@@ -107,21 +108,22 @@
 .exams-exact .sub{cursor:pointer;border:2px solid #edf0f6;background:#fff;font:inherit}
 .exams-exact .lbl button,.exams-exact .ftabs span,.exams-exact .stabs span{cursor:pointer;font-family:inherit}
 .exams-exact .create-row{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+@media (max-width:1100px){
+  .exams-exact .etop{flex-wrap:wrap}
+  .exams-exact .etop .ftabs,
+  .exams-exact .etop .stabs{width:100%;max-width:100%}
+}
 @media (max-width:900px){
-  .exams-exact .subs{grid-template-columns:repeat(2,1fr)}
+  .exams-exact .subs{grid-template-columns:repeat(2,minmax(0,1fr))}
   .exams-exact .egrid{grid-template-columns:1fr}
   .exams-exact .sim-top{flex-direction:column;align-items:flex-start;gap:16px}
   .exams-exact .row{flex-wrap:wrap}
   .exams-exact .t{width:auto;max-width:100%}
+  .exams-exact .sub{min-height:140px}
+  .exams-exact .sub img{height:88px}
 }
 
-@media (max-width:980px){
-  .exams-exact .grid, .exams-exact .cards, .exams-exact .subs, .exams-exact .egrid, .exams-exact .layout, .exams-exact .split, .exams-exact .feats{grid-template-columns:1fr 1fr !important}
-  .exams-exact .layout{display:flex !important;flex-direction:column !important}
-  .exams-exact .side, .exams-exact .sum, .exams-exact aside, .exams-exact .sticky-summary{position:static !important;width:100% !important}
-}
 @media (max-width:640px){
-  .exams-exact .grid, .exams-exact .cards, .exams-exact .subs, .exams-exact .egrid, .exams-exact .split, .exams-exact .feats{grid-template-columns:1fr !important}
-  .exams-exact h1{font-size:28px !important}
+  .exams-exact h1{font-size:28px}
 }
 

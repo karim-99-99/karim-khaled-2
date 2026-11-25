@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import client from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { canAccess, FEATURE, isSilverStudent } from "../auth/planAccess";
 import { canEditSubject } from "../auth/teacherScope";
-import { getSubjectTheme, resolveSubjectKey } from "../theme/subjects";
+import { getSubjectTheme, resolveSubjectKey, subjectClass } from "../theme/subjects";
 import "../styles/subject-exact.css";
 
 const CalIcon = () => (
@@ -29,6 +30,8 @@ export default function SubjectHub() {
   const [teacherTests, setTeacherTests] = useState([]);
   const [busyId, setBusyId] = useState(null);
   const canEdit = canEditSubject(user, subjectId);
+  const showTeacherTests = canAccess(user, FEATURE.TEACHER_TESTS);
+  const silver = isSilverStudent(user);
 
   useEffect(() => {
     try {
@@ -56,11 +59,15 @@ export default function SubjectHub() {
   }, [subjectId]);
 
   useEffect(() => {
+    if (!showTeacherTests) {
+      setTeacherTests([]);
+      return;
+    }
     client
       .get(`/teacher-tests/?subject=${subjectId}`)
       .then((res) => setTeacherTests(res.data.results || res.data || []))
       .catch(() => setTeacherTests([]));
-  }, [subjectId]);
+  }, [subjectId, showTeacherTests]);
 
   async function startTeacherTest(id) {
     setBusyId(id);
@@ -72,18 +79,11 @@ export default function SubjectHub() {
     }
   }
 
-  const key = resolveSubjectKey(subject?.name) || "math";
+  const key = resolveSubjectKey(subject);
   const theme = getSubjectTheme(key);
 
   return (
-    <div
-      className={`subject-exact tone-${key}`}
-      style={{
-        "--g": theme?.color || "#5f8f2e",
-        "--gd": theme?.color || "#5f8f2e",
-        "--gl": theme?.soft || "#f1f7e8",
-      }}
-    >
+    <div className={`subject-exact ${subjectClass(key)}`}>
       <div className="top">
         <div className="crumb">
           دورات &gt; <b>{subject?.name || "…"}</b>
@@ -94,7 +94,9 @@ export default function SubjectHub() {
       </div>
 
       <div className="split">
-        <div className="hero">{theme?.logo ? <img src={theme.logo} alt={subject?.name || ""} /> : null}</div>
+        <div className="hero plain-hero">
+          {theme?.logo ? <img src={theme.logo} alt={subject?.name || ""} /> : <span className="logo-fallback">{subject?.name || ""}</span>}
+        </div>
         <div className="stack">
           <Link to={`/courses/${subjectId}/lessons`} className="card t">
             <div className="ic">
@@ -108,7 +110,7 @@ export default function SubjectHub() {
           </Link>
           <Link to={`/courses/${subjectId}/collections`} className="card j">
             <div className="ic">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#c58a00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="3" width="7" height="7" rx="1.5" />
                 <rect x="14" y="3" width="7" height="7" rx="1.5" />
                 <rect x="3" y="14" width="7" height="7" rx="1.5" />
@@ -132,11 +134,18 @@ export default function SubjectHub() {
               </svg>
             </div>
             <b>
-              اختبارات المدرسين <small className="sb">({subject?.name || "…"})</small>
+              {showTeacherTests ? (
+                <>
+                  اختبارات المدرسين <small className="sb">({subject?.name || "…"})</small>
+                </>
+              ) : (
+                <>المحاكي <small className="sb">({subject?.name || "…"})</small></>
+              )}
             </b>
           </div>
           <Link to={`/tests/simulator/${subjectId}`}>✏️ صمّم اختبارك بنفسك</Link>
         </div>
+        {showTeacherTests ? (
         <ul className="exlist">
           {teacherTests.map((t, idx) => {
             const done = t.solved || t.my_score != null || t.status === "solved";
@@ -202,7 +211,8 @@ export default function SubjectHub() {
             </li>
           )}
         </ul>
-        {canEdit && (
+        ) : null}
+        {canEdit && !silver && (
           <div style={{ padding: "12px 28px 20px" }}>
             <Link to={`/tests/teacher/${subjectId}`} className="rv">
               إنشاء / إدارة اختبار

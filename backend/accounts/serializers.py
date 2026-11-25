@@ -52,6 +52,8 @@ class UserSerializer(serializers.ModelSerializer):
             "email",
             "telegram_id",
             "telegram_username",
+            "taught_subject",
+            "taught_subject_name",
             "teachable_subject_ids",
             "editable_subject_ids",
             "teacher_subject_roles",

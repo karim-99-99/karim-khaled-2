@@ -1,1 +1,1 @@
-# Removed with الجدول الذكي.
+# Generator removed with the dropped tables.

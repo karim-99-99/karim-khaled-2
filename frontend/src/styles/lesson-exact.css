@@ -1,4 +1,4 @@
-.lesson-exact{--g:#5f8f2e;--gd:#3f6a1f;--gl:#f1f7e8;--gb:#d7e8c2;--line:#e7ecdf;--mu:#6b7280}
+.lesson-exact{--g:var(--c);--gd:var(--c-dark);--gl:var(--c-light);--gb:var(--c-light);--line:#e7ecdf;--mu:#6b7280}
 .lesson-exact{max-width:1240px;margin:22px auto 60px;padding:0 20px}
 .lesson-exact .topbar{display:flex;justify-content:space-between;align-items:center}
 .lesson-exact .crumb{font-size:14px;color:var(--mu);display:flex;gap:8px}
@@ -7,7 +7,7 @@
 .lesson-exact .backs{display:flex;gap:10px}
 .lesson-exact .back{background:#fff;border:1px solid var(--line);padding:9px 16px;border-radius:10px;font-size:14px;color:var(--gd);font-weight:600}
 .lesson-exact .hero{margin:16px 0 20px;background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px 26px;display:flex;align-items:center;gap:22px;position:relative;overflow:hidden;box-shadow:0 12px 26px rgba(40,60,20,.07)}
-.lesson-exact .hero::after{content:"";position:absolute;right:0;top:0;bottom:0;width:7px;background:linear-gradient(var(--gd),#9cc95d)}
+.lesson-exact .hero::after{content:"";position:absolute;right:0;top:0;bottom:0;width:7px;background:var(--c-grad)}
 .lesson-exact .hero img{height:92px}
 .lesson-exact .sep{width:1px;height:70px;background:var(--line)}
 .lesson-exact .hero small{background:var(--gl);color:var(--gd);font-weight:700;padding:4px 12px;border-radius:20px;font-size:13px}
@@ -61,7 +61,7 @@
 .lesson-exact .play svg{width:34px;height:34px;margin-right:-4px}
 .lesson-exact .ctrl{position:absolute;left:0;right:0;bottom:0;padding:14px 18px;background:linear-gradient(transparent,rgba(0,0,0,.7));color:#fff;display:flex;align-items:center;gap:14px;font-size:13px}
 .lesson-exact .ctrl .tl{flex:1;height:5px;border-radius:5px;background:rgba(255,255,255,.3)}
-.lesson-exact .ctrl .tl i{display:block;width:35%;height:100%;background:#9cc95d;border-radius:5px}
+.lesson-exact .ctrl .tl i{display:block;width:35%;height:100%;background:var(--c);border-radius:5px}
 .lesson-exact .below{display:flex;justify-content:space-between;align-items:center;margin-top:16px;gap:12px}
 .lesson-exact .nb{display:flex;align-items:center;gap:8px;padding:12px 18px;border-radius:12px;border:1.5px solid var(--line);font-weight:700;color:#374151}
 .lesson-exact .cta{display:flex;align-items:center;gap:10px;background:var(--gl);border:1px solid var(--gb);border-radius:14px;padding:10px 12px 10px 18px;flex:1;justify-content:space-between}

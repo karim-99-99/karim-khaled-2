@@ -3,6 +3,12 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from accounts.parent_views import (
+    admin_parent_link,
+    my_parent_link,
+    student_parent_reports,
+    telegram_bot_webhook,
+)
 from accounts.telegram_views import telegram_complete, telegram_start, telegram_status
 from accounts.views import (
     LoginView,
@@ -18,10 +24,18 @@ from accounts.views import (
     set_user_role,
     teacher_list,
 )
+from assessments.practice_views import DailyTasksPageView, PracticeAnswerView
+from core.landing_public import landing_stats
+from assessments.task_links import (
+    TeacherTasksBoardView,
+    TeacherTasksCollectionTreeView,
+    TeacherTasksLinksView,
+)
 from assessments.views import (
     AnswerView,
     CollectionQuestionViewSet,
     CollectionSubLessonViewSet,
+    HomeworkSubLessonViewSet,
     ImportCollectionQuestionsView,
     ImportHomeworkQuestionsView,
     ExamDetailView,
@@ -54,7 +68,14 @@ from core.views import (
     video_token,
 )
 from groups.views import AdminGroupViewSet, TeacherGroupViewSet
-from scheduling.views import SessionViewSet, teacher_availability
+from scheduling.views import (
+    SessionViewSet,
+    session_rate,
+    teacher_availability,
+    teacher_classes,
+    teacher_home,
+    teacher_remind_student,
+)
 
 router = DefaultRouter()
 router.register("subjects", SubjectViewSet, basename="subject")
@@ -65,6 +86,9 @@ router.register("homework-questions", HomeworkQuestionViewSet, basename="homewor
 router.register("collection-questions", CollectionQuestionViewSet, basename="collection")
 router.register(
     "collection-sub-lessons", CollectionSubLessonViewSet, basename="collection-sub-lesson"
+)
+router.register(
+    "homework-sub-lessons", HomeworkSubLessonViewSet, basename="homework-sub-lesson"
 )
 router.register("admin/groups", AdminGroupViewSet, basename="admin-group")
 router.register("teacher/groups", TeacherGroupViewSet, basename="teacher-group")
@@ -82,8 +106,19 @@ api_patterns = [
     path("auth/telegram/start/", telegram_start),
     path("auth/telegram/callback/", telegram_complete),
     path("auth/telegram/complete/", telegram_complete),
+    path("auth/parent-link/", my_parent_link),
+    path("telegram/bot/webhook/", telegram_bot_webhook),
+    path(
+        "teacher/students/<int:student_id>/reports/",
+        student_parent_reports,
+    ),
+    path(
+        "admin/students/<int:student_id>/parent-link/",
+        admin_parent_link,
+    ),
     # Public / video
     path("health/", health),
+    path("public/landing-stats/", landing_stats),
     path("home/free-content/", home_free_content),
     path("home/next-session/", next_session),
     path("home/time-rules/", time_rules_snapshot),
@@ -120,6 +155,8 @@ api_patterns = [
     path("exams/<int:exam_id>/review/", ExamReviewView.as_view()),
     path("results/", MyResultsView.as_view()),
     path("my-homework/", StudentHomeworkView.as_view()),
+    path("daily-tasks/", DailyTasksPageView.as_view()),
+    path("practice-answers/", PracticeAnswerView.as_view()),
     # Billing
     path("subscription/", my_subscription),
     path("subscription/plans/", subscription_plans),
@@ -127,6 +164,17 @@ api_patterns = [
     # Teacher scheduling helpers
     path("teacher/assignments/", teacher_assignments),
     path("teacher/availability/", teacher_availability),
+    path("teacher/home/", teacher_home),
+    path("teacher/classes/", teacher_classes),
+    path(
+        "teacher/students/<int:student_id>/remind/",
+        teacher_remind_student,
+    ),
+    path("sessions/<int:pk>/rate/", session_rate),
+    # Teacher tasks board (Task 17)
+    path("teacher/tasks-board/", TeacherTasksBoardView.as_view()),
+    path("teacher/tasks-board/tree/", TeacherTasksCollectionTreeView.as_view()),
+    path("teacher/tasks-board/links/", TeacherTasksLinksView.as_view()),
     # Analytics
     path("teacher/students/<int:student_id>/analytics/", teacher_student_analytics),
     # Routers

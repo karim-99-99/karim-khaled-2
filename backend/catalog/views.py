@@ -73,6 +73,21 @@ class LessonViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         lesson = self.get_object()
         data = self.get_serializer(lesson).data
+        if data.get("schedule_locked"):
+            # Soft payload for the friendly "يفتح يوم …" page; content APIs still 403.
+            sections = []
+            for s in data.get("sections") or []:
+                sections.append({**s, "bunny_video_id": "", "pdf_url": ""})
+            return Response(
+                {
+                    **data,
+                    "bunny_video_id": "",
+                    "pdf_url": "",
+                    "sections": sections,
+                    "detail": data.get("lock_label")
+                    or "هذا الدرس مقفل حتى موعد حصته في جدول مجموعتك.",
+                }
+            )
         if data.get("is_locked"):
             sections = []
             for s in data.get("sections") or []:

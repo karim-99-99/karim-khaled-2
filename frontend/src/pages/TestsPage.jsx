@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { canTeachSubject, filterSubjectsForUser } from "../auth/teacherScope";
 import client from "../api/client";
-import { getSubjectTheme, resolveSubjectKey } from "../theme/subjects";
+import { getSubjectTheme, resolveSubjectKey, subjectClass } from "../theme/subjects";
 import "../styles/exams-exact.css";
 
 const CheckIcon = () => (
@@ -14,17 +14,30 @@ const CheckIcon = () => (
 
 function cssKey(key) {
   if (key === "physics") return "phys";
-  return key || "math";
+  if (key === "math" || key === "chem" || key === "bio") return key;
+  return "brand";
 }
 
 function subjectVars(key) {
-  const theme = getSubjectTheme(key) || getSubjectTheme("math");
+  const theme = getSubjectTheme(key);
+  if (!theme || theme.key === "multi") {
+    return { "--c": "var(--blue)", "--bg": "var(--primary-light)" };
+  }
   return { "--c": theme.color, "--bg": theme.soft };
 }
 
 function testMode(t) {
   if (t.solved || t.my_score != null || t.status === "solved") return "previous";
+  if (t.status === "closed" || t.status === "previous") return "previous";
   if (t.is_upcoming || t.status === "upcoming") return "upcoming";
+  if (t.opens_at) {
+    const open = new Date(t.opens_at).getTime();
+    if (Number.isFinite(open) && Date.now() < open) return "upcoming";
+  }
+  if (t.closes_at) {
+    const close = new Date(t.closes_at).getTime();
+    if (Number.isFinite(close) && Date.now() > close) return "previous";
+  }
   return "available";
 }
 
@@ -123,7 +136,7 @@ export default function TestsPage() {
   const previous = filtered.filter((t) => testMode(t) === "previous");
 
   function renderRow(t, mode) {
-    const key = resolveSubjectKey(t.subject_name) || "math";
+    const key = resolveSubjectKey(t.subject_name);
     const vars = subjectVars(key);
     const q = t.question_count ?? "—";
     const mins = t.duration_minutes || t.time_limit_minutes;
@@ -210,7 +223,7 @@ export default function TestsPage() {
           </div>
           <div className="subs">
             {subjects.map((s) => {
-              const key = resolveSubjectKey(s.name) || "math";
+              const key = resolveSubjectKey(s);
               const on = picked.includes(s.id);
               const theme = getSubjectTheme(key);
               return (
@@ -241,7 +254,7 @@ export default function TestsPage() {
           {subjects
             .filter((s) => canTeachSubject(user, s.id))
             .map((s) => (
-              <Link key={s.id} to={`/tests/teacher/${s.id}`} className="btn go" style={{ "--c": getSubjectTheme(resolveSubjectKey(s.name))?.color || "#156eb0", marginTop: 0, padding: "8px 14px", fontSize: 13 }}>
+              <Link key={s.id} to={`/tests/teacher/${s.id}`} className={`btn go ${subjectClass(resolveSubjectKey(s))}`} style={{ marginTop: 0, padding: "8px 14px", fontSize: 13 }}>
                 إنشاء · {s.name}
               </Link>
             ))}

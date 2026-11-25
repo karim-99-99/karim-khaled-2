@@ -10,32 +10,36 @@ export const SUBJECT_THEMES = {
     key: "math",
     label: "رياضيات",
     logo: "/subjects/math.png",
-    color: "#5f8f2e",
-    soft: "#f1f7e8",
+    color: "var(--math-c)",
+    dark: "var(--math-dark)",
+    soft: "var(--math-light)",
     match: ["رياضيات", "رياضة"],
   },
   physics: {
     key: "physics",
     label: "فيزياء",
     logo: "/subjects/physics.png",
-    color: "#6d28d9",
-    soft: "#f5f0ff",
+    color: "var(--physics-c)",
+    dark: "var(--physics-dark)",
+    soft: "var(--physics-light)",
     match: ["فيزياء"],
   },
   chem: {
     key: "chem",
     label: "كيمياء",
     logo: "/subjects/chem.png",
-    color: "#c0182f",
-    soft: "#fff1f2",
+    color: "var(--chem-c)",
+    dark: "var(--chem-dark)",
+    soft: "var(--chem-light)",
     match: ["كيمياء"],
   },
   bio: {
     key: "bio",
     label: "أحياء",
     logo: "/subjects/bio.png",
-    color: "#c58a00",
-    soft: "#fff8e1",
+    color: "var(--bio-c)",
+    dark: "var(--bio-dark)",
+    soft: "var(--bio-light)",
     match: ["أحياء"],
   },
   /** Multi-subject personal simulator — blue skin */
@@ -43,8 +47,9 @@ export const SUBJECT_THEMES = {
     key: "multi",
     label: "عدة مواد",
     logo: DEFAULT_LOGO,
-    color: "#156eb0",
-    soft: "#e8f3fb",
+    color: "var(--blue)",
+    dark: "var(--navy)",
+    soft: "var(--primary-light)",
     match: ["عدة مواد"],
   },
 };
@@ -57,8 +62,33 @@ function notifyThemeChange(key) {
   }
 }
 
-export function resolveSubjectKey(name = "") {
-  const n = String(name);
+const SLUG_THEME = {
+  math: "math",
+  physics: "physics",
+  phys: "physics",
+  chemistry: "chem",
+  chem: "chem",
+  biology: "bio",
+  bio: "bio",
+};
+
+export function subjectClass(key) {
+  if (key === "physics" || key === "phys") return "s-phys";
+  if (key === "chem" || key === "chemistry") return "s-chem";
+  if (key === "bio" || key === "biology") return "s-bio";
+  if (key === "math") return "s-math";
+  return "s-brand";
+}
+
+export function resolveSubjectKey(nameOrSubject = "") {
+  if (nameOrSubject && typeof nameOrSubject === "object") {
+    const themeKey = nameOrSubject.theme_key || nameOrSubject.subject_theme_key || "";
+    if (SUBJECT_THEMES[themeKey]) return themeKey;
+    const slug = String(nameOrSubject.slug || "").toLowerCase();
+    if (SLUG_THEME[slug]) return SLUG_THEME[slug];
+    return resolveSubjectKey(nameOrSubject.name || nameOrSubject.subject_name || "");
+  }
+  const n = String(nameOrSubject);
   for (const theme of Object.values(SUBJECT_THEMES)) {
     if (theme.key === "multi") continue;
     if (theme.match.some((m) => n.includes(m))) return theme.key;

@@ -1,0 +1,426 @@
+/* Task 20 — student daily tasks (Page 12) */
+.dailyt {
+  --brand: #1565c0;
+  --brand-dark: #0d3b70;
+  --mut: #6b7a90;
+  --line: #e6ebf2;
+  --green: #16a34a;
+  --orange: #f59e0b;
+  --red: #dc2626;
+  --c: var(--subject, #1565c0);
+  --c-light: var(--subject-soft, #e8f1fd);
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 22px 40px 60px;
+  color: #0f2a4a;
+}
+.dailyt .crumb {
+  color: var(--mut);
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+.dailyt .crumb b {
+  color: var(--brand);
+}
+.dailyt .top {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 22px;
+}
+.dailyt .dt-hero {
+  background: linear-gradient(90deg, #0d3b70, #1565c0);
+  border-radius: 24px;
+  color: #fff;
+  padding: 30px 34px;
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  box-shadow: 0 14px 30px rgba(13, 59, 112, 0.25);
+}
+.dailyt .ring {
+  --p: 0;
+  --rc: var(--green);
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(var(--rc) calc(var(--p) * 1%), #e6ebf2 0);
+  position: relative;
+}
+.dailyt .ring::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  background: #fff;
+  border-radius: 50%;
+}
+.dailyt .ring span,
+.dailyt .ring > div {
+  position: relative;
+  z-index: 1;
+  font-weight: 800;
+  font-size: 13px;
+  color: #0f2a4a;
+  text-align: center;
+}
+.dailyt .ring.lg {
+  width: 140px;
+  height: 140px;
+  flex: none;
+  --rc: #5ec8ff;
+}
+.dailyt .ring.lg::before {
+  inset: 11px;
+  background: #0f4a8a;
+}
+.dailyt .ring.lg b {
+  color: #fff;
+  font-size: 34px;
+  line-height: 1;
+  display: block;
+}
+.dailyt .ring.lg small {
+  display: block;
+  color: #cfe3ff;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 6px;
+}
+.dailyt .dt-hero .date {
+  color: #cfe3ff;
+  font-weight: 700;
+}
+.dailyt .dt-hero h1 {
+  margin: 6px 0 10px;
+  font-size: 36px;
+}
+.dailyt .card {
+  background: #fff;
+  border-radius: 22px;
+  border: 1px solid var(--line);
+  padding: 22px;
+  box-shadow: 0 8px 24px rgba(15, 42, 74, 0.06);
+}
+.dailyt .card-h {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dailyt .card-h h2 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+}
+.dailyt .mut {
+  color: var(--mut);
+}
+.dailyt .streak .big {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.dailyt .streak .big b {
+  font-size: 34px;
+  color: var(--brand-dark);
+}
+.dailyt .streak .boxes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 18px;
+}
+.dailyt .streak .box {
+  background: #f3f6fb;
+  border-radius: 14px;
+  padding: 14px;
+  text-align: center;
+}
+.dailyt .streak .box b {
+  font-size: 24px;
+  color: var(--brand);
+  display: block;
+}
+.dailyt .week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 12px;
+}
+.dailyt .day {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 8px;
+  text-align: center;
+  background: #fff;
+  cursor: pointer;
+}
+.dailyt .day small {
+  color: var(--mut);
+}
+.dailyt .day .d {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 4px 0 8px;
+}
+.dailyt .day .ring {
+  margin: 0 auto 10px;
+}
+.dailyt .day.today {
+  border: 2px solid var(--brand);
+  background: #f1f7ff;
+}
+.dailyt .day.today .d {
+  color: var(--brand);
+}
+.dailyt .day.on {
+  box-shadow: 0 0 0 2px var(--brand);
+}
+.dailyt .pill {
+  display: inline-block;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 4px 11px;
+  border-radius: 99px;
+}
+.dailyt .p-subj {
+  background: var(--c-light);
+  color: var(--c);
+}
+.dailyt .p-green {
+  background: #e8f7ee;
+  color: var(--green);
+}
+.dailyt .p-orange {
+  background: #fff4e0;
+  color: #c26a00;
+}
+.dailyt .p-red {
+  background: #fdecec;
+  color: var(--red);
+}
+.dailyt .p-blue {
+  background: #e8f1fd;
+  color: var(--brand);
+}
+.dailyt .legend {
+  display: flex;
+  gap: 18px;
+  justify-content: flex-end;
+  margin-top: 14px;
+  font-size: 14px;
+  color: var(--mut);
+  flex-wrap: wrap;
+}
+.dailyt .legend i {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.dailyt .cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.dailyt .col {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 18px;
+}
+.dailyt .col h3 {
+  margin: 0 0 14px;
+  font-size: 19px;
+  color: var(--c);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.dailyt .task {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-right: 4px solid var(--c);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: #fff;
+}
+.dailyt .task .cb {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: 2px solid #cfd6e0;
+  flex: none;
+}
+.dailyt .task .t {
+  flex: 1;
+}
+.dailyt .task .t b {
+  font-size: 17px;
+  display: block;
+}
+.dailyt .task .t small {
+  color: var(--mut);
+}
+.dailyt .task.done {
+  background: #f7faf8;
+}
+.dailyt .task.done .cb {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+.dailyt .task.done .t b {
+  text-decoration: line-through;
+  color: #9aa5b5;
+}
+.dailyt .task.missed .t b {
+  color: var(--red);
+}
+.dailyt .task.missed .cb {
+  border-color: #f3a5a5;
+}
+.dailyt .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c);
+  color: #fff;
+  border-radius: 12px;
+  padding: 11px 20px;
+  font-weight: 700;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+  min-height: 44px;
+}
+.dailyt .btn.done {
+  background: #e8f7ee;
+  color: var(--green);
+}
+.dailyt .prog {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--mut);
+}
+.dailyt .bar {
+  width: 190px;
+  height: 10px;
+  background: #eef1f5;
+  border-radius: 99px;
+  overflow: hidden;
+  flex: none;
+}
+.dailyt .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+}
+.dailyt .acc {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.dailyt .acc-h {
+  display: grid;
+  grid-template-columns: 150px 150px 1fr 110px 30px;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  cursor: pointer;
+  width: 100%;
+  background: #fff;
+  border: 0;
+  text-align: inherit;
+  color: inherit;
+  font: inherit;
+}
+.dailyt .acc-h .when b {
+  display: block;
+  font-size: 18px;
+}
+.dailyt .acc-h .when small {
+  color: var(--mut);
+}
+.dailyt .acc.open .acc-h {
+  background: #f6f9fd;
+  border-bottom: 1px solid var(--line);
+}
+.dailyt .acc-b {
+  padding: 18px;
+}
+.dailyt .more {
+  border: 1.5px dashed #cdd7e4;
+  border-radius: 16px;
+  padding: 16px;
+  text-align: center;
+  color: var(--brand);
+  font-weight: 700;
+  background: #fff;
+  cursor: pointer;
+  width: 100%;
+}
+.dailyt .row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.dailyt .s-bio {
+  --c: #c58a00;
+  --c-light: #fff6dc;
+}
+.dailyt .s-chem {
+  --c: #c0182f;
+  --c-light: #fdecee;
+}
+.dailyt .s-phys {
+  --c: #6d28d9;
+  --c-light: #f3eefe;
+}
+.dailyt .s-math {
+  --c: #5f8f2e;
+  --c-light: #f1f7e8;
+}
+@media (max-width: 1100px) {
+  .dailyt .top {
+    grid-template-columns: 1fr;
+  }
+  .dailyt .week {
+    grid-template-columns: repeat(7, 110px);
+    overflow-x: auto;
+  }
+  .dailyt .cols {
+    grid-template-columns: 1fr;
+  }
+  .dailyt .acc-h {
+    grid-template-columns: 1fr auto;
+  }
+  .dailyt .acc-h .barcell {
+    grid-column: 1 / -1;
+  }
+  .dailyt {
+    padding: 18px 24px 40px;
+  }
+}
+@media (max-width: 480px) {
+  .dailyt .dt-hero {
+    flex-direction: column;
+    text-align: center;
+    padding: 22px;
+  }
+  .dailyt .dt-hero h1 {
+    font-size: 28px;
+  }
+}

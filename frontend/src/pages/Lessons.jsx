@@ -3,14 +3,15 @@ import { Link, useParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { canEditSubject } from "../auth/teacherScope";
 import client from "../api/client";
-import { lockSubjectTheme } from "../theme/subjects";
+import { lockSubjectTheme, subjectClass } from "../theme/subjects";
 import useSubjectSkin from "../theme/useSubjectSkin";
+import HeaderLogo from "../components/HeaderLogo";
 import "../styles/foundation-exact.css";
 
 export default function Lessons() {
   const { subjectId } = useParams();
   const { user } = useAuth();
-  const { subjectName, logo, skin, key: subjectKey } = useSubjectSkin(subjectId);
+  const { subjectName, theme, skin, key: subjectKey } = useSubjectSkin(subjectId);
 
   useEffect(() => {
     if (subjectKey) lockSubjectTheme(subjectKey);
@@ -117,7 +118,7 @@ export default function Lessons() {
   }
 
   return (
-    <div className="foundation-exact" style={skin}>
+    <div className={`foundation-exact ${subjectClass(subjectKey)}`} style={skin}>
       <div className="topbar">
         <div className="crumb">
           دورات <i>‹</i> {subjectName} <i>‹</i> <b>تأسيس</b>
@@ -128,10 +129,10 @@ export default function Lessons() {
         </div>
       </div>
 
-      <div className="hero">
-        <div className="lg"><img src={logo} alt="" /></div>
+      <div className="hero lessons-head">
+        <div className="lg"><HeaderLogo src={theme?.logo || ""} name={subjectName} /></div>
         <span className="sep" />
-        <div>
+        <div className="mid">
           <small>{subjectName}</small>
           <h1>تأسيس — الدروس</h1>
         </div>
@@ -175,9 +176,15 @@ export default function Lessons() {
       <div className="grid">
         {lessons.map((l) => {
           const locked = l.is_locked && !canEdit;
+          const scheduleLocked = !canEdit && Boolean(l.schedule_locked || l.is_schedule_locked);
+          const scheduleLabel = l.lock_label || l.opens_label || "";
           const renaming = renameId === l.id;
           return (
-            <div key={l.id} className="ls" style={{ opacity: locked ? 0.65 : 1 }}>
+            <div
+              key={l.id}
+              className={`ls${scheduleLocked ? " locked" : ""}`}
+              style={{ opacity: scheduleLocked ? undefined : locked ? 0.65 : 1 }}
+            >
               <span className="n">{l.order_number}</span>
               {renaming ? (
                 <>
@@ -192,7 +199,12 @@ export default function Lessons() {
                 </>
               ) : (
                 <>
-                  {locked ? (
+                  {scheduleLocked ? (
+                    <b style={{ opacity: 0.55 }}>
+                      {l.title}
+                      <small> 🔒 {scheduleLabel || "مقفول"}</small>
+                    </b>
+                  ) : locked ? (
                     <b>{l.title}</b>
                   ) : (
                     <Link to={`/lessons/${l.id}`} style={{ flex: 1 }}>
@@ -212,7 +224,9 @@ export default function Lessons() {
                       <button type="button" className="btn btn-ghost btn-sm" style={{ color: "var(--error)" }} disabled={busy} onClick={() => deleteLesson(l.id, l.title)}>حذف</button>
                     </div>
                   )}
-                  {!locked ? (
+                  {scheduleLocked ? (
+                    <span className="ar" aria-hidden="true">🔒</span>
+                  ) : !locked ? (
                     <Link to={`/lessons/${l.id}`} className="ar" aria-label="ادخل">←</Link>
                   ) : (
                     <span className="ar" style={{ opacity: 0.4 }}>←</span>

@@ -3,8 +3,9 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from core.access import assign_teacher_subject_role, subjects_missing_main_teacher
 from core.permissions import IsAdmin
-from groups.models import GroupStudent, GroupTeacher
+from groups.models import GroupStudent, GroupTeacher, TeacherSubjectRole
 from groups.serializers import AdminUserSerializer, _subscription_info
 from .models import User
 from .serializers import (
@@ -102,6 +103,9 @@ def admin_accounts(request):
         to_attr="_active_subs",
     )
 
+    from accounts.models import ParentTelegramLink
+    from accounts.parent_telegram import ensure_parent_link_code, parent_link_url
+
     students = []
     for u in (
         User.objects.filter(role=User.Role.STUDENT)
@@ -110,11 +114,21 @@ def admin_accounts(request):
                 "group_memberships",
                 queryset=GroupStudent.objects.select_related("group"),
             ),
+            Prefetch(
+                "parent_telegram_links",
+                queryset=ParentTelegramLink.objects.filter(is_active=True),
+                to_attr="_active_parent_links",
+            ),
             active_subs,
         )
         .order_by("-created_at")
     ):
         groups = [m.group.name for m in u.group_memberships.all()]
+        parent_links = getattr(u, "_active_parent_links", None)
+        if parent_links is None:
+            parent_links = list(
+                ParentTelegramLink.objects.filter(student=u, is_active=True)
+            )
         students.append(
             {
                 "id": u.id,
@@ -134,6 +148,12 @@ def admin_accounts(request):
                 "subscription": _subscription_payload(u),
                 "groups": groups,
                 "groups_count": len(groups),
+                "parent_telegram": {
+                    "code": ensure_parent_link_code(u),
+                    "url": parent_link_url(u),
+                    "linked": len(parent_links) > 0,
+                    "linked_count": len(parent_links),
+                },
             }
         )
 
@@ -145,17 +165,37 @@ def admin_accounts(request):
             Prefetch(
                 "teaching_assignments",
                 queryset=GroupTeacher.objects.select_related("group", "subject"),
-            )
+            ),
+            Prefetch(
+                "subject_roles",
+                queryset=TeacherSubjectRole.objects.select_related("subject"),
+            ),
         )
         .order_by("-created_at")
     ):
         links = list(u.teaching_assignments.all())
+        roles = list(u.subject_roles.all())
         group_names = sorted({link.group.name for link in links})
+        main_role = next((r for r in roles if r.role == TeacherSubjectRole.Role.MAIN), None)
+        subject_id = None
         subject_name = None
-        if u.taught_subject_id:
+        subject_role = TeacherSubjectRole.Role.SECONDARY
+        if main_role:
+            subject_id = main_role.subject_id
+            subject_name = main_role.subject.name
+            subject_role = TeacherSubjectRole.Role.MAIN
+        elif u.taught_subject_id:
+            subject_id = u.taught_subject_id
             subject_name = u.taught_subject.name
+            subject_role = TeacherSubjectRole.Role.MAIN
+        elif roles:
+            subject_id = roles[0].subject_id
+            subject_name = roles[0].subject.name
+            subject_role = roles[0].role
         elif links:
+            subject_id = links[0].subject_id
             subject_name = links[0].subject.name
+            subject_role = TeacherSubjectRole.Role.SECONDARY
         teachers.append(
             {
                 "id": u.id,
@@ -166,8 +206,17 @@ def admin_accounts(request):
                 "is_active": u.is_active,
                 "has_usable_password": u.has_usable_password(),
                 "created_at": u.created_at,
-                "subject_id": u.taught_subject_id,
+                "subject_id": subject_id,
                 "subject_name": subject_name,
+                "subject_role": subject_role,
+                "subject_roles": [
+                    {
+                        "subject_id": r.subject_id,
+                        "subject_name": r.subject.name,
+                        "role": r.role,
+                    }
+                    for r in roles
+                ],
                 "groups": group_names,
                 "groups_count": len(group_names),
             }
@@ -178,6 +227,7 @@ def admin_accounts(request):
             "students": students,
             "teachers": teachers,
             "totals": {"students": len(students), "teachers": len(teachers)},
+            "subjects_missing_main": subjects_missing_main_teacher(),
         }
     )
 
@@ -240,10 +290,22 @@ def set_user_role(request, user_id):
     user.role = role
     if role == User.Role.TEACHER:
         subject_id = request.data.get("taught_subject")
+        subject_role = request.data.get("subject_role") or TeacherSubjectRole.Role.MAIN
         if subject_id:
-            user.taught_subject_id = subject_id
+            from catalog.models import Subject
+
+            subject = Subject.objects.filter(id=subject_id).first()
+            if not subject:
+                return Response(
+                    {"detail": "المادة غير موجودة"}, status=status.HTTP_404_NOT_FOUND
+                )
+            user.save()
+            assign_teacher_subject_role(user, subject, subject_role)
+            user.refresh_from_db()
+            return Response(AdminUserSerializer(user).data)
     else:
         user.taught_subject = None
+        TeacherSubjectRole.objects.filter(teacher=user).delete()
     user.save()
     return Response(AdminUserSerializer(user).data)
 
@@ -251,7 +313,7 @@ def set_user_role(request, user_id):
 @api_view(["PATCH", "POST"])
 @permission_classes([IsAdmin])
 def set_teacher_subject(request, user_id):
-    """Admin changes a teacher's specialized subject (أي مادة → أخرى)."""
+    """Admin sets a teacher's subject + main/secondary role (default: main)."""
     from catalog.models import Subject
 
     user = User.objects.filter(id=user_id).first()
@@ -272,25 +334,46 @@ def set_teacher_subject(request, user_id):
     if not subject:
         return Response({"detail": "المادة غير موجودة"}, status=status.HTTP_404_NOT_FOUND)
 
-    user.taught_subject = subject
-    user.save(update_fields=["taught_subject"])
+    subject_role = request.data.get("subject_role") or request.data.get("role")
+    if subject_role not in (
+        TeacherSubjectRole.Role.MAIN,
+        TeacherSubjectRole.Role.SECONDARY,
+    ):
+        # Legacy admin UI only sent taught_subject → treat as main for that subject.
+        subject_role = TeacherSubjectRole.Role.MAIN
 
-    # Keep group assignments aligned with the teacher's subject.
-    for link in GroupTeacher.objects.filter(teacher=user).select_related("group"):
-        conflict = (
-            GroupTeacher.objects.filter(
-                group=link.group, teacher=user, subject=subject
+    assign_teacher_subject_role(user, subject, subject_role)
+    user.refresh_from_db()
+
+    # Keep group assignments aligned when promoting/switching main subject.
+    if subject_role == TeacherSubjectRole.Role.MAIN:
+        for link in GroupTeacher.objects.filter(teacher=user).select_related("group"):
+            conflict = (
+                GroupTeacher.objects.filter(
+                    group=link.group, teacher=user, subject=subject
+                )
+                .exclude(pk=link.pk)
+                .exists()
             )
-            .exclude(pk=link.pk)
-            .exists()
-        )
-        if conflict:
-            link.delete()
-        elif link.subject_id != subject.id:
-            link.subject = subject
-            link.save(update_fields=["subject"])
+            if conflict:
+                link.delete()
+            elif link.subject_id != subject.id:
+                link.subject = subject
+                link.save(update_fields=["subject"])
 
-    return Response(AdminUserSerializer(user).data)
+    return Response(
+        {
+            **AdminUserSerializer(user).data,
+            "taught_subject": user.taught_subject_id,
+            "taught_subject_name": subject.name if user.taught_subject_id == subject.id else (
+                user.taught_subject.name if user.taught_subject_id else None
+            ),
+            "subject_id": subject.id,
+            "subject_name": subject.name,
+            "subject_role": subject_role,
+            "subjects_missing_main": subjects_missing_main_teacher(),
+        }
+    )
 
 
 @api_view(["PATCH", "POST"])

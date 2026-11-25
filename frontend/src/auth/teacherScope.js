@@ -18,21 +18,23 @@ export function teachableSubjectIds(user) {
   return ids;
 }
 
+/** Main teacher (or admin) only — content / homework / questions / task links. */
 export function canEditSubject(user, subjectId) {
   if (!user || subjectId == null || subjectId === "") return false;
   if (user.role === "admin") return true;
   if (user.role !== "teacher") return false;
-  // Main teacher only (brief B5). Fall back to teachable if roles not loaded yet.
-  const editable = Array.isArray(user.editable_subject_ids)
-    ? user.editable_subject_ids.map(String)
-    : null;
-  if (editable) return editable.includes(String(subjectId));
+  if (Array.isArray(user.editable_subject_ids)) {
+    return user.editable_subject_ids.map(String).includes(String(subjectId));
+  }
   const roleMap = user.teacher_subject_roles || {};
-  if (roleMap[String(subjectId)]) return roleMap[String(subjectId)] === "main";
-  const ids = teachableSubjectIds(user);
-  return Array.isArray(ids) && ids.map(String).includes(String(subjectId));
+  if (Object.prototype.hasOwnProperty.call(roleMap, String(subjectId))) {
+    return roleMap[String(subjectId)] === "main";
+  }
+  // No role payload yet — deny edit (teachable alone is not enough).
+  return false;
 }
 
+/** Main or secondary — teach / create tests / rate classes for this subject. */
 export function canTeachSubject(user, subjectId) {
   if (!user || subjectId == null || subjectId === "") return false;
   if (user.role === "admin") return true;
@@ -47,4 +49,14 @@ export function filterSubjectsForUser(subjects, user) {
   if (!Array.isArray(ids) || ids.length === 0) return [];
   const set = new Set(ids.map(String));
   return (subjects || []).filter((s) => set.has(String(s.id)));
+}
+
+/** إدارة المادة → teacher's subject hub (Task 26). Admin keeps /courses. */
+export function teacherManageSubjectPath(user) {
+  if (!user) return "/courses";
+  if (user.role === "admin") return "/courses";
+  const ids = teachableSubjectIds(user);
+  if (!Array.isArray(ids) || ids.length === 0) return "/courses";
+  if (ids.length === 1) return `/courses/${ids[0]}`;
+  return "/courses";
 }

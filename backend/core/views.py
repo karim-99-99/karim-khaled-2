@@ -106,6 +106,17 @@ def video_token(request, bunny_id):
             status=status.HTTP_403_FORBIDDEN,
         )
 
+    if user is not None and lesson is not None:
+        from core.time_rules import lesson_is_schedule_locked, lesson_unlock_datetime, to_riyadh
+
+        if lesson_is_schedule_locked(user, lesson):
+            when = lesson_unlock_datetime(user, lesson)
+            detail = "هذا الدرس مقفل حتى موعد حصته في جدول مجموعتك."
+            if when:
+                local = to_riyadh(when)
+                detail = f"هذا الدرس هيفتح يوم {local.day}/{local.month}."
+            return Response({"detail": detail}, status=status.HTTP_403_FORBIDDEN)
+
     if user is not None:
         VideoView.objects.create(
             user=user,
@@ -165,20 +176,9 @@ def next_session(request):
     now = timezone.now()
 
     if user.is_student and is_silver_student(user):
-        return Response(
-            {
-                "session": None,
-                "teaches_subjects": [],
-                "role": user.role,
-                "plan": "silver",
-                "gold_only": True,
-                "time_rules": {
-                    "next_class": None,
-                    "lessons_taken": [],
-                    "released_tasks": [],
-                },
-            }
-        )
+        from core.plans import assert_gold_feature
+
+        assert_gold_feature(user, "كارت الحصة القادمة")
 
     my_subjects = []
     session = None
@@ -187,10 +187,11 @@ def next_session(request):
         session = next_class_for_student(user, now)
         time_rules = snapshot_for_student(user, now)
         # Drop non-JSON bits
+        nc = time_rules.get("next_class") or {}
         time_rules = {
             "now_riyadh": time_rules.get("now_riyadh"),
             "group_ids": time_rules.get("group_ids"),
-            "next_class": time_rules.get("next_class"),
+            "next_class": nc,
             "lessons_taken": time_rules.get("lessons_taken"),
             "released_tasks": time_rules.get("released_tasks"),
         }
@@ -239,15 +240,9 @@ def time_rules_snapshot(request):
     if not user.is_student:
         return Response({"detail": "للطلاب فقط"}, status=400)
     if is_silver_student(user):
-        return Response(
-            {
-                "gold_only": True,
-                "next_class": None,
-                "lessons_taken": [],
-                "released_tasks": [],
-                "group_ids": [],
-            }
-        )
+        from core.plans import assert_gold_feature
+
+        assert_gold_feature(user, "المهام اليومية وقواعد الوقت")
     snap = snapshot_for_student(user)
     return Response(
         {
@@ -256,6 +251,7 @@ def time_rules_snapshot(request):
             "next_class": snap.get("next_class"),
             "lessons_taken": snap.get("lessons_taken"),
             "released_tasks": snap.get("released_tasks"),
+            "current_daily_tasks": snap.get("current_daily_tasks"),
         }
     )
 

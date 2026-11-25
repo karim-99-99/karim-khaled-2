@@ -1,38 +1,37 @@
-.subject-exact{--g:#5f8f2e;--gd:#3f6a1f;--gl:#f1f7e8;--y:#3fa3e0;--yd:#156eb0}
-.subject-exact.tone-math{--g:#5f8f2e;--gd:#3f6a1f;--gl:#f1f7e8}
-.subject-exact.tone-physics,.subject-exact.tone-phys{--g:#6d28d9;--gd:#5b21b6;--gl:#f5f0ff}
-.subject-exact.tone-chem{--g:#c0182f;--gd:#9f1239;--gl:#fff1f2}
-.subject-exact.tone-bio{--g:#c58a00;--gd:#a16207;--gl:#fff8e1}
-.subject-exact{max-width:1150px;margin:24px auto 60px;padding:0 20px}
+.subject-exact{--g:var(--c);--gd:var(--c-dark);--gl:var(--c-light);--y:var(--c);--yd:var(--c-dark)}
+.subject-exact.tone-math{--c:var(--math-c);--c-dark:var(--math-dark);--c-light:var(--math-light);--g:var(--math-c);--gd:var(--math-dark);--gl:var(--math-light)}
+.subject-exact.tone-physics,.subject-exact.tone-phys{--c:var(--physics-c);--c-dark:var(--physics-dark);--c-light:var(--physics-light);--g:var(--physics-c);--gd:var(--physics-dark);--gl:var(--physics-light)}
+.subject-exact.tone-chem{--c:var(--chem-c);--c-dark:var(--chem-dark);--c-light:var(--chem-light);--g:var(--chem-c);--gd:var(--chem-dark);--gl:var(--chem-light)}
+.subject-exact.tone-bio{--c:var(--bio-c);--c-dark:var(--bio-dark);--c-light:var(--bio-light);--g:var(--bio-c);--gd:var(--bio-dark);--gl:var(--bio-light)}
+.subject-exact{margin:24px auto 60px}
 .subject-exact .top{display:flex;justify-content:space-between;align-items:center}
 .subject-exact .back{background:#fff;border:1px solid #e3e8dc;padding:10px 18px;border-radius:10px;font-size:14px;color:var(--gd);font-weight:600}
 .subject-exact .crumb{font-size:14px;color:#6b7280}
 .subject-exact .crumb b{color:var(--gd)}
 .subject-exact .hero{text-align:center;margin:10px 0 30px;overflow:visible}
+.subject-exact .hero.plain-hero{background:none;color:inherit;box-shadow:none}
+.subject-exact .hero.plain-hero::before,
+.subject-exact .hero.plain-hero::after{content:none;display:none}
 .subject-exact .hero img{
-  display:block;width:auto;height:auto;
-  max-width:min(100%,420px);max-height:340px;
+  display:block;width:100%;height:100%;
+  max-width:420px;max-height:360px;
   object-fit:contain;object-position:center;
-  filter:drop-shadow(0 10px 18px rgba(63,106,31,.15));
+  filter:none;opacity:1;
 }
+.subject-exact .hero .logo-fallback{color:var(--c);font-weight:800;font-size:32px;text-align:center}
 .subject-exact .cards{display:grid;grid-template-columns:1fr 1fr;gap:26px}
 .subject-exact .card{background:#fff;border-radius:18px;border:1px solid #e9eee2;box-shadow:0 12px 28px rgba(40,60,20,.08);
   padding:36px 20px;display:flex;flex-direction:column;align-items:center;gap:16px;position:relative;overflow:visible;transition:.2s;text-decoration:none;color:inherit}
 .subject-exact .back{text-decoration:none;display:inline-block}
 .subject-exact .exams a{text-decoration:none}
 .subject-exact .ic svg{color:var(--c);stroke:var(--c)}
-@media (max-width:860px){
-  .subject-exact .split{grid-template-columns:1fr}
-  .subject-exact .stack .card{flex-direction:column;text-align:center}
-  .subject-exact .exlist li{flex-wrap:wrap}
-}
 .subject-exact .card::before{content:"";position:absolute;top:0;left:0;right:0;height:6px;background:var(--c)}
-.subject-exact .card .ic{width:76px;height:76px;border-radius:20px;display:grid;place-items:center;background:var(--bg)}
+.subject-exact .card .ic{width:76px;height:76px;min-width:76px;min-height:76px;border-radius:20px;display:grid;place-items:center;background:var(--bg);flex:none}
 .subject-exact .card .ic svg{width:38px;height:38px}
-.subject-exact .card h3{font-size:30px;font-weight:800;color:var(--c)}
+.subject-exact .card h3{font-size:30px;font-weight:800;color:var(--c);margin:0}
 .subject-exact .card .go{font-size:14px;font-weight:700;color:var(--c);background:var(--bg);padding:9px 22px;border-radius:10px}
 .subject-exact .t{--c:var(--g);--bg:var(--gl)}
-.subject-exact .j{--c:#c58a00;--bg:#fff6dc}
+.subject-exact .j{--c:var(--g);--bg:var(--gl)}
 .subject-exact .exams{margin-top:24px;background:linear-gradient(120deg,var(--gd),var(--g));color:#fff;border-radius:16px;padding:20px 28px;
   display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 24px rgba(63,106,31,.22)}
 .subject-exact .exams b{font-size:19px}
@@ -40,34 +39,27 @@
 .subject-exact .exams a{display:flex;align-items:center;gap:8px;background:#fff;color:var(--gd);box-shadow:0 6px 14px rgba(0,0,0,.15);font-weight:700;padding:12px 26px;border-radius:10px}
 .subject-exact .dk{color:#14213d}
 .subject-exact .split{display:grid;grid-template-columns:1fr 1.15fr;gap:30px;align-items:stretch;margin-top:18px}
-.subject-exact .split .hero{margin:0;background:#fff;border-radius:18px;border:1px solid #e9eee2;box-shadow:0 12px 28px rgba(40,60,20,.08);display:grid;place-items:center;padding:30px;overflow:visible;min-width:0}
+.subject-exact .split .hero{margin:0;background:none;border:0;box-shadow:none;padding:0;overflow:visible;min-width:0;min-height:360px;height:100%;display:grid;place-items:center}
 .subject-exact .split .hero img{
-  width:auto;height:auto;
-  max-width:100%;max-height:340px;
+  width:100%;height:360px;max-width:420px;max-height:360px;
   object-fit:contain;object-position:center;
 }
 .subject-exact .stack{display:flex;flex-direction:column;gap:22px}
-.subject-exact .stack .card{flex-direction:row;justify-content:flex-start;padding:28px 30px;gap:22px;flex:1}
+.subject-exact .stack .card{flex-direction:row;justify-content:flex-start;padding:28px 30px;gap:22px;flex:1;min-height:150px}
 .subject-exact .stack .card::before{top:0;bottom:0;left:auto;right:0;width:6px;height:auto}
 .subject-exact .stack .card h3{flex:1}
 .subject-exact .ex-l{display:flex;align-items:center;gap:14px}
 .subject-exact .ex-ic{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.18);display:grid;place-items:center}
 .subject-exact .ex-ic svg{width:24px;height:24px}
 .subject-exact .exams b{font-size:22px}
-.subject-exact .split .hero{background:none;border:0;box-shadow:none;padding:0;overflow:visible}
-.subject-exact .split .hero img{
-  width:auto;height:auto;
-  max-width:100%;max-height:360px;
-  object-fit:contain;object-position:center;
-}
 .subject-exact .exbox{margin-top:26px;background:#fff;border-radius:16px;border:1px solid #e9eee2;box-shadow:0 12px 28px rgba(40,60,20,.08);overflow:hidden}
 .subject-exact .exbox .exams{margin:0;border-radius:0;box-shadow:none}
 .subject-exact .exlist{list-style:none;padding:6px 28px 10px}
 .subject-exact .exlist li{display:flex;align-items:center;gap:16px;padding:18px 0;border-bottom:1px dashed #e3e8dc}
 .subject-exact .exlist li:last-child{border-bottom:0}
-.subject-exact .num{width:34px;height:34px;border-radius:10px;background:#f1f7e8;color:#3f6a1f;font-weight:800;display:grid;place-items:center}
+.subject-exact .num{width:34px;height:34px;border-radius:10px;background:var(--gl);color:var(--gd);font-weight:800;display:grid;place-items:center}
 .subject-exact .exlist b{flex:1;font-size:18px}
-.subject-exact .date{display:flex;align-items:center;gap:8px;background:#f1f7e8;color:#3f6a1f;font-weight:700;padding:8px 16px;border-radius:10px;font-size:15px}
+.subject-exact .date{display:flex;align-items:center;gap:8px;background:var(--gl);color:var(--gd);font-weight:700;padding:8px 16px;border-radius:10px;font-size:15px}
 .subject-exact .date svg{width:18px;height:18px}
 .subject-exact .sb{font-size:15px;font-weight:600;opacity:.85}
 .subject-exact .exlist b small{display:inline-block;margin-inline-start:10px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:#eef1f6;color:#6b7280;vertical-align:middle}
@@ -78,23 +70,11 @@
 .subject-exact .rv{font-size:14px;font-weight:700;color:var(--gd);border:1.5px solid #cfe3b8;padding:8px 14px;border-radius:10px}
 .subject-exact .qs{background:#f4f5f8;color:#475569;font-weight:700;padding:8px 14px;border-radius:10px;font-size:15px}
 
-@media (max-width:980px){
-  .subject-exact .grid, .subject-exact .cards, .subject-exact .subs, .subject-exact .egrid, .subject-exact .layout, .subject-exact .split, .subject-exact .feats{grid-template-columns:1fr 1fr !important}
-  .subject-exact .layout{display:flex !important;flex-direction:column !important}
-  .subject-exact .side, .subject-exact .sum, .subject-exact aside, .subject-exact .sticky-summary{position:static !important;width:100% !important}
-  .subject-exact .split{grid-template-columns:1fr !important;gap:18px}
-  .subject-exact .split .hero{order:-1;padding:12px 8px;width:100%}
-  .subject-exact .split .hero img,
-  .subject-exact .hero img{
-    max-width:min(100%,360px);max-height:280px;width:auto;height:auto;margin:0 auto;
-  }
+@media (max-width:860px){
+  .subject-exact .stack .card{flex-direction:column;text-align:center}
+  .subject-exact .exlist li{flex-wrap:wrap}
 }
 @media (max-width:640px){
-  .subject-exact .grid, .subject-exact .cards, .subject-exact .subs, .subject-exact .egrid, .subject-exact .split, .subject-exact .feats{grid-template-columns:1fr !important}
-  .subject-exact h1{font-size:28px !important}
-  .subject-exact .split .hero img,
-  .subject-exact .hero img{
-    max-width:min(100%,300px);max-height:240px;width:auto;height:auto;
-  }
+  .subject-exact h1{font-size:28px}
 }
 

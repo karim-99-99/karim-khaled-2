@@ -1,5 +1,5 @@
-.practice-exact{--p:#6d28d9;--pd:#4c1d95;--pl:#f5f0ff;--pl2:#e9defd;--y:#8b5cf6;--yd:#6d28d9;--line:#ece8f5;--mu:#6b7280}
-.practice-exact{max-width:1180px;margin:24px auto 60px;padding:0 20px}
+.practice-exact{--p:var(--c);--pd:var(--c-dark);--pl:var(--c-light);--pl2:var(--c-light);--y:var(--c);--yd:var(--c-dark);--line:#ece8f5;--mu:#6b7280}
+.practice-exact{margin:24px auto 60px}
 .practice-exact .topbar{display:flex;justify-content:space-between;align-items:center}
 .practice-exact .crumb{font-size:14px;color:var(--mu);display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .practice-exact .crumb b{color:var(--p)}
@@ -19,7 +19,7 @@
 .practice-exact .hero .qn{margin-inline-start:auto;text-align:center;background:linear-gradient(135deg,var(--pd),var(--p));color:#fff;border-radius:18px;padding:14px 28px;position:relative;box-shadow:0 10px 20px color-mix(in srgb,var(--p) 35%,transparent)}
 .practice-exact .hero .qn strong{font-size:36px;font-weight:800;display:block;color:#fff;line-height:1.1}
 .practice-exact .hero .qn span{font-size:13px;opacity:.9}
-.practice-exact .layout{display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start}
+.practice-exact .layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:24px;align-items:start}
 .practice-exact .box{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 26px rgba(60,30,120,.06);padding:22px 26px;margin-bottom:18px}
 .practice-exact .bh{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
 .practice-exact .bh h3{font-size:18px;font-weight:800;display:flex;align-items:center;gap:12px}
@@ -73,7 +73,7 @@
 .practice-exact .simlink small{font-size:12px;opacity:.85}
 .practice-exact .simlink .ar{margin-inline-start:auto;font-size:18px}
 @media(max-width:700px){
-.practice-exact{margin:14px auto 0;padding:0 14px}
+.practice-exact{margin:14px auto 0}
 .practice-exact .topbar{flex-direction:column;align-items:flex-start;gap:10px}
 .practice-exact .crumb{font-size:12px}
 .practice-exact .backs{width:100%}
@@ -85,7 +85,7 @@
 .practice-exact .hero small{font-size:11px}
 .practice-exact .hero .qn{margin:0;width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:10px}
 .practice-exact .hero .qn strong{font-size:26px;display:inline}
-.practice-exact .layout{grid-template-columns:1fr;gap:0}
+.practice-exact .layout{display:flex;flex-direction:column;gap:0}
 .practice-exact .box{padding:16px;border-radius:16px;margin-bottom:12px}
 .practice-exact .bh{margin-bottom:12px}
 .practice-exact .bh h3{font-size:16px;gap:8px}
@@ -96,7 +96,7 @@
 .practice-exact .rv{grid-template-columns:1fr 1fr;gap:8px}
 .practice-exact .rvo{padding:12px;gap:8px}
 .practice-exact .rvo small{font-size:11px}
-.practice-exact .side{position:sticky;bottom:0;top:auto;margin:0 -14px;z-index:5}
+.practice-exact .side{position:sticky;bottom:0;top:auto;margin:0;width:100%;z-index:5}
 .practice-exact .sum{border-radius:20px 20px 0 0;padding:14px 16px 18px;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;box-shadow:0 -10px 30px rgba(60,30,120,.15)}
 .practice-exact .sum h3,.practice-exact .sum .si{display:none}
 .practice-exact .big{margin:0;padding:8px 14px;border-radius:12px}
@@ -104,7 +104,7 @@
 .practice-exact .big span{font-size:11px}
 .practice-exact .start{font-size:16px;padding:14px}
 }
-@media (max-width:900px){
+@media (max-width:900px) and (orientation:portrait){
  .practice-exact .layout{display:flex;flex-direction:column}
  .practice-exact .hero{flex-wrap:wrap}
  .practice-exact .side{width:100%}

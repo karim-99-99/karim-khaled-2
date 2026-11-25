@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import client from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { canEditSubject } from "../auth/teacherScope";
 import EquationEditor from "../components/EquationEditor";
 import ImagePicker from "../components/ImagePicker";
 import MathText from "../components/MathText";
@@ -13,7 +14,7 @@ function emptyOptions() {
 }
 
 export default function QuestionEditor() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const [subjects, setSubjects] = useState([]);
   const [lessons, setLessons] = useState([]);
   const [newLessonTitle, setNewLessonTitle] = useState("");
@@ -22,7 +23,6 @@ export default function QuestionEditor() {
   const [renameTitle, setRenameTitle] = useState("");
   const [list, setList] = useState([]);
   const [msg, setMsg] = useState("");
-  const [pickSubject, setPickSubject] = useState("");
 
   const [form, setForm] = useState({
     lesson: "",
@@ -40,8 +40,17 @@ export default function QuestionEditor() {
     video_timing: "after",
   });
 
-  const subjectId = user?.taught_subject;
-  const subjectName = user?.taught_subject_name;
+  const editableIds = Array.isArray(user?.editable_subject_ids)
+    ? user.editable_subject_ids.map(Number)
+    : user?.taught_subject != null
+      ? [Number(user.taught_subject)]
+      : [];
+  const subjectId = editableIds[0] || null;
+  const subjectName =
+    subjects.find((s) => Number(s.id) === Number(subjectId))?.name ||
+    user?.taught_subject_name ||
+    "";
+  const canEdit = canEditSubject(user, subjectId);
   const selectedLesson = lessons.find((l) => String(l.id) === String(form.lesson));
 
   useEffect(() => {
@@ -71,12 +80,6 @@ export default function QuestionEditor() {
       .then((res) => setList(res.data.results || res.data || []))
       .catch(() => setList([]));
   }, [form.lesson, form.kind, msg]);
-
-  async function setMySubject() {
-    if (!pickSubject) return;
-    await client.patch("/auth/me/", { taught_subject: Number(pickSubject) });
-    await refreshUser();
-  }
 
   async function createLesson() {
     if (!newLessonTitle.trim()) return;
@@ -177,28 +180,14 @@ export default function QuestionEditor() {
     }
   }
 
-  if (!subjectId) {
+  if (!subjectId || !canEdit) {
     return (
       <div className="card form-card">
-        <h2 style={{ marginBottom: 16 }}>حدد مادتك</h2>
-        <p style={{ color: "var(--text-muted)", marginBottom: 16 }}>
-          اختر المادة التي تدرّسها لتتمكن من إنشاء الدروس والأسئلة.
-        </p>
-        <select
-          className="form-control"
-          value={pickSubject}
-          onChange={(e) => setPickSubject(e.target.value)}
-        >
-          <option value="">اختر المادة</option>
-          {subjects.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-        <button className="btn btn-primary btn-block" style={{ marginTop: 16 }} onClick={setMySubject}>
-          حفظ
-        </button>
+        <h2 style={{ marginBottom: 16 }}>محرر الأسئلة</h2>
+        <div className="banner">
+          تعديل الأسئلة والدروس متاح للمدرس الأساسي (أو المدير) فقط. إن كنت مدرساً ثانوياً
+          فالصفحة للعرض عبر إدارة المادة — اطلب من الأدمن تعيينك كمدرس أساسي إن لزم.
+        </div>
       </div>
     );
   }
@@ -207,8 +196,8 @@ export default function QuestionEditor() {
     <div>
       <h1 style={{ fontSize: 28, marginBottom: 8 }}>محرر الأسئلة</h1>
       <div className="banner" style={{ marginBottom: 20 }}>
-        مادتك: <strong>{subjectName}</strong> — تأكد أن المدير أضافك كمدرس لهذه المادة في
-        المجموعة حتى تظهر أسئلتك للطلبة. الدروس مشتركة لكل طلبة المادة.
+        مادتك: <strong>{subjectName}</strong> — تأكد أن المدير أضافك كمدرس أساسي لهذه المادة
+        في المجموعة حتى تظهر أسئلتك للطلبة. الدروس مشتركة لكل طلبة المادة.
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "1fr 1fr", gap: 24 }}>

@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { useAuth } from "../auth/AuthContext";
 import { filterSubjectsForUser } from "../auth/teacherScope";
 import client from "../api/client";
-import YearScrollPicker, { expandYearRange } from "../components/YearScrollPicker";
 import { TEACHER_TIERS } from "../constants/teacherTiers";
 import {
   lockSubjectTheme,
@@ -11,6 +10,10 @@ import {
   unlockSubjectTheme,
   getSubjectTheme,
 } from "../theme/subjects";
+import {
+  allocationForSubjects,
+  formatAllocation,
+} from "../utils/simulatorAlloc";
 import "../styles/simulator-exact.css";
 
 const DIFFICULTY_PRESETS = [
@@ -40,7 +43,8 @@ const Star = () => (
 
 function cssKey(key) {
   if (key === "physics") return "phys";
-  return key || "math";
+  if (key === "math" || key === "chem" || key === "bio") return key;
+  return "brand";
 }
 
 export default function SimulatorSetup() {
@@ -52,16 +56,13 @@ export default function SimulatorSetup() {
   const [subjects, setSubjects] = useState([]);
   const [selectedSubjects, setSelectedSubjects] = useState([]);
   const [lessons, setLessons] = useState([]);
-  const [years, setYears] = useState([]);
-  const [yearStats, setYearStats] = useState([]);
   const [selectedLessons, setSelectedLessons] = useState([]);
-  const [yearRange, setYearRange] = useState(null);
-  const [count, setCount] = useState(20);
-  const [takeAll, setTakeAll] = useState(false);
+  const [count, setCount] = useState(22);
+  const [countMode, setCountMode] = useState("fixed"); // fixed | per_subject | all
   const [difficultyMix, setDifficultyMix] = useState("medium");
   const [reviewMode, setReviewMode] = useState("immediate");
   const [questionPool, setQuestionPool] = useState("any");
-  const [teacherTier, setTeacherTier] = useState("gold");
+  const [teacherTiers, setTeacherTiers] = useState(["gold"]);
   const [timeMode, setTimeMode] = useState("per_q");
   const [minutesPerQ, setMinutesPerQ] = useState(2);
   const [simMode, setSimMode] = useState("custom");
@@ -69,7 +70,10 @@ export default function SimulatorSetup() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [optionsLoading, setOptionsLoading] = useState(false);
+  const [availableCount, setAvailableCount] = useState(null);
+  const [planLocksLessons, setPlanLocksLessons] = useState(false);
   const autoSelectLessons = useRef(true);
+  const takeAll = countMode === "all";
 
   const preLesson = searchParams.get("lesson");
   const preSubject = searchParams.get("subject") || routeSubjectId || "";
@@ -113,10 +117,7 @@ export default function SimulatorSetup() {
   useEffect(() => {
     if (!selectedSubjects.length) {
       setLessons([]);
-      setYears([]);
-      setYearStats([]);
       setSelectedLessons([]);
-      setYearRange(null);
       return;
     }
     let cancelled = false;
@@ -129,20 +130,18 @@ export default function SimulatorSetup() {
         if (cancelled) return;
         const rows = res.data.lessons || [];
         setLessons(rows);
-        setYears(res.data.years || []);
-        setYearStats(res.data.year_stats || []);
+        setAvailableCount(
+          typeof res.data.available_count === "number" ? res.data.available_count : null
+        );
+        setPlanLocksLessons(!!res.data.plan_locks_lessons);
+        const eligibleRows = rows.filter((l) => l.eligible !== false);
         setSelectedLessons((prev) => {
-          const allowed = new Set(rows.map((l) => l.id));
+          const allowed = new Set(eligibleRows.map((l) => l.id));
           const kept = prev.filter((id) => allowed.has(id));
           if (!autoSelectLessons.current) return kept;
           autoSelectLessons.current = false;
           if (preLesson && allowed.has(Number(preLesson))) return [Number(preLesson)];
-          return rows.map((l) => l.id);
-        });
-        setYearRange((prev) => {
-          if (!prev) return null;
-          const expanded = expandYearRange(res.data.years || [], prev);
-          return expanded.length ? prev : null;
+          return eligibleRows.map((l) => l.id);
         });
         setOpenSubjects((prev) => {
           const next = { ...prev };
@@ -155,8 +154,7 @@ export default function SimulatorSetup() {
       .catch(() => {
         if (!cancelled) {
           setLessons([]);
-          setYears([]);
-          setYearStats([]);
+          setAvailableCount(null);
         }
       })
       .finally(() => {
@@ -192,7 +190,13 @@ export default function SimulatorSetup() {
     setSelectedSubjects(subjects.map((s) => s.id));
   }
 
+  function isLessonEligible(l) {
+    return l?.eligible !== false;
+  }
+
   function toggleLesson(id) {
+    const row = lessons.find((l) => l.id === id);
+    if (row && !isLessonEligible(row)) return;
     autoSelectLessons.current = false;
     setSelectedLessons((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
@@ -201,7 +205,7 @@ export default function SimulatorSetup() {
 
   function selectAllLessons() {
     autoSelectLessons.current = false;
-    setSelectedLessons(lessons.map((l) => l.id));
+    setSelectedLessons(lessons.filter(isLessonEligible).map((l) => l.id));
   }
 
   function clearLessons() {
@@ -211,10 +215,32 @@ export default function SimulatorSetup() {
 
   function selectSubjectLessons(sid, rows) {
     autoSelectLessons.current = false;
-    const ids = rows.map((l) => l.id);
+    const ids = rows.filter(isLessonEligible).map((l) => l.id);
     setSelectedLessons((prev) => {
       const without = prev.filter((id) => !ids.includes(id));
       return [...without, ...ids];
+    });
+  }
+
+  function toggleTier(id) {
+    setTeacherTiers((prev) => {
+      if (prev.includes(id)) {
+        if (prev.length === 1) return prev;
+        return prev.filter((x) => x !== id);
+      }
+      return [...prev, id];
+    });
+  }
+
+  function bumpCount(delta) {
+    setCount((c) => {
+      const next = Math.max(1, c + delta);
+      if (availableCount != null && next > availableCount) {
+        setError(`المتاح ${availableCount} سؤال بس`);
+        return availableCount;
+      }
+      setError("");
+      return next;
     });
   }
 
@@ -229,24 +255,36 @@ export default function SimulatorSetup() {
     if (timeMode === "open") return null;
     const n = Number(minutesPerQ);
     if (!(n > 0)) return null;
-    return takeAll ? n * Math.max(selectedLessons.length, 1) : n * count;
+    if (countMode === "all") return n * Math.max(selectedLessons.length, 1);
+    if (countMode === "per_subject") {
+      const objs = subjects.filter((s) => selectedSubjects.includes(s.id));
+      const alloc = allocationForSubjects(objs, "per_subject", count);
+      const total = Object.values(alloc || {}).reduce((a, b) => a + b, 0);
+      return n * Math.max(total, 1);
+    }
+    return n * count;
   }
 
   async function start() {
     setError("");
     let subjectsPayload = selectedSubjects;
-    let lessonsPayload = selectedLessons;
+    let lessonsPayload = selectedLessons.filter((id) => {
+      const row = lessons.find((l) => l.id === id);
+      return !row || isLessonEligible(row);
+    });
     let countPayload = count;
-    let takeAllPayload = takeAll || (fromCollections && selectedLessons.length === 1);
+    let countModePayload = countMode;
+    let takeAllPayload = countMode === "all" || (fromCollections && selectedLessons.length === 1);
 
     if (simMode === "full") {
       subjectsPayload = subjects.map((s) => s.id);
-      lessonsPayload = lessons.length ? lessons.map((l) => l.id) : selectedLessons;
+      lessonsPayload = lessons.filter(isLessonEligible).map((l) => l.id);
       if (!lessonsPayload.length && subjectsPayload.length) {
         setError("جاري تحميل الدروس — انتظر قليلاً ثم أعد المحاولة");
         return;
       }
       countPayload = 110;
+      countModePayload = "per_subject";
       takeAllPayload = false;
       if (!selectedSubjects.length) {
         setSelectedSubjects(subjectsPayload);
@@ -258,7 +296,15 @@ export default function SimulatorSetup() {
       return;
     }
     if (lessonsPayload.length === 0) {
-      setError("اختر درساً واحداً على الأقل");
+      setError(
+        planLocksLessons
+          ? "لا توجد دروس متاحة بعد — لم تبدأ دروس المادة بعد"
+          : "اختر درساً واحداً على الأقل"
+      );
+      return;
+    }
+    if (!teacherTiers.length) {
+      setError("اختر ترشيحاً واحداً على الأقل");
       return;
     }
     if (!difficultyMix) {
@@ -271,17 +317,14 @@ export default function SimulatorSetup() {
         subjects: subjectsPayload,
         lessons: lessonsPayload,
         count: countPayload,
+        count_mode: countModePayload,
         take_all: takeAllPayload,
         difficulty_mix: difficultyMix,
         review_mode: reviewMode,
         question_pool: questionPool,
         time_limit_minutes: resolveTimeLimit(),
-        tiers: [teacherTier],
+        tiers: teacherTiers,
       };
-      if (yearRange) {
-        const expanded = expandYearRange(years, yearRange);
-        if (expanded.length) payload.years = expanded;
-      }
       if (subjectsPayload.length > 1) lockSubjectTheme("multi");
       else if (subjectsPayload.length === 1) {
         const s = subjects.find((x) => Number(x.id) === Number(subjectsPayload[0]));
@@ -299,7 +342,20 @@ export default function SimulatorSetup() {
   const selectedSubjectObjs = subjects.filter((s) => selectedSubjects.includes(s.id));
   const difficultyLabel = DIFFICULTY_PRESETS.find((p) => p.id === difficultyMix)?.label || "—";
   const poolLabel = POOLS.find((p) => p.id === questionPool)?.label || "—";
-  const tierLabel = TEACHER_TIERS.find((t) => t.id === teacherTier)?.label || "—";
+  const tierLabel = teacherTiers
+    .map((id) => TEACHER_TIERS.find((t) => t.id === id)?.label)
+    .filter(Boolean)
+    .join(" + ") || "—";
+  const effectiveCountMode = simMode === "full" ? "per_subject" : countMode;
+  const subjectAlloc = allocationForSubjects(
+    selectedSubjectObjs,
+    effectiveCountMode,
+    count
+  );
+  const allocLabel = subjectAlloc ? formatAllocation(subjectAlloc) : "";
+  const perSubjectTotal = subjectAlloc
+    ? Object.values(subjectAlloc).reduce((a, b) => a + b, 0)
+    : 0;
   const totalMinutes =
     timeMode === "open" || simMode === "full"
       ? simMode === "full"
@@ -307,8 +363,17 @@ export default function SimulatorSetup() {
         : null
       : takeAll
         ? null
-        : count * minutesPerQ;
-  const qCountLabel = simMode === "full" ? 110 : takeAll ? "الكل" : count;
+        : countMode === "per_subject"
+          ? perSubjectTotal * minutesPerQ
+          : count * minutesPerQ;
+  const qCountLabel =
+    simMode === "full"
+      ? 110
+      : countMode === "all"
+        ? "الكل"
+        : countMode === "per_subject"
+          ? perSubjectTotal
+          : count;
   const timeLabel =
     simMode === "full"
       ? `${totalMinutes}`
@@ -434,12 +499,13 @@ export default function SimulatorSetup() {
                   <span className="step">2</span>الترشيح
                 </h3>
               </div>
+              <div className="hint" style={{ marginBottom: 8 }}>اختار واحد أو أكتر</div>
               <div className="seg">
                 {TEACHER_TIERS.map((t) => (
                   <span
                     key={t.id}
-                    className={`pill rk ${t.id}${teacherTier === t.id ? " on" : ""}`}
-                    onClick={() => setTeacherTier(t.id)}
+                    className={`pill rk ${t.id}${teacherTiers.includes(t.id) ? " on" : ""}`}
+                    onClick={() => toggleTier(t.id)}
                     role="button"
                     tabIndex={0}
                   >
@@ -485,7 +551,7 @@ export default function SimulatorSetup() {
               </div>
               <div className="subs">
                 {subjects.map((s) => {
-                  const key = resolveSubjectKey(s.name) || "math";
+                  const key = resolveSubjectKey(s);
                   const on = selectedSubjects.includes(s.id);
                   const theme = getSubjectTheme(key);
                   return (
@@ -511,11 +577,13 @@ export default function SimulatorSetup() {
               {!optionsLoading && lessons.length === 0 && <p className="hint">لا توجد دروس للمواد المختارة.</p>}
               {[...lessonsBySubject.entries()].map(([sid, rows]) => {
                 const name = rows[0]?.subject_name || `مادة ${sid}`;
-                const key = resolveSubjectKey(name) || "math";
-                const selectedCount = rows.filter((l) => selectedLessons.includes(l.id)).length;
+                const key = resolveSubjectKey(name);
+                const eligibleRows = rows.filter(isLessonEligible);
+                const selectedCount = eligibleRows.filter((l) => selectedLessons.includes(l.id)).length;
                 const open = openSubjects[sid];
+                const subjectLocked = planLocksLessons && eligibleRows.length === 0;
                 return (
-                  <div key={sid} className={`dd ${cssKey(key)}${open ? " open" : ""}`}>
+                  <div key={sid} className={`dd ${cssKey(key)}${open ? " open" : ""}${subjectLocked ? " locked-subj" : ""}`}>
                     <button
                       type="button"
                       className="dd-h"
@@ -525,7 +593,11 @@ export default function SimulatorSetup() {
                       <i className="dot" />
                       <span className="nm">{name}</span>
                       <span className="cnt">
-                        {selectedCount === rows.length ? "كل الدروس" : `${selectedCount} من ${rows.length}`}
+                        {subjectLocked
+                          ? "لم تبدأ دروس المادة بعد"
+                          : selectedCount === eligibleRows.length && eligibleRows.length
+                            ? "كل الدروس"
+                            : `${selectedCount} من ${eligibleRows.length}`}
                       </span>
                       <svg className="arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M6 9l6 6 6-6" />
@@ -533,26 +605,44 @@ export default function SimulatorSetup() {
                     </button>
                     {open && (
                       <div className="dd-b">
-                        <div className="dd-tools">
-                          <span role="button" tabIndex={0} onClick={() => selectSubjectLessons(sid, rows)}>
-                            تحديد الكل
-                          </span>
-                          <span role="button" tabIndex={0} onClick={() => clearSubjectLessons(sid, rows)}>
-                            مسح
-                          </span>
-                        </div>
-                        <div className="lgrid">
-                          {rows.map((l) => {
-                            const on = selectedLessons.includes(l.id);
-                            return (
-                              <label key={l.id} className={`ls${on ? " on" : ""}`} onClick={() => toggleLesson(l.id)}>
-                                <span className="cb">{on ? <Check /> : null}</span>
-                                <em>{l.order_number}</em>
-                                {l.title}
-                              </label>
-                            );
-                          })}
-                        </div>
+                        {subjectLocked ? (
+                          <p className="hint">لم تبدأ دروس المادة بعد</p>
+                        ) : (
+                          <>
+                            <div className="dd-tools">
+                              <span role="button" tabIndex={0} onClick={() => selectSubjectLessons(sid, rows)}>
+                                تحديد الكل
+                              </span>
+                              <span role="button" tabIndex={0} onClick={() => clearSubjectLessons(sid, rows)}>
+                                مسح
+                              </span>
+                            </div>
+                            <div className="lgrid">
+                              {rows.map((l) => {
+                                const eligible = isLessonEligible(l);
+                                const on = eligible && selectedLessons.includes(l.id);
+                                return (
+                                  <label
+                                    key={l.id}
+                                    className={`ls${on ? " on" : ""}${eligible ? "" : " off"}`}
+                                    onClick={() => toggleLesson(l.id)}
+                                  >
+                                    <span className="cb">{on ? <Check /> : null}</span>
+                                    <em>{l.order_number}</em>
+                                    {eligible ? (
+                                      l.title
+                                    ) : (
+                                      <>
+                                        <s>{l.title}</s>
+                                        <small className="locked-tag">(لم نأخذها بعد)</small>
+                                      </>
+                                    )}
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
@@ -560,47 +650,75 @@ export default function SimulatorSetup() {
               })}
             </div>
 
-            {years.length > 0 && (
-              <div className="box">
-                <div className="bh">
-                  <h3>
-                    <span className="step">*</span>السنة
-                  </h3>
-                </div>
-                <YearScrollPicker years={years} value={yearRange} onChange={setYearRange} yearStats={yearStats} emptyMessage="لا توجد سنوات مسجّلة." />
-              </div>
-            )}
-
             <div className="box">
               <div className="bh">
                 <h3>
                   <span className="step">3</span>عدد الأسئلة
                 </h3>
               </div>
-              <div className="opts one">
-                <div className={`opt${!takeAll ? " on" : ""}`} onClick={() => setTakeAll(false)} role="button" tabIndex={0}>
+              <div className="opts count3">
+                <div
+                  className={`opt${countMode === "fixed" ? " on" : ""}`}
+                  onClick={() => setCountMode("fixed")}
+                  role="button"
+                  tabIndex={0}
+                >
                   <div className="grow">
                     <b>عدد محدد</b>
-                    <small>حدّد عدد الأسئلة</small>
+                    <small>مقسّم على المواد بنسبة 30:30:25:25</small>
                   </div>
-                  {!takeAll && (
+                  {countMode === "fixed" && (
                     <div className="stepper" onClick={(e) => e.stopPropagation()}>
-                      <span role="button" tabIndex={0} onClick={() => setCount((c) => c + 1)}>
+                      <span role="button" tabIndex={0} onClick={() => bumpCount(1)}>
                         +
                       </span>
                       <strong>{count}</strong>
-                      <span role="button" tabIndex={0} onClick={() => setCount((c) => Math.max(1, c - 1))}>
+                      <span role="button" tabIndex={0} onClick={() => bumpCount(-1)}>
                         −
                       </span>
                     </div>
                   )}
+                  {countMode === "fixed" && allocLabel && (
+                    <small className="alloc-line">{allocLabel}</small>
+                  )}
+                </div>
+                <div
+                  className={`opt${countMode === "per_subject" ? " on" : ""}`}
+                  onClick={() => setCountMode("per_subject")}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="grow">
+                    <b>محاكي حسب المواد</b>
+                    <small>رياضيات 30 · أحياء 30 · كيمياء 25 · فيزياء 25</small>
+                  </div>
+                  {countMode === "per_subject" && (
+                    <div className="per-total">
+                      <strong>{perSubjectTotal || 110}</strong>
+                      <span>سؤال</span>
+                    </div>
+                  )}
+                  {countMode === "per_subject" && allocLabel && (
+                    <small className="alloc-line">{allocLabel}</small>
+                  )}
+                </div>
+                <div
+                  className={`opt${countMode === "all" ? " on" : ""}`}
+                  onClick={() => setCountMode("all")}
+                  role="button"
+                  tabIndex={0}
+                >
+                  <div className="grow">
+                    <b>كل الأسئلة المختارة</b>
+                    <small>كل أسئلة الدروس اللي اخترتها</small>
+                  </div>
                 </div>
               </div>
-              <div className="seg" style={{ marginTop: 12 }}>
-                <span className={`pill${takeAll ? " on" : ""}`} onClick={() => setTakeAll(true)} role="button" tabIndex={0}>
-                  كل الأسئلة المختارة
-                </span>
-              </div>
+              {availableCount != null && (
+                <div className="hint" style={{ marginTop: 8 }}>
+                  المتاح حالياً: {availableCount} سؤال
+                </div>
+              )}
             </div>
 
             <div className="box">
@@ -640,7 +758,7 @@ export default function SimulatorSetup() {
                 <div className="calc">
                   إجمالي مدة الاختبار:{" "}
                   <b>
-                    {count} سؤال × {minutesPerQ} دقيقة = {count * minutesPerQ} دقيقة
+                    {qCountLabel} سؤال × {minutesPerQ} دقيقة = {totalMinutes} دقيقة
                   </b>
                 </div>
               )}
@@ -674,12 +792,13 @@ export default function SimulatorSetup() {
                   <span className="step">6</span>الترشيح
                 </h3>
               </div>
+              <div className="hint" style={{ marginBottom: 8 }}>اختار واحد أو أكتر</div>
               <div className="seg">
                 {TEACHER_TIERS.map((t) => (
                   <span
                     key={t.id}
-                    className={`pill rk ${t.id}${teacherTier === t.id ? " on" : ""}`}
-                    onClick={() => setTeacherTier(t.id)}
+                    className={`pill rk ${t.id}${teacherTiers.includes(t.id) ? " on" : ""}`}
+                    onClick={() => toggleTier(t.id)}
                     role="button"
                     tabIndex={0}
                   >

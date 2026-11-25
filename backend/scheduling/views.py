@@ -53,11 +53,6 @@ class SessionViewSet(viewsets.ModelViewSet):
                 | (Q(group_id__in=group_ids) & Q(subject_id__in=subject_ids))
             ).distinct()
         else:
-            from core.plans import is_silver_student
-
-            # Silver: no class schedule (Gold-only) — return empty
-            if is_silver_student(user):
-                return qs.none()
             group_ids = list(
                 GroupStudent.objects.filter(student=user).values_list(
                     "group_id", flat=True
@@ -65,6 +60,20 @@ class SessionViewSet(viewsets.ModelViewSet):
             )
             qs = qs.filter(group_id__in=group_ids)
         return qs
+
+    def list(self, request, *args, **kwargs):
+        from core.plans import assert_gold_feature
+
+        if getattr(request.user, "is_student", False):
+            assert_gold_feature(request.user, "جدول الحصص")
+        return super().list(request, *args, **kwargs)
+
+    def retrieve(self, request, *args, **kwargs):
+        from core.plans import assert_gold_feature
+
+        if getattr(request.user, "is_student", False):
+            assert_gold_feature(request.user, "جدول الحصص")
+        return super().retrieve(request, *args, **kwargs)
 
     def _when_filtered(self, qs):
         when = (self.request.query_params.get("when") or "").strip().lower()
@@ -235,18 +244,36 @@ class SessionViewSet(viewsets.ModelViewSet):
         and returns a personal join URL. The browser itself must open that
         URL; the server never calls join.
         """
-        session = self.get_object()
+        from core.plans import assert_gold_feature
+
+        from core.time_rules import class_state, teacher_joined
+
         user = request.user
+        if getattr(user, "is_student", False):
+            assert_gold_feature(user, "الحصص المباشرة")
+        session = self.get_object()
         allowed, moderator = self._can_join(session, user)
         if not allowed:
             raise PermissionDenied("هذه الحصة ليست لمجموعتك")
 
         now = timezone.now()
-        if not user.is_admin_role:
-            opens = session.start_time - timedelta(minutes=20)
+        if getattr(user, "is_student", False):
+            # Students may join only after the teacher has entered (Task 15).
+            state = class_state(session, now)
+            if state == "ended" or now > session.end_time:
+                return Response(
+                    {"detail": "انتهت الحصة"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            if not teacher_joined(session):
+                raise PermissionDenied(
+                    "لا يمكن دخول الحصة قبل دخول المدرس. انتظر «مباشر الآن»."
+                )
+        elif not user.is_admin_role:
+            opens = session.start_time - timedelta(minutes=10)
             if now < opens:
                 return Response(
-                    {"detail": "لينك الدخول يتفتح قبل الحصة بـ ٢٠ دقيقة"},
+                    {"detail": "لينك الدخول يتفتح قبل الحصة بـ ١٠ دقائق"},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             if now > session.end_time:
@@ -257,25 +284,31 @@ class SessionViewSet(viewsets.ModelViewSet):
 
         if not bbb_configured():
             if session.zoom_link and not moderator:
-                return Response({"url": session.zoom_link, "provider": "zoom"})
-            if session.zoom_link and moderator:
-                return Response({"url": session.zoom_link, "provider": "zoom"})
-            return Response(
-                {
-                    "detail": "لايف BigBlueButton غير مربوط بعد. المدير يضع BBB_URL و BBB_SECRET."
-                },
-                status=status.HTTP_503_SERVICE_UNAVAILABLE,
-            )
-
-        try:
-            url = join_url(
-                session,
-                full_name=user.full_name or user.email,
-                user_id=user.id,
-                moderator=moderator,
-            )
-        except BBBError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY)
+                url = session.zoom_link
+                provider = "zoom"
+            elif session.zoom_link and moderator:
+                url = session.zoom_link
+                provider = "zoom"
+            else:
+                return Response(
+                    {
+                        "detail": "لايف BigBlueButton غير مربوط بعد. المدير يضع BBB_URL و BBB_SECRET."
+                    },
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE,
+                )
+        else:
+            try:
+                url = join_url(
+                    session,
+                    full_name=user.full_name or user.email,
+                    user_id=user.id,
+                    moderator=moderator,
+                )
+                provider = "bbb"
+            except BBBError as exc:
+                return Response(
+                    {"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY
+                )
 
         if moderator and not user.is_student:
             session.teacher_joined_zoom = True
@@ -283,9 +316,39 @@ class SessionViewSet(viewsets.ModelViewSet):
             session.save(
                 update_fields=["teacher_joined_zoom", "teacher_joined_zoom_at"]
             )
+
+        if getattr(user, "is_student", False):
+            # Auto-present on first join; keep earliest joined_at (Task 15).
+            row, created = SessionAttendance.objects.get_or_create(
+                session=session,
+                student=user,
+                defaults={
+                    "status": SessionAttendance.Status.PRESENT,
+                    "status_source": SessionAttendance.StatusSource.AUTO,
+                    "joined_at": now,
+                },
+            )
+            if not created:
+                updates = []
+                if row.status != SessionAttendance.Status.PRESENT and (
+                    row.status_source != SessionAttendance.StatusSource.TEACHER
+                ):
+                    row.status = SessionAttendance.Status.PRESENT
+                    row.status_source = SessionAttendance.StatusSource.AUTO
+                    updates.extend(["status", "status_source"])
+                if row.joined_at is None:
+                    row.joined_at = now
+                    updates.append("joined_at")
+                if updates:
+                    row.save(update_fields=updates)
+
         return Response(
             SessionSerializer(session, context=self.get_serializer_context()).data
-            | {"url": url, "provider": "bbb", "role": "moderator" if moderator else "viewer"}
+            | {
+                "url": url,
+                "provider": provider,
+                "role": "moderator" if moderator else "viewer",
+            }
         )
 
     @action(detail=True, methods=["post"])
@@ -378,6 +441,7 @@ class SessionViewSet(viewsets.ModelViewSet):
                 student_id=student_id,
                 defaults={
                     "status": st,
+                    "status_source": SessionAttendance.StatusSource.TEACHER,
                     "note": note,
                     "marked_by": user,
                 },
@@ -442,11 +506,211 @@ def teacher_availability(request):
 
     ser = TeacherAvailabilitySerializer(data=slots, many=True)
     ser.is_valid(raise_exception=True)
+    # Merge overlapping / adjacent windows per weekday before save (Task 29).
+    by_day = {}
+    for item in ser.validated_data:
+        by_day.setdefault(item["weekday"], []).append(dict(item))
+    merged = []
+    for weekday, items in by_day.items():
+        items = sorted(items, key=lambda x: x["start_time"])
+        cur = None
+        for item in items:
+            if cur is None:
+                cur = {
+                    "weekday": weekday,
+                    "start_time": item["start_time"],
+                    "end_time": item["end_time"],
+                }
+                continue
+            if item["start_time"] <= cur["end_time"]:
+                if item["end_time"] > cur["end_time"]:
+                    cur["end_time"] = item["end_time"]
+            else:
+                merged.append(cur)
+                cur = {
+                    "weekday": weekday,
+                    "start_time": item["start_time"],
+                    "end_time": item["end_time"],
+                }
+        if cur:
+            merged.append(cur)
+
+    # Warn (but still save) if future sessions fall outside the new windows
+    from core.time_rules import to_riyadh
+
+    warning = None
+    conflict_count = 0
+    future = Session.objects.filter(
+        teacher=teacher, start_time__gte=timezone.now()
+    ).exclude(status=Session.Status.DONE)
+    for sess in future:
+        local = to_riyadh(sess.start_time)
+        if local is None:
+            continue
+        end_local = to_riyadh(sess.end_time) or local
+        st = local.time().replace(second=0, microsecond=0)
+        et = end_local.time().replace(second=0, microsecond=0)
+        covered = any(
+            m["weekday"] == local.weekday()
+            and m["start_time"] <= st
+            and m["end_time"] >= et
+            for m in merged
+        )
+        if not covered:
+            conflict_count += 1
+    if conflict_count:
+        warning = (
+            f"في {conflict_count} حصص متحددة في الفترة دي، كلّم الإدارة. "
+            "الحصص ما اتمسحتش."
+        )
+
     with transaction.atomic():
         TeacherAvailability.objects.filter(teacher=teacher).delete()
         created = [
-            TeacherAvailability(teacher=teacher, **item) for item in ser.validated_data
+            TeacherAvailability(teacher=teacher, **item) for item in merged
         ]
         TeacherAvailability.objects.bulk_create(created)
     rows = TeacherAvailability.objects.filter(teacher=teacher)
-    return Response(TeacherAvailabilitySerializer(rows, many=True).data)
+    return Response(
+        {
+            "slots": TeacherAvailabilitySerializer(rows, many=True).data,
+            "warning": warning,
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([IsTeacherOrAdmin])
+def teacher_home(request):
+    """Teacher dashboard (Task 27 / B1) — scoped to HIS groups/subjects."""
+    from .teacher_home import build_teacher_home
+
+    return Response(build_teacher_home(request.user))
+
+
+@api_view(["GET"])
+@permission_classes([IsTeacherOrAdmin])
+def teacher_classes(request):
+    """Teacher «حصصي» schedule + past (Task 28 / B2.1)."""
+    from .teacher_classes import build_teacher_classes
+
+    return Response(
+        build_teacher_classes(
+            request.user,
+            group_id=request.query_params.get("group"),
+            selected_date=request.query_params.get("date"),
+            past_month=request.query_params.get("month"),
+        )
+    )
+
+
+@api_view(["POST"])
+@permission_classes([IsTeacherOrAdmin])
+def teacher_remind_student(request, student_id):
+    """Reminder to parent via Telegram (Task 33) — max once / 24h / subject."""
+    from accounts.models import User
+    from accounts.parent_telegram import send_task_reminder
+    from catalog.models import Subject
+    from groups.models import GroupStudent
+
+    user = request.user
+    if not user.is_admin_role:
+        group_ids = GroupTeacher.objects.filter(teacher=user).values_list(
+            "group_id", flat=True
+        )
+        ok = GroupStudent.objects.filter(
+            student_id=student_id, group_id__in=group_ids
+        ).exists()
+        if not ok:
+            raise PermissionDenied("هذا الطالب ليس في مجموعاتك")
+
+    student = User.objects.filter(id=student_id, role=User.Role.STUDENT).first()
+    if not student:
+        return Response({"detail": "طالب غير موجود"}, status=404)
+
+    subject_id = request.data.get("subject_id") or getattr(user, "taught_subject_id", None)
+    if not subject_id:
+        link = GroupTeacher.objects.filter(teacher=user).select_related("subject").first()
+        subject_id = link.subject_id if link else None
+    subject = Subject.objects.filter(id=subject_id).first() if subject_id else None
+    if not subject:
+        return Response({"detail": "المادة مطلوبة"}, status=400)
+
+    titles = request.data.get("task_titles") or []
+    if not isinstance(titles, list):
+        titles = []
+    if not titles:
+        # Best-effort: late tasks from daily-tasks style current list
+        try:
+            from core.time_rules import released_tasks_for_student
+
+            tasks = released_tasks_for_student(student, current_only=True)
+            titles = [
+                t.get("title")
+                for t in tasks
+                if t.get("subject_id") == subject.id and not t.get("is_done")
+            ]
+        except Exception:
+            titles = []
+    if not titles:
+        titles = ["مهام يومية متأخرة"]
+
+    result = send_task_reminder(
+        teacher=user, student=student, subject=subject, task_titles=titles
+    )
+    if result.get("reason") == "cooldown":
+        return Response(result, status=status.HTTP_429_TOO_MANY_REQUESTS)
+    return Response(result)
+
+
+@api_view(["GET", "PUT", "POST"])
+@permission_classes([IsTeacherOrAdmin])
+def session_rate(request, pk):
+    """GET / PUT draft / POST save (+ optional resend) for class rating (Task 30)."""
+    from scheduling.class_rating import (
+        _teacher_owns,
+        build_rate_payload,
+        save_rate_payload,
+    )
+    from accounts.parent_telegram import deliver_class_reports
+    from scheduling.models import ClassRating
+
+    session = (
+        Session.objects.select_related("subject", "group", "teacher")
+        .filter(pk=pk)
+        .first()
+    )
+    if not session:
+        return Response({"detail": "الحصة غير موجودة"}, status=404)
+    if not _teacher_owns(session, request.user):
+        raise PermissionDenied("ليست من حصصك")
+
+    if request.method == "GET":
+        return Response(build_rate_payload(session, request.user))
+
+    if request.method == "PUT":
+        payload, meta = save_rate_payload(
+            session, request.user, request.data, as_draft=True
+        )
+        return Response({**payload, "meta": meta})
+
+    # POST = save (or resend)
+    if request.data.get("resend_only"):
+        rating = ClassRating.objects.filter(session=session).first()
+        if not rating or rating.status != ClassRating.Status.SAVED:
+            return Response(
+                {"detail": "احفظ التقييم أولاً قبل إعادة الإرسال"}, status=400
+            )
+        delivery = deliver_class_reports(
+            session, class_rating=rating, created_by=request.user, force=True
+        )
+        payload = build_rate_payload(session, request.user)
+        payload["delivery"] = delivery
+        return Response(payload)
+
+    # Save sync; Telegram delivery can be forced resend via resend_only.
+    # Primary save still delivers, but do it off the request thread when possible.
+    payload, delivery = save_rate_payload(
+        session, request.user, request.data, as_draft=False
+    )
+    return Response(payload)

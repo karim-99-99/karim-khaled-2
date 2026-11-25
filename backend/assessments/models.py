@@ -25,9 +25,8 @@ class QuestionBase(models.Model):
         HARD = "hard", "صعب"
 
     # Questions are owned by the teacher (created_by) + subject + lesson.
-    # Homework (تأسيس): when group is null, reaches groups where the teacher
-    # teaches this subject; when set, pinned to that group.
-    # Collection (تجميعات): group is always null — visible to ALL students.
+    # Homework (تأسيس): group is always null — global library under the lesson
+    # (HomeworkSubLesson titles). Collection (تجميعات): group is always null.
     group = models.ForeignKey(
         "groups.StudyGroup",
         related_name="%(class)ss",
@@ -81,13 +80,43 @@ class QuestionBase(models.Model):
         abstract = True
 
 
-class HomeworkQuestion(QuestionBase):
-    """واجب تأسيس مرتبط بعنوان فرعي (حصة) داخل الدرس."""
+class HomeworkSubLesson(models.Model):
+    """
+    عنوان واجب فرعي تحت درس تأسيس (مكتبة عامة — مثل CollectionSubLesson).
+    منفصل عن LessonSection (فيديو/PDF).
+    """
 
+    lesson = models.ForeignKey(
+        "catalog.Lesson",
+        related_name="homework_sub_lessons",
+        on_delete=models.CASCADE,
+    )
+    order_number = models.PositiveIntegerField(default=1)
+    title = models.CharField(max_length=200)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["lesson", "order_number", "id"]
+
+    def __str__(self):
+        return f"{self.lesson.title} › واجب: {self.title}"
+
+
+class HomeworkQuestion(QuestionBase):
+    """واجب تأسيس — مكتبة عامة تحت عنوان فرعي (أو الدرس مباشرة)."""
+
+    # Legacy: video subsection. Prefer homework_sub_lesson (Task 16).
     section = models.ForeignKey(
         "catalog.LessonSection",
         related_name="homework_questions",
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    homework_sub_lesson = models.ForeignKey(
+        HomeworkSubLesson,
+        related_name="questions",
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
     )
@@ -97,7 +126,7 @@ class HomeworkQuestion(QuestionBase):
     review_notes = models.TextField(blank=True, default="")
 
     class Meta:
-        ordering = ["lesson", "section", "order_number", "id"]
+        ordering = ["lesson", "homework_sub_lesson", "section", "order_number", "id"]
 
     def __str__(self):
         return f"Homework Q{self.id} - {self.lesson.title}"
@@ -169,12 +198,119 @@ class CollectionQuestion(QuestionBase):
         return f"Bank Q{self.id} - {self.lesson.title} [{self.difficulty}]"
 
 
+class LessonCollectionLink(models.Model):
+    """
+    ربط درس تأسيس (أو حصة إضافية) بتجميعة — صفحة المهام عند المدرس (Task 17).
+
+    - group=NULL → الافتراضي لكل المجموعات.
+    - group محدد → تخصيص لتلك المجموعة فقط (يستبدل الافتراضي عند العرض).
+    - collection_sub_lesson=NULL → تجميعة رئيسية كاملة (كل الفرعيات).
+    - extra_session → حصة إضافية (بدل lesson).
+    """
+
+    lesson = models.ForeignKey(
+        "catalog.Lesson",
+        related_name="task_collection_links",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    extra_session = models.ForeignKey(
+        "scheduling.Session",
+        related_name="task_collection_links",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    collection_lesson = models.ForeignKey(
+        "catalog.Lesson",
+        related_name="linked_as_collection_tasks",
+        on_delete=models.CASCADE,
+    )
+    collection_sub_lesson = models.ForeignKey(
+        CollectionSubLesson,
+        related_name="task_links",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    group = models.ForeignKey(
+        "groups.StudyGroup",
+        related_name="task_collection_links",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+    order_number = models.PositiveIntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order_number", "id"]
+        constraints = [
+            models.CheckConstraint(
+                check=(
+                    models.Q(lesson__isnull=False, extra_session__isnull=True)
+                    | models.Q(lesson__isnull=True, extra_session__isnull=False)
+                ),
+                name="task_link_lesson_xor_extra",
+            ),
+        ]
+
+    def __str__(self):
+        target = (
+            f"extra#{self.extra_session_id}"
+            if self.extra_session_id
+            else f"lesson#{self.lesson_id}"
+        )
+        node = (
+            f"sub#{self.collection_sub_lesson_id}"
+            if self.collection_sub_lesson_id
+            else f"main#{self.collection_lesson_id}"
+        )
+        return f"TaskLink {target} → {node} g={self.group_id}"
+
+
+class StudentPracticeAnswer(models.Model):
+    """
+    Per-question practice answers for daily tasks (Task 20).
+    A homework/collection task is «تم» only when EVERY question has a row here.
+    """
+
+    class Kind(models.TextChoices):
+        HOMEWORK = "homework", "واجب"
+        COLLECTION = "collection", "تجميعة"
+
+    student = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name="practice_answers",
+        on_delete=models.CASCADE,
+    )
+    kind = models.CharField(max_length=20, choices=Kind.choices)
+    question_id = models.PositiveIntegerField()
+    selected_answer = models.CharField(max_length=10)
+    is_correct = models.BooleanField(default=False)
+    answered_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-answered_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student", "kind", "question_id"],
+                name="uniq_student_practice_answer",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.student_id} {self.kind}#{self.question_id}"
+
+
 class Exam(models.Model):
     """A student's test attempt (simulator or teacher test)."""
 
     class Type(models.TextChoices):
         SIMULATOR = "simulator", "المحاكي الشخصي"
         TEACHER = "teacher", "اختبار المدرس"
+        COLLECTION = "collection", "تجميعات"
 
     class Preset(models.TextChoices):
         EASY = "easy", "سهل"
@@ -235,12 +371,123 @@ class Exam(models.Model):
     score_percent = models.FloatField(null=True, blank=True)
     started_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(null=True, blank=True)
+    # Absolute 0-based index of the last question the student was on (resume — Task 21).
+    last_question_index = models.PositiveIntegerField(default=0)
+    # Simulator sections of 22 (Task 22): active section index; prior sections locked.
+    current_section = models.PositiveIntegerField(default=0)
+    # True while the 5-minute break screen is showing after finishing a section.
+    break_pending = models.BooleanField(default=False)
+    break_started_at = models.DateTimeField(null=True, blank=True)
+
+    # Break duration between simulator sections (seconds).
+    SECTION_BREAK_SECONDS = 5 * 60
 
     class Meta:
         ordering = ["-started_at"]
 
     def __str__(self):
         return f"{self.get_exam_type_display()} - {self.student.full_name}"
+
+    @property
+    def section_size(self) -> int | None:
+        """Collections = 50; simulators = 22; teacher tests = no sections."""
+        if self.exam_type == self.Type.COLLECTION:
+            return 50
+        if self.exam_type == self.Type.SIMULATOR:
+            return 22
+        return None
+
+    @property
+    def sections_locked(self) -> bool:
+        """Finished sections are locked only for simulators (not collections / teacher)."""
+        return self.exam_type == self.Type.SIMULATOR and self.section_size is not None
+
+    def section_count(self) -> int:
+        size = self.section_size
+        if not size or self.question_count < 1:
+            return 0
+        return (self.question_count + size - 1) // size
+
+    def section_index_for_order(self, order: int) -> int | None:
+        size = self.section_size
+        if not size:
+            return None
+        return int(order) // size
+
+    def section_range(self, section_index: int) -> tuple[int, int] | None:
+        """Inclusive start/end question orders for a section."""
+        size = self.section_size
+        if not size or section_index < 0:
+            return None
+        start = section_index * size
+        if start >= self.question_count:
+            return None
+        end = min(start + size, self.question_count) - 1
+        return start, end
+
+    def resolve_break_on_load(self) -> bool:
+        """
+        Leaving during a break skips the wait — resume at the next section (6.5).
+        A short grace (~3s) keeps the break alive across same-page remounts
+        (e.g. React Strict Mode) so only a real leave/return advances.
+        """
+        if not self.break_pending or self.status != self.Status.IN_PROGRESS:
+            return False
+        from django.utils import timezone as dj_tz
+
+        if self.break_started_at:
+            age = (dj_tz.now() - self.break_started_at).total_seconds()
+            if age < 3:
+                return False
+        return self.advance_from_break()
+
+    def start_section_break(self) -> bool:
+        """Enter break after finishing the current simulator section."""
+        if not self.sections_locked:
+            return False
+        if self.break_pending:
+            return True
+        if self.current_section >= max(0, self.section_count() - 1):
+            return False
+        from django.utils import timezone as dj_tz
+
+        self.break_pending = True
+        self.break_started_at = dj_tz.now()
+        self.save(update_fields=["break_pending", "break_started_at"])
+        return True
+
+    def advance_from_break(self) -> bool:
+        """End break and unlock the next section."""
+        if not self.sections_locked:
+            self.break_pending = False
+            self.break_started_at = None
+            self.save(update_fields=["break_pending", "break_started_at"])
+            return False
+        max_sec = max(0, self.section_count() - 1)
+        nxt = min(self.current_section + 1, max_sec)
+        size = self.section_size or 1
+        self.current_section = nxt
+        self.last_question_index = nxt * size
+        self.break_pending = False
+        self.break_started_at = None
+        self.save(
+            update_fields=[
+                "current_section",
+                "last_question_index",
+                "break_pending",
+                "break_started_at",
+            ]
+        )
+        return True
+
+    def order_is_answerable(self, order: int) -> bool:
+        """API lock: simulator may only answer inside the current unlocked section."""
+        if self.break_pending:
+            return False
+        if not self.sections_locked:
+            return True
+        sec = self.section_index_for_order(order)
+        return sec is not None and sec == self.current_section
 
     @property
     def ends_at(self):
@@ -284,6 +531,25 @@ class TeacherTest(models.Model):
         default=Exam.ReviewMode.FINAL,
     )
     is_published = models.BooleanField(default=True)
+    # Task 31 — teacher-test window & duration (no 22-section split)
+    class DurationMode(models.TextChoices):
+        WHOLE = "whole", "مدة الاختبار كامل"
+        PER_QUESTION = "per_question", "وقت لكل سؤال"
+
+    opens_at = models.DateTimeField(null=True, blank=True)
+    closes_at = models.DateTimeField(null=True, blank=True)
+    duration_mode = models.CharField(
+        max_length=20,
+        choices=DurationMode.choices,
+        default=DurationMode.WHOLE,
+    )
+    # whole → minutes; per_question → seconds
+    duration_value = models.PositiveIntegerField(default=60)
+    groups = models.ManyToManyField(
+        "groups.StudyGroup",
+        related_name="teacher_tests",
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

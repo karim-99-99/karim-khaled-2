@@ -83,6 +83,8 @@ export default function CollectionLessonDetail() {
   const [selectedSubs, setSelectedSubs] = useState(
     focusedSubId ? [focusedSubId] : []
   );
+  /** Student practice answers keyed by question id (Task 20). */
+  const [practiceAnswers, setPracticeAnswers] = useState({});
 
   const canEdit = canEditSubject(user, subjectId || lesson?.subject);
   const canRenameLesson =
@@ -108,10 +110,8 @@ export default function CollectionLessonDetail() {
     hard: 0,
   };
 
-  const allowedYears = null;
-
   const filteredLevelCounts = useMemo(() => {
-    if (!allowedYears && !selectedTiers.length && !selectedSubs.length) {
+    if (!selectedTiers.length && !selectedSubs.length) {
       return {
         easy: Number(levelCounts.easy) || 0,
         medium: Number(levelCounts.medium) || 0,
@@ -121,9 +121,6 @@ export default function CollectionLessonDetail() {
     const out = { easy: 0, medium: 0, hard: 0 };
     if (filterBreakdown.length) {
       for (const row of filterBreakdown) {
-        if (allowedYears && !allowedYears.has(row.question_year || "")) {
-          continue;
-        }
         if (selectedTiers.length && !selectedTiers.includes(row.teacher_tier || "")) {
           continue;
         }
@@ -137,14 +134,12 @@ export default function CollectionLessonDetail() {
     }
     // Fallback when breakdown unavailable.
     for (const row of yearStats) {
-      if (allowedYears && !allowedYears.has(row.year)) continue;
       out.easy += Number(row.easy) || 0;
       out.medium += Number(row.medium) || 0;
       out.hard += Number(row.hard) || 0;
     }
     return out;
   }, [
-    allowedYears,
     selectedTiers,
     selectedSubs,
     filterBreakdown,
@@ -157,7 +152,6 @@ export default function CollectionLessonDetail() {
   const tierCountsForFilter = useMemo(() => {
     const out = Object.fromEntries(TEACHER_TIERS.map((t) => [t.id, 0]));
     for (const row of filterBreakdown) {
-      if (allowedYears && !allowedYears.has(row.question_year || "")) continue;
       if (selectedSubs.length && !selectedSubs.includes(row.sub_lesson ?? 0)) continue;
       if (row.teacher_tier && row.teacher_tier in out) {
         out[row.teacher_tier] += Number(row.count) || 0;
@@ -169,19 +163,18 @@ export default function CollectionLessonDetail() {
       }
     }
     return out;
-  }, [filterBreakdown, tierStats, allowedYears, selectedSubs]);
+  }, [filterBreakdown, tierStats, selectedSubs]);
 
-  /** Student chip counts per sub-lesson (0 = direct), respecting year + tier filters. */
+  /** Student chip counts per sub-lesson (0 = direct), respecting tier filters. */
   const subCountsForFilter = useMemo(() => {
     const out = {};
     for (const row of filterBreakdown) {
-      if (allowedYears && !allowedYears.has(row.question_year || "")) continue;
       if (selectedTiers.length && !selectedTiers.includes(row.teacher_tier || "")) continue;
       const key = row.sub_lesson ?? 0;
       out[key] = (out[key] || 0) + (Number(row.count) || 0);
     }
     return out;
-  }, [filterBreakdown, allowedYears, selectedTiers]);
+  }, [filterBreakdown, selectedTiers]);
 
   function toggleSub(id) {
     setSelectedSubs((prev) =>
@@ -225,7 +218,6 @@ export default function CollectionLessonDetail() {
     setEditingQ(null);
     setMsg("");
     setSelectedLevels([]);
-    setYearRange(null);
     setSelectedTiers([]);
     setShowImport(false);
     setTab("questions");
@@ -451,6 +443,7 @@ export default function CollectionLessonDetail() {
         lessons: [Number(lessonId)],
         levels: selectedLevels,
         take_all: true,
+        mode: "collection",
         review_mode: reviewMode,
         time_limit_minutes: null,
         title: `تجميعات ${lesson.subject_name || ""} ( ${lesson.title || ""} )`
@@ -1068,7 +1061,45 @@ export default function CollectionLessonDetail() {
                             style={{ display: "block", maxWidth: "100%", marginTop: 8, borderRadius: 8 }}
                           />
                         )}
-                        {!isEditing && options.length > 0 && (
+                        {!isEditing && options.length > 0 && !canEdit && (
+                          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
+                            {options.map((o) => {
+                              const picked = practiceAnswers[item.id];
+                              const showResult = Boolean(picked);
+                              return (
+                                <label
+                                  key={o.key || o.text}
+                                  style={{ display: "flex", gap: 8, alignItems: "flex-start", cursor: "pointer" }}
+                                >
+                                  <input
+                                    type="radio"
+                                    name={`col-q-${item.id}`}
+                                    checked={picked === o.key}
+                                    onChange={async () => {
+                                      setPracticeAnswers((a) => ({ ...a, [item.id]: o.key }));
+                                      try {
+                                        await client.post("/practice-answers/", {
+                                          kind: "collection",
+                                          question_id: item.id,
+                                          selected_answer: o.key,
+                                        });
+                                      } catch {
+                                        /* keep local */
+                                      }
+                                    }}
+                                  />
+                                  <span>
+                                    <strong>{o.key})</strong> <MathText>{o.text || ""}</MathText>
+                                    {showResult && item.correct_answer === o.key ? (
+                                      <span style={{ color: "var(--success, #15803d)", marginInlineStart: 6 }}>✓</span>
+                                    ) : null}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        )}
+                        {!isEditing && options.length > 0 && canEdit && (
                           <ul
                             style={{
                               margin: "8px 0 0",
@@ -1102,7 +1133,7 @@ export default function CollectionLessonDetail() {
                             ))}
                           </ul>
                         )}
-                        {!isEditing && (
+                        {!isEditing && canEdit && (
                           <div style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 4 }}>
                             الإجابة: {item.correct_answer}
                             {(item.explanation || item.written_correction) && (

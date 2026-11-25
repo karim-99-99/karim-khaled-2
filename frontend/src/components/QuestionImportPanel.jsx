@@ -11,6 +11,7 @@ export default function QuestionImportPanel({
   importUrl,
   lessonId,
   sectionId,
+  homeworkSubLessonId,
   subLessonId,
   targetLabel,
   templateDownloadName = "نموذج-أسئلة.docx",
@@ -41,7 +42,8 @@ export default function QuestionImportPanel({
       const fd = new FormData();
       fd.append("file", importFile);
       fd.append("lesson", String(lessonId));
-      if (sectionId) fd.append("section", String(sectionId));
+      if (homeworkSubLessonId) fd.append("homework_sub_lesson", String(homeworkSubLessonId));
+      else if (sectionId) fd.append("section", String(sectionId));
       if (subLessonId) fd.append("sub_lesson", String(subLessonId));
       fd.append("mode", mode);
       const { data } = await client.post(importUrl, fd);

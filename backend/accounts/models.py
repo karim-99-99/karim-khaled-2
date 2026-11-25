@@ -72,6 +72,15 @@ class User(AbstractUser):
     guardian_phone = models.CharField(
         "جوال ولي الأمر", max_length=20, blank=True, default=""
     )
+    parent_link_code = models.CharField(
+        "كود ربط ولي الأمر",
+        max_length=24,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="يُستخدم في رابط تليجرام: /start {code}",
+    )
     taught_subject = models.ForeignKey(
         "catalog.Subject",
         related_name="teachers",
@@ -169,4 +178,80 @@ class TelegramOAuthState(models.Model):
         if self.consumed_at:
             return False
         return timezone.now() >= self.expires_at
+
+
+class ParentTelegramLink(models.Model):
+    """Parent Telegram chat linked to a student (Task 33 / B9)."""
+
+    student = models.ForeignKey(
+        User, related_name="parent_telegram_links", on_delete=models.CASCADE
+    )
+    chat_id = models.CharField(max_length=64, db_index=True)
+    telegram_username = models.CharField(max_length=150, blank=True, default="")
+    display_name = models.CharField(max_length=150, blank=True, default="")
+    linked_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ("student", "chat_id")
+        ordering = ["-linked_at"]
+
+    def __str__(self):
+        return f"parent chat {self.chat_id} → student {self.student_id}"
+
+
+class ParentReport(models.Model):
+    """Stored parent Telegram message (class report or reminder)."""
+
+    class ReportType(models.TextChoices):
+        CLASS = "class", "تقرير حصة"
+        REMINDER = "reminder", "تذكير مهام"
+
+    class Status(models.TextChoices):
+        SENT = "sent", "أُرسل"
+        FAILED = "failed", "فشل"
+        NO_PARENT = "no_parent", "لا ولي أمر"
+        QUEUED = "queued", "بالانتظار"
+
+    student = models.ForeignKey(
+        User, related_name="parent_reports", on_delete=models.CASCADE
+    )
+    subject = models.ForeignKey(
+        "catalog.Subject",
+        related_name="parent_reports",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    session = models.ForeignKey(
+        "scheduling.Session",
+        related_name="parent_reports",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+    report_type = models.CharField(
+        max_length=20, choices=ReportType.choices, default=ReportType.CLASS
+    )
+    payload = models.JSONField(default=dict, blank=True)
+    content_text = models.TextField(blank=True, default="")
+    recipients = models.JSONField(default=list, blank=True)
+    status = models.CharField(
+        max_length=20, choices=Status.choices, default=Status.QUEUED
+    )
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        User,
+        related_name="parent_reports_created",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"{self.report_type} student={self.student_id} ({self.status})"
 

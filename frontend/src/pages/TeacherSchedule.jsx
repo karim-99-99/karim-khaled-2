@@ -1,88 +1,226 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import client from "../api/client";
-import { resolveSubjectKey } from "../theme/subjects";
-import { formatSessionWhen, sessionDisplayTitle, effectiveSessionStatus } from "../utils/sessionDate";
 import { joinLiveSession } from "../utils/joinLiveSession";
+import { toArabicDigits } from "../utils/sessionDate";
+import { resolveSubjectKey, subjectClass } from "../theme/subjects";
+import "../styles/teacher-classes.css";
 
-/**
- * Teacher view: join the admin-scheduled live class + attendance.
- */
+function pillClass(tone) {
+  if (tone === "red") return "p-red";
+  if (tone === "green") return "p-green";
+  if (tone === "orange") return "p-orange";
+  if (tone === "blue") return "p-blue";
+  return "p-grey";
+}
+
+function ClassRow({
+  row,
+  joiningId,
+  onJoin,
+  detailsId,
+  onToggleDetails,
+  attendance,
+  attendanceBusy,
+  onSetStatus,
+  onSaveAttendance,
+}) {
+  const open = detailsId === row.id;
+
+  function actions() {
+    if (row.action === "rate") {
+      return (
+        <Link className="btn red" to={`/teacher/sessions/${row.id}/rate`}>
+          ⭐ قيّم الحصة
+        </Link>
+      );
+    }
+    if (row.action === "rated") {
+      return (
+        <Link className="btn done" to={`/teacher/sessions/${row.id}/rate`}>
+          ✓ عرض التقييم
+        </Link>
+      );
+    }
+    if (row.action === "join") {
+      return (
+        <button
+          type="button"
+          className="btn"
+          disabled={joiningId === row.id}
+          onClick={() => onJoin(row.id)}
+        >
+          {joiningId === row.id ? "…" : "دخول الحصة"}
+        </button>
+      );
+    }
+    return (
+      <button
+        type="button"
+        className="btn ghost"
+        onClick={() => onToggleDetails(row.id)}
+      >
+        {open ? "إغلاق" : "تفاصيل"}
+      </button>
+    );
+  }
+
+  return (
+    <div>
+      <div
+        className={`cl${row.tone === "rate" ? " rate" : ""}${
+          row.tone === "soon" ? " soon" : ""
+        }${row.tone === "extra" || row.is_extra ? " extra" : ""}`}
+      >
+        <div className="tm">
+          <b>{row.time_label}</b>
+          <small>{row.duration_label}</small>
+        </div>
+        <div className="t">
+          <b>
+            {row.title}
+            {(row.pills || []).map((p) => (
+              <span key={p.key} className={`pill ${pillClass(p.tone)}`}>
+                {p.label}
+              </span>
+            ))}
+          </b>
+          <small>{row.meta}</small>
+        </div>
+        {actions()}
+      </div>
+      {open && (
+        <div className="details">
+          {attendanceBusy && !attendance ? (
+            <p className="mut">جاري تحميل الطلاب…</p>
+          ) : attendance ? (
+            <>
+              <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+                <button type="button" className="btn ghost" onClick={() => onSetStatus(null, "present")}>
+                  الكل حاضر
+                </button>
+                <button type="button" className="btn ghost" onClick={() => onSetStatus(null, "absent")}>
+                  الكل غائب
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={attendanceBusy}
+                  onClick={onSaveAttendance}
+                >
+                  حفظ الحضور
+                </button>
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>الطالب</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(attendance.records || []).map((r) => (
+                    <tr key={r.student_id}>
+                      <td>{r.full_name}</td>
+                      <td>
+                        <select
+                          value={r.status || ""}
+                          onChange={(e) =>
+                            onSetStatus(r.student_id, e.target.value || null)
+                          }
+                        >
+                          <option value="">—</option>
+                          <option value="present">حاضر</option>
+                          <option value="absent">غائب</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          ) : (
+            <p className="mut">لا بيانات حضور.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TeacherSchedule() {
-  const [sessions, setSessions] = useState([]);
-  const [drafts, setDrafts] = useState({});
-  const [msg, setMsg] = useState("");
-  const [busyId, setBusyId] = useState(null);
-  const [view, setView] = useState("all"); // all | upcoming | past
-  const [attendanceSessionId, setAttendanceSessionId] = useState(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") || "schedule";
+  const groupParam = searchParams.get("group") || "";
+  const dateParam = searchParams.get("date") || "";
+  const monthParam = searchParams.get("month") || "";
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [joiningId, setJoiningId] = useState(null);
+  const [detailsId, setDetailsId] = useState(null);
   const [attendance, setAttendance] = useState(null);
   const [attendanceBusy, setAttendanceBusy] = useState(false);
 
-  function loadSessions() {
-    const params = view === "all" ? {} : { when: view };
-    client.get("/sessions/", { params }).then((res) => {
-      const rows = res.data.results || res.data;
-      setSessions(rows);
-      const next = {};
-      rows.forEach((s) => {
-        next[s.id] = { zoom_link: s.zoom_link || "", status: s.status };
-      });
-      setDrafts(next);
-    });
-  }
+  const load = useCallback(() => {
+    setLoading(true);
+    setError("");
+    const params = {};
+    if (groupParam) params.group = groupParam;
+    if (dateParam) params.date = dateParam;
+    if (monthParam) params.month = monthParam;
+    client
+      .get("/teacher/classes/", { params })
+      .then((res) => setData(res.data))
+      .catch((e) => {
+        setError(e.response?.data?.detail || "تعذّر تحميل الحصص");
+        setData(null);
+      })
+      .finally(() => setLoading(false));
+  }, [groupParam, dateParam, monthParam]);
 
   useEffect(() => {
-    loadSessions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [view]);
+    load();
+  }, [load]);
 
-  function setDraft(id, key, value) {
-    setDrafts((d) => ({ ...d, [id]: { ...d[id], [key]: value } }));
+  const skin = subjectClass(resolveSubjectKey(data?.subject));
+
+  function setParam(key, value) {
+    const next = new URLSearchParams(searchParams);
+    if (value == null || value === "") next.delete(key);
+    else next.set(key, String(value));
+    setSearchParams(next);
   }
 
-  async function saveZoom(session) {
-    setMsg("");
-    setBusyId(session.id);
-    const draft = drafts[session.id] || {};
+  async function handleJoin(sessionId) {
+    setJoiningId(sessionId);
+    setError("");
     try {
-      await client.patch(`/sessions/${session.id}/`, {
-        zoom_link: draft.zoom_link || "",
-        status: draft.status || session.status,
-      });
-      setMsg("تم حفظ رابط Zoom");
-      loadSessions();
+      await joinLiveSession(sessionId);
+      load();
     } catch (e) {
-      setMsg(e.response?.data?.detail || "تعذّر حفظ الرابط");
+      setError(e.response?.data?.detail || "تعذّر دخول الحصة");
     } finally {
-      setBusyId(null);
+      setJoiningId(null);
     }
   }
 
-  async function toggleTeacherZoom(session, joined) {
-    setMsg("");
-    setBusyId(session.id);
-    try {
-      await client.post(`/sessions/${session.id}/teacher_zoom/`, { joined });
-      setMsg(joined ? "تم تسجيل دخولك إلى Zoom — يظهر للطلاب الآن" : "أُلغي تسجيل دخول Zoom");
-      loadSessions();
-    } catch (e) {
-      setMsg(e.response?.data?.detail || "تعذّر تحديث حالة Zoom");
-    } finally {
-      setBusyId(null);
+  async function toggleDetails(sessionId) {
+    if (detailsId === sessionId) {
+      setDetailsId(null);
+      setAttendance(null);
+      return;
     }
-  }
-
-  async function openAttendance(session) {
-    setMsg("");
-    setAttendanceSessionId(session.id);
+    setDetailsId(sessionId);
     setAttendance(null);
     setAttendanceBusy(true);
     try {
-      const res = await client.get(`/sessions/${session.id}/attendance/`);
+      const res = await client.get(`/sessions/${sessionId}/attendance/`);
       setAttendance(res.data);
     } catch (e) {
-      setMsg(e.response?.data?.detail || "تعذّر تحميل قائمة الطلاب");
-      setAttendanceSessionId(null);
+      setError(e.response?.data?.detail || "تعذّر تحميل الحضور");
+      setDetailsId(null);
     } finally {
       setAttendanceBusy(false);
     }
@@ -91,31 +229,26 @@ export default function TeacherSchedule() {
   function setStudentStatus(studentId, status) {
     setAttendance((prev) => {
       if (!prev) return prev;
+      if (studentId == null) {
+        return {
+          ...prev,
+          records: prev.records.map((r) => ({ ...r, status })),
+        };
+      }
       return {
         ...prev,
         records: prev.records.map((r) =>
-          r.student_id === studentId ? { ...r, status } : r
+          r.student_id === studentId ? { ...r, status } : r,
         ),
       };
     });
   }
 
-  function markAll(status) {
-    setAttendance((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        records: prev.records.map((r) => ({ ...r, status })),
-      };
-    });
-  }
-
   async function saveAttendance() {
-    if (!attendanceSessionId || !attendance) return;
+    if (!detailsId || !attendance) return;
     setAttendanceBusy(true);
-    setMsg("");
     try {
-      const res = await client.put(`/sessions/${attendanceSessionId}/attendance/`, {
+      const res = await client.put(`/sessions/${detailsId}/attendance/`, {
         records: attendance.records.map((r) => ({
           student_id: r.student_id,
           status: r.status || null,
@@ -123,252 +256,261 @@ export default function TeacherSchedule() {
         })),
       });
       setAttendance(res.data);
-      setMsg("تم حفظ الحضور والغياب");
-      loadSessions();
+      load();
     } catch (e) {
-      setMsg(e.response?.data?.detail || "تعذّر حفظ الحضور");
+      setError(e.response?.data?.detail || "تعذّر حفظ الحضور");
     } finally {
       setAttendanceBusy(false);
     }
   }
 
+  const groups = data?.groups || [];
+  const week = data?.week || [];
+  const needs = data?.needs_rating || {};
+
+  const rowProps = useMemo(
+    () => ({
+      joiningId,
+      onJoin: handleJoin,
+      detailsId,
+      onToggleDetails: toggleDetails,
+      attendance: detailsId ? attendance : null,
+      attendanceBusy,
+      onSetStatus: setStudentStatus,
+      onSaveAttendance: saveAttendance,
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [joiningId, detailsId, attendance, attendanceBusy],
+  );
+
+  if (loading && !data) {
+    return (
+      <div className={`tcls ${skin}`}>
+        <div className="spinner">جاري تحميل الحصص…</div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, gap: 12, flexWrap: "wrap" }}>
-        <h1 style={{ fontSize: 28 }}>جدول الحصص</h1>
-        <Link to="/teacher" className="btn btn-ghost">رجوع للوحة المدرس</Link>
-      </div>
+    <div className={`tcls ${skin}`}>
+      {error && <div className="banner-err">{error}</div>}
 
-      <div className="banner" style={{ marginBottom: 16 }}>
-        أضف <strong>رابط Zoom</strong>، وبعد الحصة افتح المجموعة لتسجيل{" "}
-        <strong>الحضور والغياب</strong>. يمكنك مراجعة الحصص السابقة في أي وقت.
-      </div>
-
-      <div className="filter-row" style={{ marginBottom: 16 }}>
-        {[
-          ["all", "كل الحصص"],
-          ["upcoming", "القادمة"],
-          ["past", "السابقة"],
-        ].map(([v, t]) => (
-          <span
-            key={v}
-            className={`chip ${view === v ? "active" : ""}`}
-            onClick={() => {
-              setView(v);
-              setAttendanceSessionId(null);
-              setAttendance(null);
-            }}
+      <div className="ph">
+        <div>
+          <h1>حصصي</h1>
+          <span className="mut">{data?.header?.subtitle || ""}</span>
+        </div>
+        <div className="chips">
+          <button
+            type="button"
+            className={`chip${!groupParam ? " on" : ""}`}
+            onClick={() => setParam("group", "")}
           >
-            {t}
-          </span>
-        ))}
+            الكل
+          </button>
+          {groups.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              className={`chip${String(groupParam) === String(g.id) ? " on" : ""}`}
+              onClick={() => setParam("group", g.id)}
+            >
+              {g.name}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {msg && <div className="banner" style={{ marginBottom: 12 }}>{msg}</div>}
+      <div className="tabs">
+        <button
+          type="button"
+          className={tab === "schedule" ? "on" : ""}
+          onClick={() => setParam("tab", "schedule")}
+        >
+          جدول الحصص
+        </button>
+        <Link to="/teacher/availability">مواعيدي المتاحة</Link>
+        <button
+          type="button"
+          className={tab === "past" ? "on" : ""}
+          onClick={() => setParam("tab", "past")}
+        >
+          الحصص السابقة
+        </button>
+      </div>
 
-      {sessions.length === 0 && (
-        <p style={{ color: "var(--text-muted)" }}>لا توجد حصص مجدولة لك بعد. انتظر وضع الجدول من المدير.</p>
-      )}
-
-      {sessions.map((s) => {
-        const draft = drafts[s.id] || { zoom_link: "", status: s.status };
-        const when = formatSessionWhen(s.start_time);
-        const subjectKey = resolveSubjectKey(s.subject_name) || "math";
-        const summary = s.attendance_summary;
-        const open = attendanceSessionId === s.id;
-        return (
-          <div
-            key={s.id}
-            className="card session-card session-skin"
-            data-subject={subjectKey}
-            style={{ padding: 16, marginBottom: 12 }}
-          >
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-start" }}>
-              <div className="session-number" aria-label={`الحصة رقم ${s.session_number}`}>
-                {s.session_number ?? "—"}
-              </div>
-              <div style={{ minWidth: 140 }}>
-                <div className="session-date">
-                  <div className="session-card__time session-date__time">{when.time}</div>
-                  {when.hijri ? (
-                    <div className="session-date__hijri">{when.hijri}</div>
-                  ) : null}
-                  <div className="session-date__gregorian">{when.gregorian}</div>
-                </div>
-              </div>
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <strong className="session-card__title">{sessionDisplayTitle(s)}</strong>
-                {effectiveSessionStatus(s) === "live" && (
-                  <span className="badge badge-live" style={{ marginInlineStart: 8 }}>مباشر</span>
-                )}
-                <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                  {s.subject_name}
-                  {s.session_number != null ? ` · الحصة ${s.session_number}` : ""}
-                  {" · "}{s.group_name || "مجموعة"} · {s.duration_minutes} دقيقة
-                </div>
-                {summary?.recorded && (
-                  <div style={{ fontSize: 13, marginTop: 4, fontWeight: 600 }}>
-                    حضور: {summary.present} · غياب: {summary.absent}
-                  </div>
-                )}
-              </div>
+      {tab !== "past" && (
+        <>
+          {needs.count > 0 && (
+            <div className="alert">
+              <span>{needs.text}</span>
+              <Link
+                className="btn red"
+                to={`/teacher/sessions/${needs.oldest_id}/rate`}
+              >
+                قيّم الآن ←
+              </Link>
             </div>
+          )}
 
-            {s.join_mode !== "bbb" && (
-            <div className="form-group" style={{ marginTop: 12, marginBottom: 8 }}>
-              <label>رابط احتياطي (اختياري)</label>
-              <input
-                className="form-control"
-                value={draft.zoom_link}
-                placeholder="https://..."
-                onChange={(e) => setDraft(s.id, "zoom_link", e.target.value)}
-              />
+          <div className="card">
+            <div className="week">
+              {week.map((d) => (
+                <button
+                  key={d.date}
+                  type="button"
+                  className={`wd${d.is_selected ? " on" : ""}`}
+                  onClick={() => setParam("date", d.date)}
+                >
+                  <small>{d.weekday}</small>
+                  <b>{toArabicDigits(d.day)}</b>
+                  <span>{d.count_label}</span>
+                </button>
+              ))}
             </div>
+          </div>
+
+          <div className="card">
+            <div className="card-h">
+              <h2>{data?.selected_heading}</h2>
+            </div>
+            {(data?.selected_sessions || []).length === 0 && (
+              <p className="empty">لا حصص في هذا اليوم.</p>
             )}
+            {(data?.selected_sessions || []).map((row) => (
+              <ClassRow key={row.id} row={row} {...rowProps} />
+            ))}
+          </div>
 
-            <div className="form-group" style={{ marginBottom: 12 }}>
-              <label>الحالة</label>
-              <div className="filter-row">
-                {[["scheduled", "مجدولة"], ["live", "مباشر الآن"], ["done", "منتهية"]].map(([v, t]) => (
-                  <span
-                    key={v}
-                    className={`chip ${draft.status === v ? "active" : ""}`}
-                    onClick={() => setDraft(s.id, "status", v)}
-                  >
-                    {t}
-                  </span>
-                ))}
+          <div className="two">
+            <div className="card" style={{ marginTop: 0 }}>
+              <div className="card-h">
+                <h2>{data?.tomorrow?.heading}</h2>
               </div>
+              {(data?.tomorrow?.sessions || []).length === 0 && (
+                <p className="empty">لا حصص غداً.</p>
+              )}
+              {(data?.tomorrow?.sessions || []).map((row) => (
+                <ClassRow key={row.id} row={row} {...rowProps} />
+              ))}
             </div>
-
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                disabled={busyId === s.id}
-                onClick={async () => {
-                  setMsg("");
-                  setBusyId(s.id);
-                  try {
-                    await joinLiveSession(s.id);
-                    setMsg("اتفتح لينك الحصة — أنت مدرّس الجلسة");
-                    loadSessions();
-                  } catch (e) {
-                    setMsg(e.response?.data?.detail || "تعذّر فتح الحصة");
-                  } finally {
-                    setBusyId(null);
-                  }
-                }}
-              >
-                {busyId === s.id ? "…" : "ادخل الحصة"}
-              </button>
-              {s.join_mode !== "bbb" && (
-              <button
-                className="btn btn-secondary btn-sm"
-                disabled={busyId === s.id}
-                onClick={() => saveZoom(s)}
-              >
-                حفظ الرابط الاحتياطي
-              </button>
-              )}
-              {s.teacher_joined_zoom && (
-                <span className="badge badge-present" style={{ alignSelf: "center" }}>
-                  ظاهر للطلاب: المدرس داخل الحصة
-                </span>
-              )}
-              {s.group ? (
+            <div className="card" style={{ marginTop: 0 }}>
+              <div className="card-h">
+                <h2>حصص سابقة</h2>
                 <button
                   type="button"
-                  className={`btn btn-sm ${open ? "btn-primary" : "btn-secondary"}`}
-                  onClick={() => {
-                    if (open) {
-                      setAttendanceSessionId(null);
-                      setAttendance(null);
-                    } else {
-                      openAttendance(s);
-                    }
-                  }}
+                  className="link"
+                  onClick={() => setParam("tab", "past")}
                 >
-                  {open
-                    ? "إغلاق الحضور"
-                    : summary?.recorded
-                      ? "عرض / تعديل الحضور"
-                      : "تسجيل حضور المجموعة"}
+                  عرض الكل ←
                 </button>
-              ) : null}
-            </div>
-
-            {open && (
-              <div className="attendance-panel" style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 12, alignItems: "center" }}>
-                  <strong>
-                    حضور مجموعة {attendance?.group_name || s.group_name || ""}
-                  </strong>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => markAll("present")} disabled={attendanceBusy}>
-                      الكل حاضر
-                    </button>
-                    <button type="button" className="btn btn-ghost btn-sm" onClick={() => markAll("absent")} disabled={attendanceBusy}>
-                      الكل غائب
-                    </button>
-                    <button type="button" className="btn btn-primary btn-sm" onClick={saveAttendance} disabled={attendanceBusy || !attendance}>
-                      {attendanceBusy ? "…" : "حفظ الحضور"}
-                    </button>
-                  </div>
-                </div>
-
-                {attendanceBusy && !attendance && (
-                  <p style={{ color: "var(--text-muted)" }}>جاري تحميل الطلاب…</p>
-                )}
-
-                {attendance?.records?.length === 0 && (
-                  <p style={{ color: "var(--text-muted)" }}>لا يوجد طلاب في هذه المجموعة.</p>
-                )}
-
-                {attendance?.records?.map((r) => (
-                  <div
-                    key={r.student_id}
-                    className="attendance-row"
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 12,
-                      padding: "10px 0",
-                      borderBottom: "1px solid color-mix(in srgb, var(--border) 70%, transparent)",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <span style={{ fontWeight: 600 }}>{r.full_name}</span>
-                    <div className="filter-row" style={{ margin: 0 }}>
-                      <span
-                        className={`chip ${r.status === "present" ? "active attendance-present" : ""}`}
-                        onClick={() => setStudentStatus(r.student_id, "present")}
-                      >
-                        حاضر
-                      </span>
-                      <span
-                        className={`chip ${r.status === "absent" ? "active attendance-absent" : ""}`}
-                        onClick={() => setStudentStatus(r.student_id, "absent")}
-                      >
-                        غائب
-                      </span>
-                    </div>
-                  </div>
-                ))}
-
-                {attendance?.summary && (
-                  <div style={{ marginTop: 12, fontSize: 13, color: "var(--text-muted)" }}>
-                    حاضر {attendance.summary.present} · غائب {attendance.summary.absent}
-                    {attendance.summary.unmarked ? ` · بلا تسجيل ${attendance.summary.unmarked}` : ""}
-                    {" · "}المجموع {attendance.summary.total}
-                  </div>
-                )}
               </div>
-            )}
+              {(data?.recent_past || []).length === 0 && (
+                <p className="empty">لا حصص سابقة قريبة.</p>
+              )}
+              {(data?.recent_past || []).map((row) => (
+                <ClassRow key={row.id} row={row} {...rowProps} />
+              ))}
+            </div>
           </div>
-        );
-      })}
+        </>
+      )}
+
+      {tab === "past" && (
+        <div className="card" style={{ marginTop: 0 }}>
+          <div className="card-h">
+            <h2>الحصص السابقة</h2>
+            <div className="row" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+              <div className="chips">
+                <button
+                  type="button"
+                  className={`chip${!groupParam ? " on" : ""}`}
+                  onClick={() => setParam("group", "")}
+                >
+                  الكل
+                </button>
+                {groups.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className={`chip${String(groupParam) === String(g.id) ? " on" : ""}`}
+                    onClick={() => setParam("group", g.id)}
+                  >
+                    {g.name}
+                  </button>
+                ))}
+              </div>
+              <select
+                className="month-select"
+                value={monthParam || data?.past?.month || ""}
+                onChange={(e) => setParam("month", e.target.value)}
+              >
+                {(data?.past?.months || []).map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="tbl-wrap">
+            <table className="tbl">
+              <thead>
+                <tr>
+                  <th>التاريخ</th>
+                  <th>الحصة</th>
+                  <th>المجموعة</th>
+                  <th>الحضور</th>
+                  <th>الحالة</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data?.past?.sessions || []).map((row) => {
+                  const rated = row.action === "rated";
+                  return (
+                    <tr key={row.id}>
+                      <td>{row.date_label}</td>
+                      <td>{row.title}</td>
+                      <td>{row.group_name}</td>
+                      <td>
+                        {toArabicDigits(
+                          `${row.attendance?.present || 0}/${row.attendance?.total || 0}`,
+                        )}
+                      </td>
+                      <td>
+                        <span className={`pill ${rated ? "p-green" : "p-red"}`}>
+                          {rated ? "تم التقييم" : "لم تُقيّم"}
+                        </span>
+                      </td>
+                      <td>
+                        {rated ? (
+                          <Link
+                            className="btn done"
+                            to={`/teacher/sessions/${row.id}/rate`}
+                          >
+                            عرض التقييم
+                          </Link>
+                        ) : (
+                          <Link
+                            className="btn red"
+                            to={`/teacher/sessions/${row.id}/rate`}
+                          >
+                            ⭐ قيّم
+                          </Link>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {(data?.past?.sessions || []).length === 0 && (
+            <p className="empty">لا حصص في هذا الفلتر.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, Outlet, matchPath, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { teachableSubjectIds, teacherManageSubjectPath } from "../auth/teacherScope";
 import client from "../api/client";
 import SiteFooter from "./SiteFooter";
 import {
@@ -88,6 +89,14 @@ function isSubjectThemeSurface(pathname) {
   );
 }
 
+function isTeacherSurface(pathname) {
+  return (
+    pathname.startsWith("/teacher") ||
+    pathname.startsWith("/courses") ||
+    pathname.startsWith("/tests/teacher")
+  );
+}
+
 export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -101,6 +110,15 @@ export default function Layout() {
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [menuOpen]);
 
   const initial = user?.full_name?.trim()?.[0] || "؟";
   const subjectId = useMemo(() => readSubjectId(location.pathname), [location.pathname]);
@@ -130,17 +148,46 @@ export default function Layout() {
   }, [subjectId]); // intentionally not depending on subjects identity
 
   const subjectFromRoute = subjects.find((s) => String(s.id) === String(subjectId));
-  const routeThemeKey = resolveSubjectKey(subjectFromRoute?.name) || null;
-  const themeKey = routeThemeKey || lockedThemeKey || (subjectSurface ? peekLockedTheme() : null);
+  const matchedKey = resolveSubjectKey(subjectFromRoute);
+  const routeThemeKey = matchedKey || (subjectFromRoute ? "multi" : null);
+
+  // Task 26: teacher pages use their taught subject color/logo.
+  const teacherSubjectId = useMemo(() => {
+    if (user?.role !== "teacher") return null;
+    const ids = teachableSubjectIds(user);
+    if (!Array.isArray(ids) || !ids.length) return null;
+    if (user.taught_subject != null && ids.map(String).includes(String(user.taught_subject))) {
+      return Number(user.taught_subject);
+    }
+    return Number(ids[0]);
+  }, [user]);
+
+  const teacherSubject = subjects.find((s) => String(s.id) === String(teacherSubjectId));
+  const teacherThemeKey = teacherSubject ? resolveSubjectKey(teacherSubject) : null;
+  const onTeacherSurface = user?.role === "teacher" && isTeacherSurface(location.pathname);
+
+  const themeKey =
+    routeThemeKey ||
+    lockedThemeKey ||
+    (subjectSurface ? peekLockedTheme() : null) ||
+    (onTeacherSurface ? teacherThemeKey : null);
   const theme = getSubjectTheme(themeKey);
   const logoSrc = theme?.logo || DEFAULT_LOGO;
   const logoAlt = theme ? `مرام ${theme.label}` : "مرام — للتحصيلي بإتقان";
+  const manageSubjectPath = teacherManageSubjectPath(user);
 
   useEffect(() => {
-    if (!subjectSurface) {
+    if (!subjectSurface && !onTeacherSurface) {
       setLockedThemeKey(null);
       unlockSubjectTheme();
       clearSubjectTheme();
+      return undefined;
+    }
+
+    if (onTeacherSurface && teacherThemeKey && !routeThemeKey) {
+      lockSubjectTheme(teacherThemeKey);
+      setLockedThemeKey(teacherThemeKey);
+      applySubjectTheme(teacherThemeKey);
       return undefined;
     }
 
@@ -201,19 +248,52 @@ export default function Layout() {
           />
         </NavLink>
         <nav className={`nav${menuOpen ? " is-open" : ""}`}>
-          <NavLink to="/" end>
-            الرئيسية
-          </NavLink>
-          <NavLink to="/courses">دورات</NavLink>
-          <NavLink to="/tests">اختبارات</NavLink>
-          <NavLink to="/results">نتائج</NavLink>
-          {!(user?.role === "student" && user?.is_silver) && (
-            <NavLink to="/schedule">جدول الحصص</NavLink>
+          {user?.role === "teacher" ? (
+            <>
+              <NavLink to="/teacher" end onClick={() => setMenuOpen(false)}>
+                الرئيسية
+              </NavLink>
+              <NavLink to="/teacher/schedule" onClick={() => setMenuOpen(false)}>
+                حصصي
+              </NavLink>
+              <NavLink to="/teacher/students" onClick={() => setMenuOpen(false)}>
+                الطلاب
+              </NavLink>
+              <NavLink to="/teacher/tasks" onClick={() => setMenuOpen(false)}>
+                المهام
+              </NavLink>
+              <NavLink to="/tests" onClick={() => setMenuOpen(false)}>
+                الاختبارات
+              </NavLink>
+              <NavLink to={manageSubjectPath} onClick={() => setMenuOpen(false)}>
+                إدارة المادة
+              </NavLink>
+            </>
+          ) : (
+            <>
+              <NavLink to="/" end onClick={() => setMenuOpen(false)}>
+                الرئيسية
+              </NavLink>
+              {!(user?.role === "student" && user?.is_silver) && user?.role === "student" && (
+                <NavLink to="/daily-tasks" onClick={() => setMenuOpen(false)}>
+                  المهام اليومية
+                </NavLink>
+              )}
+              <NavLink to="/courses" onClick={() => setMenuOpen(false)}>دورات</NavLink>
+              <NavLink to="/tests" onClick={() => setMenuOpen(false)}>اختبارات</NavLink>
+              <NavLink to="/results" onClick={() => setMenuOpen(false)}>نتائج</NavLink>
+              {!(user?.role === "student" && user?.is_silver) && (
+                <NavLink to="/schedule" onClick={() => setMenuOpen(false)}>جدول الحصص</NavLink>
+              )}
+              <NavLink to="/pricing" onClick={() => setMenuOpen(false)}>الأسعار</NavLink>
+              {user?.role === "student" && (
+                <NavLink to="/subscription" onClick={() => setMenuOpen(false)}>اشتراكي</NavLink>
+              )}
+              {user?.role === "admin" && (
+                <NavLink to="/admin" onClick={() => setMenuOpen(false)}>لوحة المدير</NavLink>
+              )}
+            </>
           )}
-          <NavLink to="/pricing">الأسعار</NavLink>
-          {user?.role === "student" && <NavLink to="/subscription">اشتراكي</NavLink>}
-          {user?.role === "teacher" && <NavLink to="/teacher">لوحة المدرس</NavLink>}
-          {user?.role === "admin" && <NavLink to="/admin">لوحة المدير</NavLink>}
         </nav>
         <button
           type="button"
@@ -263,7 +343,11 @@ export default function Layout() {
         className={
           location.pathname === "/" ||
           location.pathname === "/login" ||
-          location.pathname === "/register"
+          location.pathname === "/register" ||
+          location.pathname.startsWith("/courses") ||
+          location.pathname.startsWith("/tests") ||
+          location.pathname.startsWith("/exam") ||
+          location.pathname.startsWith("/lessons")
             ? "container container--bleed"
             : "container"
         }

@@ -61,6 +61,7 @@ export default function TeacherQuestionForm({
   subjectId,
   lessonId,
   sectionId = null,
+  homeworkSubLessonId = null,
   kind = "homework", // homework | collection
   defaultDifficulty = "medium",
   initialQuestion = null, // when set → edit mode (PATCH)
@@ -76,12 +77,12 @@ export default function TeacherQuestionForm({
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
   const imageApis = useRef({});
-  const radioName = `correct-${kind}-${initialQuestion?.id || "new"}-${lessonId}-${sectionId || "x"}`;
+  const radioName = `correct-${kind}-${initialQuestion?.id || "new"}-${lessonId}-${homeworkSubLessonId || sectionId || "x"}`;
 
   useEffect(() => {
     setForm(formFromQuestion(initialQuestion, defaultDifficulty, defaultSubLessonId));
     setMsg("");
-  }, [initialQuestion, defaultDifficulty, defaultSubLessonId, lessonId, sectionId, kind]);
+  }, [initialQuestion, defaultDifficulty, defaultSubLessonId, lessonId, sectionId, homeworkSubLessonId, kind]);
 
   /** One stable ref object per image field, so a text field can paste into its image box. */
   function imageApiRef(key) {
@@ -141,8 +142,13 @@ export default function TeacherQuestionForm({
       payload.teacher_tier = form.teacher_tier;
       payload.sub_lesson = form.sub_lesson || null;
     }
-    if (kind === "homework" && sectionId) {
-      payload.section = Number(sectionId);
+    if (kind === "homework") {
+      payload.group = null;
+      if (homeworkSubLessonId) {
+        payload.homework_sub_lesson = Number(homeworkSubLessonId);
+      } else if (sectionId) {
+        payload.section = Number(sectionId);
+      }
     }
     try {
       if (editing) {

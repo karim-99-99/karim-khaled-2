@@ -5,9 +5,19 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.models import User
+from billing.models import Subscription
 from catalog.models import Subject
 from groups.models import GroupStudent, GroupTeacher, StudyGroup
-from scheduling.models import Session, sync_session_statuses
+from scheduling.models import Session, SessionAttendance, sync_session_statuses
+
+
+def _gold(user, days=30):
+    return Subscription.objects.create(
+        student=user,
+        plan=Subscription.Plan.GOLD,
+        start_date=timezone.now().date(),
+        end_date=(timezone.now() + timedelta(days=days)).date(),
+    )
 
 
 class SessionStatusSyncTests(TestCase):
@@ -82,6 +92,7 @@ class SessionStatusSyncTests(TestCase):
             full_name="Student",
             role=User.Role.STUDENT,
         )
+        _gold(student)
         GroupStudent.objects.create(group=self.group, student=student)
         client = APIClient()
         client.force_authenticate(user=student)
@@ -170,6 +181,7 @@ class HeavyScheduleListTests(TestCase):
             full_name="Student",
             role=User.Role.STUDENT,
         )
+        _gold(student)
         GroupStudent.objects.create(group=group, student=student)
         now = timezone.now()
         Session.objects.bulk_create(
@@ -243,6 +255,8 @@ class BBBJoinTests(TestCase):
         self.group = StudyGroup.objects.create(name="مجموعة أ", created_by=self.admin)
         GroupTeacher.objects.create(group=self.group, teacher=self.teacher, subject=self.subject)
         GroupStudent.objects.create(group=self.group, student=self.student)
+        _gold(self.student)
+        _gold(self.outsider)
         self.client = APIClient()
 
     def test_admin_create_assigns_meeting_id(self):
@@ -288,6 +302,8 @@ class BBBJoinTests(TestCase):
             start_time=timezone.now(),
             duration_minutes=60,
             bbb_meeting_id="zad-session-9",
+            teacher_joined_zoom=True,
+            status=Session.Status.LIVE,
         )
         self.client.force_authenticate(user=self.student)
         with patch("scheduling.views.bbb_configured", return_value=True), patch(
@@ -392,3 +408,152 @@ class BBBJoinTests(TestCase):
         self.assertNotIn("userdata-bbb_force_listen_only", teacher_params)
         self.assertEqual(teacher_params["userdata-bbb_auto_join_audio"], "false")
         self.assertEqual(teacher_params["userdata-bbb_listen_only_mode"], "true")
+
+
+class ExtraSessionTests(TestCase):
+    def setUp(self):
+        self.subject = Subject.objects.create(
+            name="رياضيات-إضافي", slug="math-extra", order=1
+        )
+        self.admin = User.objects.create_user(
+            email="admin-extra@test.local",
+            password="Passw0rd!",
+            full_name="Admin",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.teacher = User.objects.create_user(
+            email="t-extra@test.local",
+            password="Passw0rd!",
+            full_name="T",
+            role=User.Role.TEACHER,
+        )
+        self.student = User.objects.create_user(
+            email="s-extra@test.local",
+            password="Passw0rd!",
+            full_name="S",
+            role=User.Role.STUDENT,
+        )
+        today = timezone.now().date()
+        Subscription.objects.create(
+            student=self.student,
+            plan=Subscription.Plan.GOLD,
+            start_date=today,
+            end_date=today + timedelta(days=30),
+        )
+        self.group = StudyGroup.objects.create(name="مجموعة إضافي", created_by=self.admin)
+        GroupTeacher.objects.create(
+            group=self.group, teacher=self.teacher, subject=self.subject
+        )
+        GroupStudent.objects.create(group=self.group, student=self.student)
+        self.client = APIClient()
+
+    def test_extra_requires_title_override(self):
+        self.client.force_authenticate(user=self.admin)
+        start = (timezone.now() + timedelta(days=1)).isoformat()
+        res = self.client.post(
+            "/api/sessions/",
+            {
+                "session_type": "extra",
+                "subject": self.subject.id,
+                "group": self.group.id,
+                "start_time": start,
+                "duration_minutes": 60,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 400)
+
+    def test_admin_creates_extra_with_badge_fields(self):
+        self.client.force_authenticate(user=self.admin)
+        start = (timezone.now() + timedelta(days=2)).isoformat()
+        res = self.client.post(
+            "/api/sessions/",
+            {
+                "session_type": "extra",
+                "title_override": "المثلثات — حصة إضافية",
+                "subject": self.subject.id,
+                "group": self.group.id,
+                "start_time": start,
+                "duration_minutes": 45,
+            },
+            format="json",
+        )
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(res.data["session_type"], "extra")
+        self.assertTrue(res.data["is_extra"])
+        self.assertEqual(res.data["display_title"], "المثلثات — حصة إضافية")
+        self.assertIsNone(res.data.get("session_number"))
+
+        self.client.force_authenticate(user=self.student)
+        listed = self.client.get("/api/sessions/")
+        self.assertEqual(listed.status_code, 200)
+        rows = listed.data["results"] if isinstance(listed.data, dict) else listed.data
+        match = next((r for r in rows if r["id"] == res.data["id"]), None)
+        self.assertIsNotNone(match)
+        self.assertTrue(match["is_extra"])
+
+
+class StudentJoinGateTests(TestCase):
+    def setUp(self):
+        self.subject = Subject.objects.create(
+            name="فيزياء-دخول", slug="physics-join", order=1
+        )
+        self.admin = User.objects.create_user(
+            email="admin-join@test.local",
+            password="Passw0rd!",
+            full_name="A",
+            role=User.Role.ADMIN,
+            is_staff=True,
+        )
+        self.teacher = User.objects.create_user(
+            email="t-join@test.local",
+            password="Passw0rd!",
+            full_name="T",
+            role=User.Role.TEACHER,
+        )
+        self.student = User.objects.create_user(
+            email="s-join@test.local",
+            password="Passw0rd!",
+            full_name="S",
+            role=User.Role.STUDENT,
+        )
+        today = timezone.now().date()
+        Subscription.objects.create(
+            student=self.student,
+            plan=Subscription.Plan.GOLD,
+            start_date=today,
+            end_date=today + timedelta(days=30),
+        )
+        self.group = StudyGroup.objects.create(name="مجموعة دخول", created_by=self.admin)
+        GroupTeacher.objects.create(
+            group=self.group, teacher=self.teacher, subject=self.subject
+        )
+        GroupStudent.objects.create(group=self.group, student=self.student)
+        self.session = Session.objects.create(
+            subject=self.subject,
+            group=self.group,
+            teacher=self.teacher,
+            title="حصة",
+            start_time=timezone.now() - timedelta(minutes=5),
+            duration_minutes=60,
+            zoom_link="https://zoom.example/j/1",
+        )
+        self.client = APIClient()
+
+    def test_student_blocked_before_teacher(self):
+        self.client.force_authenticate(user=self.student)
+        res = self.client.post(f"/api/sessions/{self.session.id}/join/")
+        self.assertEqual(res.status_code, 403)
+
+    def test_student_join_marks_present(self):
+        self.session.teacher_joined_zoom = True
+        self.session.save(update_fields=["teacher_joined_zoom"])
+        self.client.force_authenticate(user=self.student)
+        res = self.client.post(f"/api/sessions/{self.session.id}/join/")
+        self.assertEqual(res.status_code, 200, res.data)
+        self.assertTrue(res.data.get("url"))
+        row = SessionAttendance.objects.get(session=self.session, student=self.student)
+        self.assertEqual(row.status, SessionAttendance.Status.PRESENT)
+        self.assertEqual(row.status_source, SessionAttendance.StatusSource.AUTO)
+        self.assertIsNotNone(row.joined_at)

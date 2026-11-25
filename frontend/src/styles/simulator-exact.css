@@ -19,10 +19,11 @@
 .simulator-exact .chk{position:absolute;top:9px;left:9px;width:22px;height:22px;border-radius:50%;border:2px solid #d5dae5;background:#fff;display:grid;place-items:center}
 .simulator-exact .sub.on .chk{background:var(--c);border-color:var(--c)}
 .simulator-exact .chk svg{width:12px;height:12px}
-.simulator-exact .math{--c:#5f8f2e;--bg:#f6faef;--bg2:#eaf3dc}
-.simulator-exact .phys{--c:#6d28d9;--bg:#f8f5ff;--bg2:#ece4fd}
-.simulator-exact .chem{--c:#c0182f;--bg:#fff6f7;--bg2:#fde3e6}
-.simulator-exact .bio{--c:#c58a00;--bg:#fffaeb;--bg2:#fdf0c8}
+.simulator-exact .math{--c:var(--math-c);--bg:var(--math-light);--bg2:var(--math-light)}
+.simulator-exact .phys{--c:var(--physics-c);--bg:var(--physics-light);--bg2:var(--physics-light)}
+.simulator-exact .chem{--c:var(--chem-c);--bg:var(--chem-light);--bg2:var(--chem-light)}
+.simulator-exact .bio{--c:var(--bio-c);--bg:var(--bio-light);--bg2:var(--bio-light)}
+.simulator-exact .brand{--c:var(--blue);--bg:var(--primary-light);--bg2:var(--primary-light)}
 .simulator-exact .dd{border:1.5px solid var(--c);border-radius:14px;margin-bottom:12px;overflow:hidden;background:#fff}
 .simulator-exact .dd-h{display:flex;align-items:center;gap:12px;padding:14px 18px;background:var(--bg2);color:var(--c);font-weight:800;font-size:17px}
 .simulator-exact .dd-h .dot{width:12px;height:12px;border-radius:50%;background:var(--c)}
@@ -143,4 +144,41 @@
   .simulator-exact .grid, .simulator-exact .cards, .simulator-exact .subs, .simulator-exact .egrid, .simulator-exact .split, .simulator-exact .feats{grid-template-columns:1fr !important}
   .simulator-exact h1{font-size:28px !important}
 }
+
+/* Task 23 — count modes + locked lessons */
+.simulator-exact .opts.count3{grid-template-columns:1fr;gap:12px}
+.simulator-exact .opts.count3 .opt{flex-wrap:wrap;align-items:flex-start}
+.simulator-exact .opts.count3 .alloc-line{
+  flex:0 0 100%;
+  color:var(--mu);
+  font-size:13px;
+  margin-top:4px;
+  font-weight:600;
+}
+.simulator-exact .opts.count3 .per-total{
+  text-align:center;
+  min-width:72px;
+}
+.simulator-exact .opts.count3 .per-total strong{
+  display:block;
+  font-size:22px;
+  font-weight:800;
+  color:var(--navy);
+}
+.simulator-exact .opts.count3 .per-total span{font-size:12px;color:var(--mu)}
+.simulator-exact .ls.off{
+  background:#f6f7f9;
+  color:#a3abb8;
+  cursor:not-allowed;
+  opacity:.9;
+}
+.simulator-exact .ls.off s{flex:1}
+.simulator-exact .ls.off .locked-tag{
+  font-size:12px;
+  color:#a3abb8;
+  margin-inline-start:6px;
+  font-style:normal;
+}
+.simulator-exact .ls.off .cb{background:#e5e8ee;border-color:#e5e8ee}
+.simulator-exact .dd.locked-subj .cnt{color:#b45309;font-weight:700}
 

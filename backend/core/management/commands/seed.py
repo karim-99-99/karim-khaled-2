@@ -8,14 +8,15 @@ from accounts.models import User
 from assessments.models import CollectionQuestion, HomeworkQuestion
 from billing.models import Subscription
 from catalog.models import Lesson, Subject
+from catalog.themes import theme_key_for
 from groups.models import GroupStudent, GroupTeacher, StudyGroup
 from scheduling.models import Session
 
 SUBJECTS = [
-    ("رياضيات", "math", "linear-gradient(135deg,#1e40af,#3b82f6)"),
-    ("فيزياء", "physics", "linear-gradient(135deg,#7c3aed,#a78bfa)"),
-    ("كيمياء", "chemistry", "linear-gradient(135deg,#059669,#34d399)"),
-    ("أحياء", "biology", "linear-gradient(135deg,#d97706,#fbbf24)"),
+    ("رياضيات", "math", "math"),
+    ("فيزياء", "physics", "physics"),
+    ("كيمياء", "chemistry", "chem"),
+    ("أحياء", "biology", "bio"),
 ]
 
 LESSONS = ["المعادلات الخطية", "حل المعادلات", "تطبيقات عملية"]
@@ -49,10 +50,19 @@ class Command(BaseCommand):
 
         # Subjects
         subjects = {}
-        for i, (name, slug, grad) in enumerate(SUBJECTS):
+        for i, (name, slug, theme_key) in enumerate(SUBJECTS):
             s, _ = Subject.objects.get_or_create(
-                slug=slug, defaults={"name": name, "cover_gradient": grad, "order": i}
+                slug=slug,
+                defaults={
+                    "name": name,
+                    "cover_gradient": "",
+                    "order": i,
+                    "theme_key": theme_key or theme_key_for(slug, name),
+                },
             )
+            if not s.theme_key:
+                s.theme_key = theme_key or theme_key_for(slug, name)
+                s.save(update_fields=["theme_key"])
             subjects[slug] = s
         math = subjects["math"]
 

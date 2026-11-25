@@ -1,5 +1,6 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import client from "../api/client";
 import { whatsappHref } from "../legal/business";
 import "./LandingExact.css";
 
@@ -83,10 +84,10 @@ const STEPS = [
 ];
 
 const SUBJECTS = [
-  { c: "#5f8f2e", bg: "#f1f7e8", logo: "/subjects/math.png", title: "المنطق الرياضي والهندسة" },
-  { c: "#6d28d9", bg: "#f3eefe", logo: "/subjects/physics.png", title: "علم الفيزياء" },
-  { c: "#c0182f", bg: "#fdecee", logo: "/subjects/chem.png", title: "مقدمة في علم الكيمياء" },
-  { c: "#c58a00", bg: "#fff6dc", logo: "/subjects/bio.png", title: "مقدمة في علم الأحياء" },
+  { cls: "s-math", logo: "/subjects/math.png", title: "المنطق الرياضي والهندسة" },
+  { cls: "s-phys", logo: "/subjects/physics.png", title: "علم الفيزياء" },
+  { cls: "s-chem", logo: "/subjects/chem.png", title: "مقدمة في علم الكيمياء" },
+  { cls: "s-bio", logo: "/subjects/bio.png", title: "مقدمة في علم الأحياء" },
 ];
 
 const FAQS = [
@@ -102,6 +103,17 @@ const FAQS = [
 
 export default function LandingExact({ ctaTo = "/register", courseTo = "/login" }) {
   const wa = whatsappHref("مرحبا، أحتاج باقة مخصصة مع مرام");
+  const [seats, setSeats] = useState({ seats_left: 4, full: false });
+
+  useEffect(() => {
+    client
+      .get("/public/landing-stats/")
+      .then((res) => setSeats(res.data || { seats_left: 4, full: false }))
+      .catch(() => {});
+  }, []);
+
+  const seatsLeft = Number(seats.seats_left);
+  const seatsFull = seats.full || seatsLeft <= 0;
 
   return (
     <div className="landing-exact">
@@ -125,8 +137,14 @@ export default function LandingExact({ ctaTo = "/register", courseTo = "/login" 
           </div>
           <div className="seats">
             <span className="pulse" />
-            <b>تبقى 4 مقاعد فقط</b> في المجموعة القادمة
-            <div className="mini"><i style={{ width: "60%" }} /></div>
+            {seatsFull ? (
+              <b>اكتملت المجموعة · سجّل في قائمة الانتظار</b>
+            ) : (
+              <>
+                <b>تبقى {seatsLeft} مقاعد فقط</b> في المجموعة القادمة
+              </>
+            )}
+            <div className="mini"><i style={{ width: seatsFull ? "100%" : `${Math.min(100, (1 - seatsLeft / 10) * 100)}%` }} /></div>
           </div>
           <div className="mimg" aria-hidden="true" />
           <div className="trust">
@@ -216,7 +234,7 @@ export default function LandingExact({ ctaTo = "/register", courseTo = "/login" 
         </div>
         <div className="subj">
           {SUBJECTS.map((s) => (
-            <div className="sc" key={s.title} style={{ "--c": s.c, "--bg": s.bg }}>
+            <div className={`sc ${s.cls}`} key={s.title}>
               <div className="sc-top"><img src={s.logo} alt="" /></div>
               <div className="sc-b">
                 <span className="free">درس مجاني</span>

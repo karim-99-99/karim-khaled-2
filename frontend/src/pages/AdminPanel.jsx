@@ -17,6 +17,7 @@ export default function AdminPanel() {
           ["accounts", "كل الحسابات"],
           ["groups", "المجموعات"],
           ["schedule", "جدول الحصص"],
+          ["parent-reports", "تقارير الأولياء"],
           ["subs", "الاشتراكات"],
           ["payments", "المدفوعات"],
         ].map(([v, t]) => (
@@ -26,8 +27,216 @@ export default function AdminPanel() {
       {tab === "accounts" && <AccountsTab />}
       {tab === "groups" && <GroupsTab />}
       {tab === "schedule" && <ScheduleTab />}
+      {tab === "parent-reports" && <ParentReportsTab />}
       {tab === "subs" && <SubsTab />}
       {tab === "payments" && <PaymentsTab />}
+    </div>
+  );
+}
+
+function ParentReportsTab() {
+  const [q, setQ] = useState("");
+  const [students, setStudents] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [reports, setReports] = useState(null);
+  const [linkInfo, setLinkInfo] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    client
+      .get("/admin/accounts/")
+      .then((res) => setStudents(res.data.students || []))
+      .catch(() => setStudents([]));
+  }, []);
+
+  const filtered = students.filter((s) => {
+    const term = q.trim().toLowerCase();
+    if (!term) return true;
+    return (
+      (s.full_name || "").toLowerCase().includes(term) ||
+      (s.phone || "").includes(term) ||
+      (s.email || "").toLowerCase().includes(term) ||
+      String(s.id) === term
+    );
+  }).slice(0, 40);
+
+  async function openStudent(s) {
+    setSelected(s);
+    setBusy(true);
+    setMsg("");
+    try {
+      const [rep, link] = await Promise.all([
+        client.get(`/teacher/students/${s.id}/reports/`),
+        client.get(`/admin/students/${s.id}/parent-link/`),
+      ]);
+      setReports(rep.data);
+      setLinkInfo(link.data);
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر التحميل");
+      setReports(null);
+      setLinkInfo(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function unlink(linkId) {
+    if (!selected || !confirm("فك ربط ولي الأمر هذا؟")) return;
+    setBusy(true);
+    try {
+      await client.delete(
+        `/admin/students/${selected.id}/parent-link/?link_id=${linkId}`,
+      );
+      const { data } = await client.get(`/admin/students/${selected.id}/parent-link/`);
+      setLinkInfo(data);
+      setMsg("تم فك الربط");
+    } catch (e) {
+      setMsg(e.response?.data?.detail || "تعذّر فك الربط");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(240px,320px) 1fr", gap: 16, alignItems: "start" }}>
+      <div className="card" style={{ padding: 14 }}>
+        <h2 style={{ fontSize: 18, marginTop: 0 }}>بحث بالطالب</h2>
+        <input
+          className="form-control"
+          placeholder="اسم / جوال / رقم"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          style={{ marginBottom: 12 }}
+        />
+        <div style={{ maxHeight: 520, overflowY: "auto" }}>
+          {filtered.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => openStudent(s)}
+              style={{
+                display: "block",
+                width: "100%",
+                textAlign: "right",
+                border: 0,
+                background: selected?.id === s.id ? "var(--primary-light, #eef4ff)" : "transparent",
+                padding: "10px 8px",
+                borderRadius: 10,
+                cursor: "pointer",
+                marginBottom: 4,
+              }}
+            >
+              <strong>{s.full_name || "—"}</strong>
+              <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                #{s.id}
+                {s.parent_telegram?.linked
+                  ? ` · مربوط (${s.parent_telegram.linked_count})`
+                  : " · غير مربوط"}
+              </div>
+            </button>
+          ))}
+          {!filtered.length && (
+            <p style={{ color: "var(--text-muted)" }}>لا نتائج</p>
+          )}
+        </div>
+      </div>
+
+      <div>
+        {!selected && (
+          <p style={{ color: "var(--text-muted)" }}>اختر طالباً لعرض تايم لاين تقارير أولياء الأمور.</p>
+        )}
+        {msg && <div className="banner" style={{ marginBottom: 12 }}>{msg}</div>}
+        {busy && <div className="spinner">جاري التحميل…</div>}
+        {selected && !busy && (
+          <>
+            <h2 style={{ fontSize: 22, marginTop: 0 }}>
+              تقارير {reports?.student?.full_name || selected.full_name}
+            </h2>
+            {linkInfo && (
+              <div className="card" style={{ padding: 14, marginBottom: 14 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                  <div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>كود الربط</div>
+                    <code>{linkInfo.code}</code>
+                    {linkInfo.url ? (
+                      <div style={{ fontSize: 13, marginTop: 6, wordBreak: "break-all" }}>{linkInfo.url}</div>
+                    ) : null}
+                  </div>
+                </div>
+                {(linkInfo.links || []).length === 0 && (
+                  <p style={{ color: "var(--text-muted)", marginBottom: 0, marginTop: 10 }}>لا أولياء مربوطين</p>
+                )}
+                {(linkInfo.links || []).map((p) => (
+                  <div
+                    key={p.id}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      alignItems: "center",
+                      marginTop: 10,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span>
+                      {p.display_name || p.username || p.chat_id}
+                      {!p.is_active ? " (موقوف)" : ""}
+                    </span>
+                    {p.is_active && (
+                      <button type="button" className="btn btn-sm btn-ghost" onClick={() => unlink(p.id)}>
+                        فك الربط
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {(reports?.reports || []).length === 0 && (
+              <p style={{ color: "var(--text-muted)" }}>لا تقارير بعد.</p>
+            )}
+            <div style={{ display: "grid", gap: 12 }}>
+              {(reports?.reports || []).map((r) => (
+                <div key={r.id} className="card" style={{ padding: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
+                    <strong>
+                      {r.report_type === "reminder" ? "تذكير مهام" : "تقرير حصة"}
+                      {r.subject_name ? ` · ${r.subject_name}` : ""}
+                    </strong>
+                    <span
+                      className={`badge ${
+                        r.status === "sent"
+                          ? "badge-active"
+                          : r.status === "no_parent"
+                            ? "badge-expired"
+                            : "badge-expired"
+                      }`}
+                    >
+                      {r.status}
+                    </span>
+                  </div>
+                  <div style={{ color: "var(--text-muted)", fontSize: 13, margin: "6px 0 10px" }}>
+                    {r.sent_at || r.created_at}
+                    {r.created_by_name ? ` · ${r.created_by_name}` : ""}
+                  </div>
+                  <pre
+                    style={{
+                      whiteSpace: "pre-wrap",
+                      fontFamily: "inherit",
+                      margin: 0,
+                      background: "#f8fafc",
+                      padding: 12,
+                      borderRadius: 12,
+                    }}
+                  >
+                    {r.content_text}
+                  </pre>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -202,19 +411,30 @@ function AccountsTab() {
     }
   }
 
-  async function changeTeacherSubject(teacherId, subjectId) {
+  async function changeTeacherSubject(teacherId, subjectId, subjectRole) {
     if (!subjectId) return;
+    const role =
+      subjectRole ||
+      data?.teachers?.find((t) => t.id === teacherId)?.subject_role ||
+      "main";
     try {
       const { data: res } = await client.patch(`/admin/users/${teacherId}/set-subject/`, {
         taught_subject: Number(subjectId),
+        subject_role: role,
       });
       const subj = subjects.find((s) => Number(s.id) === Number(subjectId));
       patchTeacher(teacherId, {
         subject_id: Number(subjectId),
-        subject_name: res?.taught_subject_name || subj?.name || res?.subject_name,
+        subject_name: res?.subject_name || res?.taught_subject_name || subj?.name,
+        subject_role: res?.subject_role || role,
       });
+      if (Array.isArray(res?.subjects_missing_main)) {
+        setData((d) => (d ? { ...d, subjects_missing_main: res.subjects_missing_main } : d));
+      } else {
+        load(true);
+      }
     } catch (e) {
-      window.alert(e.response?.data?.detail || "تعذّر تغيير المادة");
+      window.alert(e.response?.data?.detail || "تعذّر تغيير المادة / الدور");
     }
   }
 
@@ -361,6 +581,7 @@ function AccountsTab() {
                 <th>مدة الاشتراك</th>
                 <th>ينتهي في</th>
                 <th>المجموعات</th>
+                <th>ولي الأمر (تليجرام)</th>
                 <th>كلمة المرور</th>
                 <th>الحساب</th>
               </tr>
@@ -401,6 +622,20 @@ function AccountsTab() {
                   <td>
                     {s.groups.length ? s.groups.join("، ") : <span style={{ color: "var(--text-muted)" }}>بدون مجموعة</span>}
                   </td>
+                  <td style={{ fontSize: 13 }}>
+                    {s.parent_telegram?.linked ? (
+                      <span className="badge badge-active">
+                        مربوط ({s.parent_telegram.linked_count})
+                      </span>
+                    ) : (
+                      <span className="badge badge-expired">غير مربوط</span>
+                    )}
+                    {s.parent_telegram?.code ? (
+                      <div style={{ color: "var(--text-muted)", marginTop: 4 }}>
+                        <code>{s.parent_telegram.code}</code>
+                      </div>
+                    ) : null}
+                  </td>
                   <td style={{ whiteSpace: "nowrap", fontSize: 13 }}>
                     {s.has_usable_password ? (
                       <span className="badge badge-active">معيّنة</span>
@@ -433,6 +668,14 @@ function AccountsTab() {
 
       {view === "teachers" && (
         <div className="card" style={{ padding: 12, overflowX: "auto" }}>
+          {(data.subjects_missing_main || []).length > 0 && (
+            <div className="banner" style={{ marginBottom: 12 }}>
+              مواد بلا مدرس أساسي — الأدمن فقط يعدّل محتواها حتى تعيين أساسي:{" "}
+              <strong>
+                {(data.subjects_missing_main || []).map((s) => s.name).join("، ")}
+              </strong>
+            </div>
+          )}
           <table className="table">
             <thead>
               <tr>
@@ -440,6 +683,7 @@ function AccountsTab() {
                 <th>التواصل</th>
                 <th>التليفون</th>
                 <th>المادة</th>
+                <th>الدور</th>
                 <th>عدد المجموعات</th>
                 <th>المجموعات</th>
                 <th>كلمة المرور</th>
@@ -460,12 +704,28 @@ function AccountsTab() {
                       className="form-control"
                       style={{ minWidth: 140 }}
                       value={t.subject_id || ""}
-                      onChange={(e) => changeTeacherSubject(t.id, e.target.value)}
+                      onChange={(e) =>
+                        changeTeacherSubject(t.id, e.target.value, t.subject_role || "main")
+                      }
                     >
                       <option value="">غير محددة</option>
                       {subjects.map((s) => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
+                    </select>
+                  </td>
+                  <td>
+                    <select
+                      className="form-control"
+                      style={{ minWidth: 120 }}
+                      value={t.subject_role || "secondary"}
+                      disabled={!t.subject_id}
+                      onChange={(e) =>
+                        changeTeacherSubject(t.id, t.subject_id, e.target.value)
+                      }
+                    >
+                      <option value="main">أساسي</option>
+                      <option value="secondary">ثانوي</option>
                     </select>
                   </td>
                   <td><strong>{t.groups_count}</strong></td>
@@ -524,6 +784,7 @@ function PendingRow({ account, subjects, onDone }) {
       await client.patch(`/admin/users/${account.id}/set-role/`, {
         role,
         taught_subject: role === "teacher" ? Number(subjectId) : null,
+        subject_role: role === "teacher" ? "main" : undefined,
       });
       if (role === "student" && Number(days) > 0) {
         await client.post(`/admin/users/${account.id}/grant-subscription/`, {
@@ -909,6 +1170,7 @@ function ScheduleTab() {
     title: "",
     title_override: "",
     session_type: "foundation",
+    lesson: "",
     group: "",
     subject: "",
     start_time: "",
@@ -984,10 +1246,14 @@ function ScheduleTab() {
     setMsg("");
   }
 
-  async function save() {
+  async function save(confirmOverlap = false) {
     setMsg("");
     if (!form.group || !form.subject || !form.start_time) {
       setMsg("اختر المجموعة والمادة وموعد الحصة");
+      return;
+    }
+    if (form.session_type === "extra" && !(form.title_override || "").trim()) {
+      setMsg("للحصة الإضافية اكتب العنوان (مثال: المثلثات — حصة إضافية)");
       return;
     }
     setBusy(true);
@@ -995,11 +1261,13 @@ function ScheduleTab() {
       title: (form.title || "").trim(),
       title_override: (form.title_override || "").trim(),
       session_type: form.session_type || "foundation",
+      lesson: form.lesson ? Number(form.lesson) : null,
       group: Number(form.group),
       subject: Number(form.subject),
       start_time: form.start_time,
       duration_minutes: Number(form.duration_minutes) || 60,
       status: form.status,
+      confirm_overlap: confirmOverlap || undefined,
     };
     try {
       if (editingId) {
@@ -1010,7 +1278,18 @@ function ScheduleTab() {
       resetForm();
       load();
     } catch (e) {
-      setMsg(e.response?.data?.detail || "تعذّر حفظ الحصة");
+      const detail =
+        e.response?.data?.start_time?.[0] ||
+        e.response?.data?.title_override?.[0] ||
+        e.response?.data?.detail ||
+        "تعذّر حفظ الحصة";
+      if (String(detail).includes("تحذير") && !confirmOverlap) {
+        if (window.confirm(`${detail}\n\nالمتابعة رغم التعارض؟`)) {
+          await save(true);
+          return;
+        }
+      }
+      setMsg(detail);
     } finally {
       setBusy(false);
     }
@@ -1023,6 +1302,7 @@ function ScheduleTab() {
       title: s.title || "",
       title_override: s.title_override || "",
       session_type: s.session_type || "foundation",
+      lesson: s.lesson ? String(s.lesson) : "",
       group: s.group ? String(s.group) : "",
       subject: s.subject ? String(s.subject) : "",
       start_time: s.start_time ? s.start_time.slice(0, 16) : "",
@@ -1062,15 +1342,33 @@ function ScheduleTab() {
           </div>
 
           {form.session_type === "extra" && (
-            <div className="form-group">
-              <label>عنوان الحصة الإضافية</label>
-              <input
-                className="form-control"
-                value={form.title_override}
-                onChange={(e) => set("title_override", e.target.value)}
-                placeholder="مثال: المثلثات — حصة إضافية"
-              />
-            </div>
+            <>
+              <div className="form-group">
+                <label>عنوان الحصة الإضافية</label>
+                <input
+                  className="form-control"
+                  value={form.title_override}
+                  onChange={(e) => set("title_override", e.target.value)}
+                  placeholder="مثال: المثلثات — حصة إضافية"
+                />
+              </div>
+              <div className="form-group">
+                <label>ربط اختياري بدرس تأسيس (للعرض فقط)</label>
+                <select
+                  className="form-control"
+                  value={form.lesson || ""}
+                  onChange={(e) => set("lesson", e.target.value)}
+                  disabled={!form.subject}
+                >
+                  <option value="">بدون ربط</option>
+                  {lessons.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.order_number}. {l.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
           )}
 
           <div className="form-group">
@@ -1189,8 +1487,14 @@ function ScheduleTab() {
 
           {msg && <div className="banner">{msg}</div>}
           <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-primary" style={{ flex: 1 }} disabled={busy} onClick={save}>
-              {busy ? "…" : editingId ? "حفظ التعديل" : "إضافة الحصة"}
+            <button className="btn btn-primary" style={{ flex: 1 }} disabled={busy} onClick={() => save()}>
+              {busy
+                ? "…"
+                : editingId
+                  ? "حفظ التعديل"
+                  : form.session_type === "extra"
+                    ? "إضافة حصة إضافية"
+                    : "إضافة الحصة"}
             </button>
             {editingId && (
               <button className="btn btn-ghost" onClick={resetForm}>إلغاء</button>
@@ -1205,7 +1509,7 @@ function ScheduleTab() {
           )}
           {sessions.map((s) => {
             const when = formatSessionWhen(s.start_time);
-            const subjectKey = resolveSubjectKey(s.subject_name) || "math";
+            const subjectKey = resolveSubjectKey(s);
             return (
               <div
                 key={s.id}
@@ -1227,6 +1531,9 @@ function ScheduleTab() {
                 </div>
                 <div style={{ flex: 1, minWidth: 160 }}>
                   <strong className="session-card__title">{sessionDisplayTitle(s)}</strong>{" "}
+                  {(s.is_extra || s.session_type === "extra") && (
+                    <span className="badge" style={{ marginInlineStart: 6 }}>حصة إضافية</span>
+                  )}
                   {effectiveSessionStatus(s) === "live" && <span className="badge badge-live">مباشر</span>}
                   <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
                     {s.subject_name}

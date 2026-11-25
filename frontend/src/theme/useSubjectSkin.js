@@ -48,41 +48,19 @@ export default function useSubjectSkin(subjectId) {
     };
   }, [subjectId]);
 
-  const key = resolveSubjectKey(subject?.name) || "math";
+  const key = resolveSubjectKey(subject);
   const theme = getSubjectTheme(key);
-  const color = theme?.color || "#156eb0";
-  const soft = theme?.soft || "#e8f3fb";
-  const darkByKey = {
-    math: "#3f6a1f",
-    physics: "#4c1d95",
-    chem: "#8f1022",
-    bio: "#8a6100",
-    multi: "#0d467d",
-  };
-  const soft2ByKey = {
-    math: "#d7e8c2",
-    physics: "#e9defd",
-    chem: "#fde3e6",
-    bio: "#fdeec0",
-    multi: "#d6eaf8",
-  };
-  const lineByKey = {
-    math: "#e7ecdf",
-    physics: "#ece8f5",
-    chem: "#f3e4e6",
-    bio: "#f1e8d2",
-    multi: "#edf0f6",
-  };
+  const color = theme?.color || "var(--blue)";
+  const soft = theme?.soft || "var(--primary-light)";
+  const dark = theme?.dark || "var(--navy)";
   const skin = {
     "--g": color,
-    "--gd": darkByKey[key] || color,
+    "--gd": dark,
     "--gl": soft,
-    "--gl2": soft2ByKey[key] || soft,
-    "--gb": soft2ByKey[key] || soft,
-    "--line": lineByKey[key] || "#edf0f6",
-    "--mu": "#6b7280",
+    "--gl2": soft,
+    "--gb": soft,
     "--y": color,
-    "--yd": darkByKey[key] || color,
+    "--yd": dark,
   };
 
   return {

@@ -8,6 +8,7 @@ from .models import Session, SessionAttendance, TeacherAvailability
 
 class SessionSerializer(serializers.ModelSerializer):
     subject_name = serializers.CharField(source="subject.name", read_only=True)
+    subject_theme_key = serializers.SerializerMethodField()
     group_name = serializers.CharField(source="group.name", read_only=True, default="")
     display_title = serializers.CharField(read_only=True)
     session_number = serializers.SerializerMethodField()
@@ -16,6 +17,7 @@ class SessionSerializer(serializers.ModelSerializer):
     bbb_configured = serializers.SerializerMethodField()
     join_mode = serializers.SerializerMethodField()
     is_extra = serializers.BooleanField(read_only=True)
+    lesson_title = serializers.CharField(source="lesson.title", read_only=True, default="")
 
     class Meta:
         model = Session
@@ -28,6 +30,9 @@ class SessionSerializer(serializers.ModelSerializer):
             "is_extra",
             "subject",
             "subject_name",
+            "subject_theme_key",
+            "lesson",
+            "lesson_title",
             "group",
             "group_name",
             "teacher",
@@ -50,6 +55,8 @@ class SessionSerializer(serializers.ModelSerializer):
             "display_title",
             "is_extra",
             "subject_name",
+            "subject_theme_key",
+            "lesson_title",
             "group_name",
             "teacher_name",
             "session_number",
@@ -62,6 +69,20 @@ class SessionSerializer(serializers.ModelSerializer):
             "join_mode",
         ]
 
+    def get_subject_theme_key(self, obj):
+        subject = getattr(obj, "subject", None)
+        return getattr(subject, "theme_key", "") or ""
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        name = data.get("teacher_name")
+        if not (isinstance(name, str) and name.strip()) and getattr(instance, "teacher_id", None):
+            teacher = getattr(instance, "teacher", None)
+            full_name = getattr(teacher, "full_name", "") if teacher else ""
+            if isinstance(full_name, str) and full_name.strip():
+                data["teacher_name"] = full_name.strip()
+        return data
+
     def _build_session_numbers(self):
         """Number sessions chronologically within each subject (+ group)."""
         cache = self.context.get("_session_numbers")
@@ -72,8 +93,11 @@ class SessionSerializer(serializers.ModelSerializer):
         if qs is None:
             self.context["_session_numbers"] = cache
             return cache
-        rows = qs.order_by("start_time", "id").values_list(
-            "id", "subject_id", "group_id"
+        # Number foundation classes only — extras keep a badge, not a foundation index.
+        rows = (
+            qs.filter(session_type=Session.SessionType.FOUNDATION)
+            .order_by("start_time", "id")
+            .values_list("id", "subject_id", "group_id")
         )
         counters = {}
         for sid, subject_id, group_id in rows:
@@ -98,20 +122,22 @@ class SessionSerializer(serializers.ModelSerializer):
         return "none"
 
     def get_session_number(self, obj):
+        if getattr(obj, "session_type", None) == Session.SessionType.EXTRA:
+            return None
         cache = self._build_session_numbers()
         if obj.id in cache:
             return cache[obj.id]
-        earlier = Session.objects.filter(subject_id=obj.subject_id)
+        earlier = Session.objects.filter(
+            subject_id=obj.subject_id, session_type=Session.SessionType.FOUNDATION
+        )
         if obj.group_id:
             earlier = earlier.filter(group_id=obj.group_id)
         else:
             earlier = earlier.filter(group_id__isnull=True)
-        return (
-            earlier.filter(
-                Q(start_time__lt=obj.start_time)
-                | Q(start_time=obj.start_time, id__lte=obj.id)
-            ).count()
-        )
+        return earlier.filter(
+            Q(start_time__lt=obj.start_time)
+            | Q(start_time=obj.start_time, id__lte=obj.id)
+        ).count()
 
     def get_my_attendance(self, obj):
         """Student's own present/absent status (null if not marked)."""
@@ -159,6 +185,9 @@ class SessionSerializer(serializers.ModelSerializer):
         if user.is_teacher and not user.is_admin_role:
             for name in (
                 "title",
+                "title_override",
+                "session_type",
+                "lesson",
                 "subject",
                 "group",
                 "teacher",
@@ -171,7 +200,7 @@ class SessionSerializer(serializers.ModelSerializer):
                 self.fields["teacher_joined_zoom"].read_only = False
 
     def validate(self, attrs):
-        """Reject overlapping sessions for the same teacher or group."""
+        """Reject overlapping sessions for the same teacher or group (admin may confirm)."""
         start = attrs.get("start_time", getattr(self.instance, "start_time", None))
         duration = (
             attrs.get(
@@ -181,6 +210,16 @@ class SessionSerializer(serializers.ModelSerializer):
         )
         teacher = attrs.get("teacher", getattr(self.instance, "teacher", None))
         group = attrs.get("group", getattr(self.instance, "group", None))
+        session_type = attrs.get(
+            "session_type", getattr(self.instance, "session_type", Session.SessionType.FOUNDATION)
+        )
+        title_override = attrs.get(
+            "title_override", getattr(self.instance, "title_override", "")
+        )
+        if session_type == Session.SessionType.EXTRA and not (title_override or "").strip():
+            raise serializers.ValidationError(
+                {"title_override": "عنوان الحصة الإضافية مطلوب (يكتبه المدير)."}
+            )
         if not start:
             return attrs
         end = start + timedelta(minutes=duration)
@@ -194,54 +233,105 @@ class SessionSerializer(serializers.ModelSerializer):
         )
         teacher_id = getattr(teacher, "id", teacher) if teacher else None
         group_id = getattr(group, "id", group) if group else None
+        request = self.context.get("request")
+        confirm_overlap = False
+        if request is not None:
+            raw = request.data.get("confirm_overlap")
+            confirm_overlap = raw in (True, "true", "1", 1)
+            if confirm_overlap and not getattr(request.user, "is_admin_role", False):
+                confirm_overlap = False
         for row in candidates:
             row_end = row.start_time + timedelta(minutes=row.duration_minutes or 60)
             if not (row.start_time < end and row_end > start):
                 continue
             label = (
-                (row.title or "").strip()
+                (row.title_override or "").strip()
+                or (row.title or "").strip()
                 or (row.subject.name if row.subject_id else "")
                 or f"#{row.id}"
             )
             if teacher_id and row.teacher_id == teacher_id:
-                raise serializers.ValidationError(
-                    {
-                        "start_time": (
-                            f"تعارض موعد مع حصة «{label}» لنفس المدرس "
-                            f"({row.start_time.strftime('%Y-%m-%d %H:%M')})."
-                        )
-                    }
+                msg = (
+                    f"تحذير: تعارض موعد مع حصة «{label}» لنفس المدرس "
+                    f"({row.start_time.strftime('%Y-%m-%d %H:%M')})."
                 )
+                if confirm_overlap:
+                    continue
+                raise serializers.ValidationError({"start_time": msg})
             if group_id and row.group_id == group_id:
-                raise serializers.ValidationError(
-                    {
-                        "start_time": (
-                            f"تعارض موعد مع حصة «{label}» لنفس المجموعة "
-                            f"({row.start_time.strftime('%Y-%m-%d %H:%M')})."
-                        )
-                    }
+                msg = (
+                    f"تحذير: تعارض موعد مع حصة «{label}» لنفس المجموعة "
+                    f"({row.start_time.strftime('%Y-%m-%d %H:%M')}). "
+                    "أعد الإرسال مع confirm_overlap=true إن أردت المتابعة."
                 )
+                if confirm_overlap:
+                    continue
+                raise serializers.ValidationError({"start_time": msg})
 
-        # Must fall inside teacher's declared availability (if any slots exist)
+        # Session must sit entirely inside one teacher availability window (Task 29).
         if teacher_id:
+            from core.time_rules import to_riyadh
+
+            local_start = to_riyadh(start) or start
+            local_end = to_riyadh(end) or end
+            weekday = local_start.weekday()
+            st = local_start.time().replace(second=0, microsecond=0)
+            et = local_end.time().replace(second=0, microsecond=0)
             slots = list(
                 TeacherAvailability.objects.filter(
-                    teacher_id=teacher_id, weekday=start.weekday()
-                )
+                    teacher_id=teacher_id, weekday=weekday
+                ).order_by("start_time")
             )
-            if slots:
-                st = start.time()
-                et = end.time()
-                ok = any(slot.start_time <= st and slot.end_time >= et for slot in slots)
-                if not ok:
+            day_names = (
+                "الاثنين",
+                "الثلاثاء",
+                "الأربعاء",
+                "الخميس",
+                "الجمعة",
+                "السبت",
+                "الأحد",
+            )
+            day_label = day_names[weekday]
+
+            def _fmt(t):
+                h, m = t.hour, t.minute
+                suffix = "ص" if h < 12 else "م"
+                h12 = h % 12 or 12
+                return f"{h12}:{m:02d} {suffix}"
+
+            if not slots:
+                # No windows at all → admin cannot place any class for this teacher.
+                any_slots = TeacherAvailability.objects.filter(
+                    teacher_id=teacher_id
+                ).exists()
+                if not any_slots:
                     raise serializers.ValidationError(
                         {
                             "start_time": (
-                                "الموعد خارج أوقات المعلم المتاحة. "
-                                "اختر فترة ضمن مواعيده أو حدّث صفحة المواعي المتاحة."
+                                "المدرس مش متاح في الوقت ده · "
+                                "ما عندوش مواعيد متاحة محفوظة. خلّيه يحدّد مواعيده أولاً."
                             )
                         }
                     )
+                raise serializers.ValidationError(
+                    {
+                        "start_time": (
+                            f"المدرس مش متاح في الوقت ده · مفيش فترات يوم {day_label}."
+                        )
+                    }
+                )
+            ok = any(slot.start_time <= st and slot.end_time >= et for slot in slots)
+            if not ok:
+                windows = " · ".join(
+                    f"{_fmt(s.start_time)}–{_fmt(s.end_time)}" for s in slots
+                )
+                raise serializers.ValidationError(
+                    {
+                        "start_time": (
+                            f"المدرس مش متاح في الوقت ده · فتراته يوم {day_label}: {windows}"
+                        )
+                    }
+                )
         return attrs
 
 
